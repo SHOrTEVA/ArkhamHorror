@@ -669,11 +669,16 @@ section {
 
   color: #222;
   max-width: 50vw;
+  @media (max-width: 768px) {
+    max-width: 100%;
+  }
   text-align: justify;
+  text-justify: inter-character;
+
   background: linear-gradient(#DFDAD8, #c9c4c2);
   padding: 10px;
   border-radius: 5px;
-  font-size: 1.1em;
+  font-size: 1.2em;
   -moz-osx-font-smoothing: grayscale;
   -webkit-font-smoothing: antialiased !important;
   -moz-font-smoothing: antialiased !important;
