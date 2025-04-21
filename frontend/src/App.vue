@@ -516,6 +516,10 @@ footer {
   width: 100%;
   text-align: center;
   z-index: 100;
+
+  @media (max-width: 800px) and (orientation: portrait) {
+    display: none;
+  }
 }
 
 .column {

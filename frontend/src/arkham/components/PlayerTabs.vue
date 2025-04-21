@@ -153,6 +153,10 @@ ul.tabs__header {
   margin: 0;
   user-select: none;
   padding-left: 5px;
+
+  @media screen and (max-width: 768px) {
+    display: none;
+  }
 }
 
 ul.tabs__header > li {
