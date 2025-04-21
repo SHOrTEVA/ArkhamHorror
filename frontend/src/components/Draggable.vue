@@ -200,12 +200,13 @@ onMounted(() => {
   transition-behavior: allow-discrete;
   width: clamp(300px, 50vw, 80%);
   max-width: fit-content;
+  max-height: 80%; 
+  display: flex;
+  flex-direction: column;
+
   @media (max-width: 768px) {
     max-width: 100%;
   }
-  max-height: 80%;
-  display: flex;
-  flex-direction: column;
 
   &.minimized {
     header .header-title {

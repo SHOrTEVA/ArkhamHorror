@@ -669,9 +669,6 @@ section {
 
   color: #222;
   max-width: 50vw;
-  @media (max-width: 768px) {
-    max-width: 100%;
-  }
   text-align: justify;
   text-justify: inter-character;
 
@@ -689,7 +686,10 @@ section {
   display: flex;
   flex-direction: column;
   gap: 10px;
-
+  
+  @media (max-width: 768px) {
+    max-width: 100%;
+  }
   &:has(.resolution) {
     background: #BAA898;
   }

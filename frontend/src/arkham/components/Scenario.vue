@@ -78,7 +78,7 @@ const needsInit = ref(true)
 const showChaosBag = ref(false)
 const showOutOfPlay = ref(false)
 const forcedShowOutOfPlay = ref(false)
-const locationMap = ref<Element | null>(null)
+const locationMap = ref<HTMLElement | null>(null)
 const viewingDiscard = ref(false)
 const cardRowTitle = ref("")
 // Atlach Nacha specific refs
@@ -95,6 +95,38 @@ onMounted(() => {
     })
   }
 });
+
+// Function to toggle zoom
+function toggleZoom(event: MouseEvent) {
+  const container = locationMap.value;
+
+  if (!container) {
+    console.error("locationMap is not set or is not an HTMLElement.");
+    return;
+  }
+
+  // Ensure the container is scrollable before zooming in
+  container.style.overflow = 'scroll';
+  const rect = container.getBoundingClientRect();
+  const offsetX = event.clientX - rect.left;
+  const offsetY = event.clientY - rect.top;
+
+  if (locationsZoom.value === 1) {
+    // Zoom in
+    locationsZoom.value = 5;
+
+    const scrollX = (offsetX * locationsZoom.value) - (container.clientWidth / 2);
+    const scrollY = (offsetY * locationsZoom.value) - (container.clientHeight / 2);
+
+    container.scrollLeft = scrollX;
+    container.scrollTop = scrollY;
+  } else {
+    // Zoom out
+    locationsZoom.value = 1;
+    container.scrollLeft = 0;
+    container.scrollTop = 0;
+  }
+}
 
 onUpdated(() => {
   if(props.scenario.id === "c06333") {
@@ -731,7 +763,7 @@ const showVictoryDisplay = () => doShowCards(victoryDisplay, t('scenario.victory
       <div class="location-cards-container">
         <Connections :game="game" :playerId="playerId" />
         <input v-model="locationsZoom" type="range" min="1" max="3" step="0.25" class="zoomer" />
-        <transition-group name="map" tag="div" ref="locationMap" class="location-cards" :style="locationStyles" @before-leave="beforeLeave">
+        <transition-group name="map" tag="div" ref="locationMap" class="location-cards" :style="locationStyles" @before-leave="beforeLeave" @dblclick.passive.capture="toggleZoom">
           <Location
             v-for="location in locations"
             class="location"
@@ -764,12 +796,12 @@ const showVictoryDisplay = () => doShowCards(victoryDisplay, t('scenario.victory
           <template v-if="scenario.usesGrid">
             <template v-for="u in unusedLabels" :key="u">
               <div
-                v-if="unusedCanInteract(u) !== -1"
-                class="empty-grid-position card"
-                :class="{ 'can-interact': unusedCanInteract(u) !== -1}"
-                :style="{ 'grid-area': u}"
-                @click="choose(unusedCanInteract(u))"
-                >
+          v-if="unusedCanInteract(u) !== -1"
+          class="empty-grid-position card"
+          :class="{ 'can-interact': unusedCanInteract(u) !== -1}"
+          :style="{ 'grid-area': u}"
+          @click="choose(unusedCanInteract(u))"
+          >
               </div>
             </template>
           </template>
@@ -1074,6 +1106,10 @@ const showVictoryDisplay = () => doShowCards(victoryDisplay, t('scenario.victory
     flex: 1;
     text-align: center;
   }
+
+  @media (max-width: 768px) and (orientation: portrait) {
+    display: none;
+  }
 }
 
 
@@ -1365,6 +1401,10 @@ const showVictoryDisplay = () => doShowCards(victoryDisplay, t('scenario.victory
   position: absolute;
   right: 10px;
   bottom: 10px;
+
+  @media (max-width: 768px) and (orientation: portrait) {
+    display: none;
+  }
 }
 
 @media screen and (max-width: 400px) {
