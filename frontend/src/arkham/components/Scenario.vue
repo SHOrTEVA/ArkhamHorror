@@ -78,7 +78,7 @@ const needsInit = ref(true)
 const showChaosBag = ref(false)
 const showOutOfPlay = ref(false)
 const forcedShowOutOfPlay = ref(false)
-const locationMap = ref<HTMLElement | null>(null)
+const locationMap = ref<HTMLElement | null>(null);
 const viewingDiscard = ref(false)
 const cardRowTitle = ref("")
 // Atlach Nacha specific refs
@@ -94,6 +94,12 @@ onMounted(() => {
       rotateImages(true);
     })
   }
+  locationMap.value = document.querySelector(".location-cards-container");
+  if (locationMap.value instanceof HTMLElement) {
+    console.log(locationMap.value);
+  } else {
+    console.log("locationMap is not initialized yet or is not an HTMLElement.");
+  }
 });
 
 // Function to toggle zoom
@@ -104,7 +110,11 @@ function toggleZoom(event: MouseEvent) {
     console.error("locationMap is not set or is not an HTMLElement.");
     return;
   }
-
+  if (locationMap.value instanceof HTMLElement) {
+    console.log(locationMap.value);
+  } else {
+    console.log("locationMap is not initialized yet or is not an HTMLElement.");
+  }
   // Ensure the container is scrollable before zooming in
   container.style.overflow = 'scroll';
   const rect = container.getBoundingClientRect();
