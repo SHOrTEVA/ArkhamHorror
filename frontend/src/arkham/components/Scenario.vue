@@ -114,25 +114,32 @@ function toggleZoom(event: MouseEvent) {
     console.log("locationMap is not initialized yet or is not an HTMLElement.");
   }
   // Ensure the container is scrollable before zooming in
-  container.style.overflow = 'scroll';
-  const rect = container.getBoundingClientRect();
-  const offsetX = event.clientX - rect.left;
-  const offsetY = event.clientY - rect.top;
-
+  //container.style.overflow = 'scroll';
+  //const rect = container.getBoundingClientRect();
+  const offsetX = event.clientX; //- rect.left;
+  const offsetY = event.clientY; //- rect.top;
+  console.log(offsetX, offsetY);
   if (locationsZoom.value === 1) {
     // Zoom in
     locationsZoom.value = 5;
 
     const scrollX = (offsetX * locationsZoom.value) - (container.clientWidth / 2);
     const scrollY = (offsetY * locationsZoom.value) - (container.clientHeight / 2);
-
+    console.log(scrollX, scrollY);
     container.scrollLeft = scrollX;
     container.scrollTop = scrollY;
+    console.log(scrollX,scrollY);
   } else {
     // Zoom out
     locationsZoom.value = 1;
-    container.scrollLeft = 0;
-    container.scrollTop = 0;
+    const centerX = container.scrollLeft + container.clientWidth / 2;
+    const centerY = container.scrollTop + container.clientHeight / 2;
+
+    const newScrollX = centerX / locationsZoom.value - container.clientWidth / 2;
+    const newScrollY = centerY / locationsZoom.value - container.clientHeight / 2;
+
+    container.scrollLeft = newScrollX;
+    container.scrollTop = newScrollY;
   }
 }
 
