@@ -60,6 +60,14 @@ export interface Props {
   scenario: Scenario
   playerId: string
 }
+
+const scrollableDiv = ref<HTMLElement | null>(null);
+const scrollToBottom = () => {
+  if (scrollableDiv.value) {
+    scrollableDiv.value.scrollTop = scrollableDiv.value.scrollHeight;
+  }
+};
+
 const props = defineProps<Props>()
 const emit = defineEmits(['choose'])
 const debug = useDebug()
@@ -94,42 +102,43 @@ onMounted(() => {
       rotateImages(true);
     })
   }
-  locationMap.value = document.querySelector(".location-cards-container");
+  locationMap.value = document.querySelector(".location-cards");
   if (locationMap.value instanceof HTMLElement) {
     console.log(locationMap.value);
   } else {
     console.log("locationMap is not initialized yet or is not an HTMLElement.");
   }
+  scrollToBottom();
 });
 
 // Function to toggle zoom
 function toggleZoom(event: MouseEvent) {
-  const container = locationMap.value;
+  const container = document.querySelector(".location-cards");
 
   if (!container) {
     console.error("locationMap is not set or is not an HTMLElement.");
     return;
   }
-  if (locationMap.value instanceof HTMLElement) {
-    console.log(locationMap.value);
-  } else {
-    console.log("locationMap is not initialized yet or is not an HTMLElement.");
-  }
+
   // Ensure the container is scrollable before zooming in
-  //container.style.overflow = 'scroll';
-  //const rect = container.getBoundingClientRect();
-  const offsetX = event.clientX; //- rect.left;
-  const offsetY = event.clientY; //- rect.top;
-  console.log(offsetX, offsetY);
+  container.style.overflow = 'scroll';
+  const rect = container.getBoundingClientRect();
+  const offsetX = event.clientX - rect.left;
+  const offsetY = event.clientY- rect.top;
+  //console.log(offsetX, offsetY);
   if (locationsZoom.value === 1) {
     // Zoom in
     locationsZoom.value = 5;
 
     const scrollX = (offsetX * locationsZoom.value) - (container.clientWidth / 2);
     const scrollY = (offsetY * locationsZoom.value) - (container.clientHeight / 2);
-    console.log(scrollX, scrollY);
-    container.scrollLeft = scrollX;
-    container.scrollTop = scrollY;
+    const locationCards = document.querySelector(".location-cards");
+    if (locationCards instanceof HTMLElement) {
+      locationCards.scrollLeft = 60;
+      locationCards.scrollLeft = 120;
+    } else {
+      console.log("locationCards is not a valid HTMLElement or not found.");
+    }
     console.log(scrollX,scrollY);
   } else {
     // Zoom out
@@ -777,10 +786,12 @@ const showVictoryDisplay = () => doShowCards(victoryDisplay, t('scenario.victory
       </div>
 
 
-      <div class="location-cards-container">
+      <div ref="scrollableDiv" class="location-cards-container">
         <Connections :game="game" :playerId="playerId" />
+        <button @click="scrollToBottom">Scroll to Bottom</button>
         <input v-model="locationsZoom" type="range" min="1" max="3" step="0.25" class="zoomer" />
         <transition-group name="map" tag="div" ref="locationMap" class="location-cards" :style="locationStyles" @before-leave="beforeLeave" @dblclick.passive.capture="toggleZoom">
+          
           <Location
             v-for="location in locations"
             class="location"
