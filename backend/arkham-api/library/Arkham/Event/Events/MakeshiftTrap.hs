@@ -5,7 +5,7 @@ import Arkham.DamageEffect
 import Arkham.Event.Cards qualified as Cards
 import Arkham.Event.Import.Lifted
 import Arkham.Helpers.Customization
-import Arkham.Helpers.Investigator (withLocationOf)
+import Arkham.Helpers.Location (withLocationOf)
 import Arkham.Helpers.Message qualified as Msg
 import Arkham.Helpers.Modifiers (
   ModifierType (..),
@@ -32,12 +32,12 @@ instance HasAbilities MakeshiftTrap where
    where
     tripwireCriteria = case a.attachedTo of
       Just (LocationTarget lid) ->
-        mwhen (a `hasCustomization` Tripwire) (exists $ EnemyAt $ LocationWithId lid)
+        mwhen (a `hasCustomization` Tripwire) (exists $ NonEliteEnemy <> at_ (LocationWithId lid))
       _ -> NoRestriction
 
 instance HasModifiersFor MakeshiftTrap where
   getModifiersFor (MakeshiftTrap a) = do
-    enemies <- case a.placement of
+    case a.placement of
       AttachedToLocation lid -> modifySelectMapM a (EnemyAt $ LocationWithId lid) \eid -> do
         net <-
           fromMaybe [] <$> runMaybeT do
@@ -47,8 +47,7 @@ instance HasModifiersFor MakeshiftTrap where
 
         pure $ [EnemyFight (-1), EnemyEvade (-1)] <> net
       _ -> pure mempty
-    self <- modifySelfWhen a (a `hasCustomization` Simple) [BecomesFast FastPlayerWindow]
-    pure $ self <> enemies
+    modifySelfWhen a.cardId (a `hasCustomization` Simple) [BecomesFast FastPlayerWindow]
 
 -- We need to ensure all messages that run RemoveTokens directly are captured and handled here
 instance RunMessage MakeshiftTrap where

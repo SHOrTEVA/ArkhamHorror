@@ -56,7 +56,10 @@ const isButtonText = computed(() => {
 
 const isAction = (action: Action) => {
   if (props.ability.tag === MessageType.ABILITY_LABEL) {
-    if (props.ability.ability.displayAsAction ?? false) {
+    if (props.ability.ability.displayAs === 'DisplayAsAction') {
+      return false
+    }
+    if (props.ability.ability.displayAs === 'DisplayAsCard') {
       return false
     }
   }
@@ -109,9 +112,12 @@ const abilityLabel = computed(() => {
   }
 
   if (props.ability.tag === MessageType.ABILITY_LABEL) {
-    if (props.ability.ability.displayAsAction ?? false) {
+    if (props.ability.ability.displayAs === 'DisplayAsAction') {
       const { cost } = ability.value.type
       return replaceIcons("{action}".repeat(totalActionCost(cost)))
+    }
+    if (props.ability.ability.displayAs === 'DisplayAsCard') {
+      return replaceIcons(props.ability.ability.tooltip)
     }
   }
 

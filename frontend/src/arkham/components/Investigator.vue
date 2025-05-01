@@ -1,5 +1,7 @@
 <script lang="ts" setup>
-import { onMounted, computed, ref } from 'vue'
+import { useSettings } from '@/stores/settings';
+import { storeToRefs } from 'pinia';
+import { onMounted, computed, ref, watch } from 'vue'
 import Draggable from '@/components/Draggable.vue';
 import CardView from '@/arkham/components/Card.vue';
 import { useDebug } from '@/arkham/debug'
@@ -35,22 +37,33 @@ const emit = defineEmits(['showCards', 'choose'])
 
 const id = computed(() => props.investigator.id)
 const debug = useDebug()
-const debugging = ref(false)
-const choose = (idx: number) => emits('choose', idx)
+const choose = (idx: number) => emit('choose', idx)
 
 const { addEntry, removeEntry } = useMenu()
-const showBonded = ref(false)
+const settingsStore = useSettings()
+const { toggleShowBonded } = settingsStore
+const { showBonded } = storeToRefs(settingsStore)
 
-if (props.playerId == props.investigator.playerId) {
-  addEntry({
-    id: "viewBonded",
-    icon: PaperClipIcon,
-    content: t('gameBar.viewBonded'),
-    shortcut: "b",
-    nested: 'view',
-    action: () => showBonded.value = !showBonded.value
-  })
-}
+const doShowBonded = computed(() => {
+  return showBonded.value && props.playerId == props.investigator.playerId
+})
+
+watch(() => props.playerId, () => {
+  if (!props.portrait) {
+    if (props.playerId == props.investigator.playerId) {
+      addEntry({
+        id: `viewBonded-${props.investigator.playerId}`,
+        icon: PaperClipIcon,
+        content: t('gameBar.viewBonded'),
+        shortcut: "b",
+        nested: 'view',
+        action: () => toggleShowBonded()
+      })
+    } else {
+      removeEntry(`viewBonded-${props.investigator.playerId}`)
+    }
+  }
+}, { immediate: true })
 
 function canActivateAbility(c: Message): boolean {
   if (c.tag  === MessageType.ABILITY_LABEL) {
@@ -239,6 +252,12 @@ function calculateSkill(base: number, skillType: string, modifiers: Modifier[]) 
 
     if (modifier.type.tag === "ActionSkillModifier" && modifier.type.skillType === skillType && props.game.skillTest && props.game.skillTest.action === modifier.type.action) {
       modified = modified + modifier.type.value
+    }
+  })
+
+  modifiers.forEach((modifier) => {
+    if (modifier.type.tag === "SetSkillValue" && modifier.type.skillType === skillType) {
+      modified = modifier.type.value
     }
   })
 
@@ -486,14 +505,14 @@ function onDrop(event: DragEvent) {
       />
     </div>
 
-    <Draggable v-if="showBonded">
+    <Draggable v-if="doShowBonded">
       <template #handle><header><h2>{{$t('gameBar.bonded')}}</h2></header></template>
       <div class="card-row-cards">
         <div v-for="card in investigator.bondedCards" :key="card.id" class="card-row-card">
-          <CardView :game="game" :card="card" :playerId="playerId" @choose="$emit('choose', $event)" />
+          <CardView :game="game" :card="card" :playerId="playerId" />
         </div>
       </div>
-      <button class="close button" @click="showBonded = false">{{$t('close')}}</button>
+      <button class="close button" @click="toggleShowBonded">{{$t('close')}}</button>
     </Draggable>
   </div>
 </template>
@@ -521,11 +540,11 @@ i.action {
 
 .resources {
   display: flex;
-  align-self: center;
-  align-items: center;
   justify-content: space-between;
-  margin-right: 10px;
-  margin-top: 5px;
+  button {
+    height: min-content;
+    align-self: center;
+  }
 }
 
 .turn-info {
@@ -617,7 +636,7 @@ i.action {
 .player-card {
   display: flex;
   flex-direction: column;
-  width: calc(var(--card-width) * 1.4);
+  width: calc(var(--card-width) * var(--card-sideways-aspect));
 }
 
 .portrait {
@@ -704,7 +723,6 @@ i.action {
 
 .player-area {
   display: flex;
-  margin-right: 10px;
 }
 
 .player-buttons {
@@ -741,20 +759,6 @@ i.action {
 
 .investigator-image {
   position: relative;
-}
-
-.card-overlay {
-  width: auto;
-  height: var(--card-width);
-  position: absolute;
-  top: 0;
-  left: 0;
-  pointer-events: none;
-}
-
-.investigator--can-interact ~ .card-overlay {
-  top: 2px;
-  left: 2px;
 }
 
 .card-row-cards {

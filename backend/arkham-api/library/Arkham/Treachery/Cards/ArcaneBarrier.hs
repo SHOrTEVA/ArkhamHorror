@@ -1,9 +1,10 @@
 module Arkham.Treachery.Cards.ArcaneBarrier (arcaneBarrier) where
 
 import Arkham.Cost
+import Arkham.I18n
 import Arkham.Helpers.Modifiers
 import Arkham.Message.Lifted.Choose
-import Arkham.Helpers.Investigator (withLocationOf)
+import Arkham.Helpers.Location (withLocationOf)
 import Arkham.Placement
 import Arkham.Treachery.Cards qualified as Cards
 import Arkham.Treachery.Import.Lifted hiding (movementModifier)
@@ -31,10 +32,10 @@ instance RunMessage ArcaneBarrier where
     Revelation iid (isSource attrs -> True) -> do
       withLocationOf iid (attachTreachery attrs)
       pure t
-    FailedThisSkillTest iid (isSource attrs -> True) -> do
+    FailedThisSkillTest iid (isSource attrs -> True) -> withI18n do
       chooseOneM iid do
-        labeled "Cancel Move" $ cancelMovement attrs iid
-        labeled "Discard top 5 cards of your deck" $ discardTopOfDeck iid attrs 5
+        labeled' "cancelMove" $ cancelMovement attrs iid
+        withVar "count" (Number 5) $ labeled' "discardTopOfYourDeck" $ discardTopOfDeck iid attrs 5
       pure t
     PassedThisSkillTest iid (isSource attrs -> True) -> do
       toDiscardBy iid attrs attrs

@@ -111,6 +111,7 @@ import Arkham.Skill.Types qualified as Skill
 import Arkham.SkillTest.Runner
 import Arkham.SkillTestResult
 import Arkham.Source
+import Arkham.Spawn
 import Arkham.Story
 import Arkham.Story.Types (Field (..), StoryAttrs (..))
 import Arkham.Story.Types qualified as Story
@@ -119,7 +120,13 @@ import Arkham.Tarot qualified as Tarot
 import Arkham.Timing qualified as Timing
 import Arkham.Token qualified as Token
 import Arkham.Treachery
-import Arkham.Treachery.Types (Treachery, Field (..), drawnFromL, treacheryWaiting, treacheryPlacement)
+import Arkham.Treachery.Types (
+  Field (..),
+  Treachery,
+  drawnFromL,
+  treacheryPlacement,
+  treacheryWaiting,
+ )
 import Arkham.Window (Window (..), mkAfter, mkWhen, mkWindow)
 import Arkham.Window qualified as Window
 import Arkham.Zone qualified as Zone
@@ -439,6 +446,9 @@ runGameMessage msg g = case msg of
       & (cardUsesL .~ mempty)
       & (windowStackL .~ mempty)
       & (windowDepthL .~ 0)
+      & (phaseHistoryL .~ mempty)
+      & (turnHistoryL .~ mempty)
+      & (roundHistoryL .~ mempty)
   StartScenario sid -> do
     -- NOTE: The campaign log and player decks need to be copied over for
     -- standalones because we effectively reset it here when we `setScenario`.
@@ -1278,12 +1288,19 @@ runGameMessage msg g = case msg of
     enemy <- getEnemy enemyId
     when (isOutOfPlayPlacement $ attr enemyPlacement enemy) do
       case placement of
-        AtLocation lid ->
+        AtLocation lid -> do
+          let
+            details =
+              SpawnDetails
+                { spawnDetailsEnemy = enemyId
+                , spawnDetailsInvestigator = Nothing
+                , spawnDetailsSpawnAt = Arkham.Spawn.SpawnAtLocation lid
+                }
           pushAll
-            [ Will (EnemySpawn Nothing lid enemyId)
-            , When (EnemySpawn Nothing lid enemyId)
-            , EnemySpawn Nothing lid enemyId
-            , After (EnemySpawn Nothing lid enemyId)
+            [ Will (EnemySpawn details)
+            , When (EnemySpawn details)
+            , EnemySpawn details
+            , After (EnemySpawn details)
             ]
         _ -> pure ()
     pure g
@@ -1327,27 +1344,31 @@ runGameMessage msg g = case msg of
   After (ShuffleIntoDeck _ (EventTarget eid)) ->
     pure $ g & entitiesL . eventsL %~ deleteMap eid
   ShuffleIntoDeck deck (TreacheryTarget treacheryId) -> do
-    treachery <- getTreachery treacheryId
-    adjustedDeck <- case deck of
-      Deck.InvestigatorDeck _ ->
-        maybe Deck.EncounterDeck Deck.InvestigatorDeck <$> field TreacheryOwner treacheryId
-      _ -> pure deck
+    maybeTreachery treacheryId >>= traverse_ \treachery -> do
+      adjustedDeck <- case deck of
+        Deck.InvestigatorDeck _ ->
+          maybe Deck.EncounterDeck Deck.InvestigatorDeck <$> field TreacheryOwner treacheryId
+        _ -> pure deck
 
-    pushAll
-      [ RemoveTreachery treacheryId
-      , ShuffleCardsIntoDeck adjustedDeck [toCard treachery]
-      ]
+      pushAll
+        [ RemoveTreachery treacheryId
+        , ShuffleCardsIntoDeck adjustedDeck [toCard treachery]
+        ]
     pure g
   ShuffleIntoDeck deck (EnemyTarget enemyId) -> do
-    -- The Thing That Follows
-    card <- field EnemyCard enemyId
-    pushAll $ resolve (RemoveEnemy enemyId) <> [ShuffleCardsIntoDeck deck [card]]
+    maybeEnemy enemyId >>= traverse_ \_ -> do
+      -- The Thing That Follows
+      card <- field EnemyCard enemyId
+      pushAll $ resolve (RemoveEnemy enemyId) <> [ShuffleCardsIntoDeck deck [card]]
     pure g
   ShuffleIntoDeck deck (LocationTarget locationId) -> do
-    -- The Thing That Follows
-    card <- field LocationCard locationId
-    push $ ShuffleCardsIntoDeck deck [card]
-    pure $ g & entitiesL . locationsL %~ deleteMap locationId
+    maybeLocation locationId >>= \case
+      Nothing -> pure g
+      Just _ -> do
+        -- The Thing That Follows
+        card <- field LocationCard locationId
+        push $ ShuffleCardsIntoDeck deck [card]
+        pure $ g & entitiesL . locationsL %~ deleteMap locationId
   PlayCard iid card _mtarget _payment windows' True -> do
     allModifiers <- mconcat <$> sequence [getModifiers card, getModifiers iid]
     let
@@ -1830,7 +1851,15 @@ runGameMessage msg g = case msg of
     withQueue_ $ filter (not . isDiscardEnemy)
     pure g
   EnemySpawnFromOutOfPlay _oZone miid lid eid -> do
-    pushAll (resolve $ EnemySpawn miid lid eid)
+    pushAll
+      ( resolve
+          $ EnemySpawn
+          $ SpawnDetails
+            { spawnDetailsInvestigator = miid
+            , spawnDetailsSpawnAt = Arkham.Spawn.SpawnAtLocation lid
+            , spawnDetailsEnemy = eid
+            }
+      )
     pure $ g & (activeCardL .~ Nothing) & (focusedCardsL .~ mempty)
   Discard _ _ (SearchedCardTarget cardId) -> do
     investigator' <- getActiveInvestigator
@@ -1884,6 +1913,12 @@ runGameMessage msg g = case msg of
 
     pure g
   AddToDiscard _ pc -> pure $ g & removedFromPlayL %~ filter (/= PlayerCard pc)
+  RemoveCard c -> do
+    pushAll [ObtainCard c, Do (RemoveCard c)]
+    pure g
+  Do (RemoveCard c) -> do
+    card <- getCard c
+    pure $ g & removedFromPlayL %~ (card:)
   AddToVictory (EnemyTarget eid) -> do
     card <- field EnemyCard eid
     pushAll
@@ -2417,30 +2452,51 @@ runGameMessage msg g = case msg of
             )
             (createAsset card assetId)
     pure $ g & entitiesL . assetsL . at assetId ?~ asset'
-  When (EnemySpawn _ lid eid) -> do
-    windowMsg <- checkWindows [mkWhen (Window.EnemySpawns eid lid)]
-    g <$ push windowMsg
-  After (EnemySpawn _ lid eid) -> do
-    windowMsg <- checkWindows [mkAfter (Window.EnemySpawns eid lid)]
-    g <$ push windowMsg
+  When (EnemySpawn details) -> do
+    for_ details.location \lid -> do
+      windowMsg <- checkWindows [mkWhen (Window.EnemySpawns details.enemy lid)]
+      push windowMsg
+    pure g
+  After (EnemySpawn details) -> do
+    for_ details.location \lid -> do
+      windowMsg <- checkWindows [mkWhen (Window.EnemySpawns details.enemy lid)]
+      push windowMsg
+    pure g
   -- TODO: CHECK SpawnEnemyAt and SpawnEnemyAtEngagedWith
   SpawnEnemyAt card lid -> do
     enemyId <- getRandom
     let enemy = createEnemy card enemyId
+    let
+      details =
+        SpawnDetails
+          { spawnDetailsEnemy = enemyId
+          , spawnDetailsInvestigator = Nothing
+          , spawnDetailsSpawnAt = Arkham.Spawn.SpawnAtLocation lid
+          }
+    windows' <- checkWindows [mkWhen (Window.EnemyWouldSpawnAt enemyId lid)]
     pushAll
-      [ Will (EnemySpawn Nothing lid enemyId)
-      , When (EnemySpawn Nothing lid enemyId)
-      , EnemySpawn Nothing lid enemyId
-      , After (EnemySpawn Nothing lid enemyId)
+      [ windows'
+      , Will (EnemySpawn details)
+      , When (EnemySpawn details)
+      , EnemySpawn details
+      , After (EnemySpawn details)
       ]
     pure $ g & entitiesL . enemiesL . at enemyId ?~ enemy
   SpawnEnemyAtEngagedWith card lid iid -> do
     enemyId <- getRandom
     let enemy = createEnemy card enemyId
+    let
+      details =
+        SpawnDetails
+          { spawnDetailsEnemy = enemyId
+          , spawnDetailsInvestigator = Just iid
+          , spawnDetailsSpawnAt = Arkham.Spawn.SpawnAtLocation lid
+          }
     pushAll
-      [ Will (EnemySpawn (Just iid) lid enemyId)
-      , When (EnemySpawn (Just iid) lid enemyId)
-      , EnemySpawn (Just iid) lid enemyId
+      [ Will (EnemySpawn details)
+      , When (EnemySpawn details)
+      , EnemySpawn details
+      , After (EnemySpawn details)
       ]
     pure $ g & entitiesL . enemiesL . at enemyId ?~ enemy
   CreateEnemy enemyCreation -> do
@@ -2473,29 +2529,41 @@ runGameMessage msg g = case msg of
       Nothing -> pure enemy'
       Just iid -> runMessage (SetBearer (toTarget enemy') iid) enemy'
     case enemyCreationMethod enemyCreation of
-      SpawnEngagedWith iid -> do
+      Arkham.Enemy.Creation.SpawnEngagedWith iid -> do
         lid <- getJustLocation iid
+        let details =
+              SpawnDetails
+                { spawnDetailsEnemy = enemyId
+                , spawnDetailsInvestigator = Just iid
+                , spawnDetailsSpawnAt = Arkham.Spawn.SpawnAtLocation lid
+                }
         pushAll
           $ enemyCreationBefore enemyCreation
-          <> [ Will (EnemySpawn (Just iid) lid enemyId)
-             , When (EnemySpawn (Just iid) lid enemyId)
-             , EnemySpawn (Just iid) lid enemyId
+          <> [ Will (EnemySpawn details)
+             , When (EnemySpawn details)
+             , EnemySpawn details
              ]
           <> [CreatedEnemyAt enemyId lid target | target <- maybeToList mTarget]
           <> enemyCreationAfter enemyCreation
-          <> [After (EnemySpawn (Just iid) lid enemyId)]
-      SpawnAtLocation lid -> do
+          <> [After (EnemySpawn details)]
+      Arkham.Enemy.Creation.SpawnAtLocation lid -> do
         windows' <- checkWindows [mkWhen (Window.EnemyWouldSpawnAt enemyId lid)]
+        let details =
+              SpawnDetails
+                { spawnDetailsEnemy = enemyId
+                , spawnDetailsInvestigator = Nothing
+                , spawnDetailsSpawnAt = Arkham.Spawn.SpawnAtLocation lid
+                }
         pushAll
           $ windows'
           : enemyCreationBefore enemyCreation
-            <> [ Will (EnemySpawn Nothing lid enemyId)
-               , When (EnemySpawn Nothing lid enemyId)
-               , EnemySpawn Nothing lid enemyId
+            <> [ Will (EnemySpawn details)
+               , When (EnemySpawn details)
+               , EnemySpawn details
                ]
             <> [CreatedEnemyAt enemyId lid target | target <- maybeToList mTarget]
             <> enemyCreationAfter enemyCreation
-            <> [After (EnemySpawn Nothing lid enemyId)]
+            <> [After (EnemySpawn details)]
       SpawnAtLocationMatching locationMatcher -> do
         matches' <- select locationMatcher
         case matches' of
@@ -2507,7 +2575,9 @@ runGameMessage msg g = case msg of
               $ windows [Window.EnemyAttemptsToSpawnAt enemyId locationMatcher]
               <> [ chooseOrRunOne
                      player
-                     [ targetLabel lid [CreateEnemy $ enemyCreation {enemyCreationMethod = SpawnAtLocation lid}]
+                     [ targetLabel
+                         lid
+                         [CreateEnemy $ enemyCreation {enemyCreationMethod = Arkham.Enemy.Creation.SpawnAtLocation lid}]
                      | lid <- lids
                      ]
                  ]
@@ -2517,9 +2587,15 @@ runGameMessage msg g = case msg of
           (beforeMessages, afterMessages) = case mLocation of
             Nothing -> ([], [])
             Just lid ->
-              ( [Will (EnemySpawn Nothing lid enemyId), When (EnemySpawn Nothing lid enemyId)]
-              , [After (EnemySpawn Nothing lid enemyId)]
-              )
+              let details =
+                    SpawnDetails
+                      { spawnDetailsEnemy = enemyId
+                      , spawnDetailsInvestigator = Nothing
+                      , spawnDetailsSpawnAt = Arkham.Spawn.SpawnAtLocation lid
+                      }
+               in ( [Will (EnemySpawn details), When (EnemySpawn details)]
+                  , [After (EnemySpawn details)]
+                  )
         pushAll
           $ enemyCreationBefore enemyCreation
           <> beforeMessages
@@ -2669,7 +2745,12 @@ runGameMessage msg g = case msg of
         pure
           $ foldl'
             recordLimit
-            (g & entitiesL . eventsL . at eventId ?~ createEvent card iid eventId)
+            ( g
+                & entitiesL
+                . eventsL
+                . at eventId
+                ?~ overAttrs (\e -> e {eventPlacement = Limbo}) (createEvent card iid eventId)
+            )
             (cdLimits $ toCardDef card)
       PlayerEnemyType -> do
         enemyId <- getRandom
@@ -2700,6 +2781,8 @@ runGameMessage msg g = case msg of
         other -> other
     pure $ g & resolvingCardL .~ Nothing & activeCardL %~ unsetActiveCard
   InvestigatorDrewEncounterCard iid card -> do
+    runMessage (InvestigatorDrewEncounterCardFrom iid card Nothing) g
+  InvestigatorDrewEncounterCardFrom iid card _ -> do
     investigator <- getInvestigator iid
     if investigator.eliminated
       then do
@@ -2737,7 +2820,7 @@ runGameMessage msg g = case msg of
           else do
             pushAll [FocusCards [toCard card], whenDraw, UnfocusCards, Do msg]
             pure g
-  Do (InvestigatorDrewEncounterCard iid card) -> do
+  Do (InvestigatorDrewEncounterCardFrom iid card mdeck) -> do
     push $ ResolvedCard iid (toCard card)
     let
       deleteCard = filter ((/= Just card) . preview _EncounterCard)
@@ -2769,7 +2852,7 @@ runGameMessage msg g = case msg of
           & (activeCardL ?~ toCard card)
       TreacheryType -> do
         -- handles draw windows
-        pushAll [DrewTreachery iid (Just Deck.EncounterDeck) (toCard card)]
+        pushAll [DrewTreachery iid (mdeck <|> Just Deck.EncounterDeck) (toCard card)]
         pure g'
       EncounterAssetType -> do
         assetId <- getRandom
@@ -2931,7 +3014,7 @@ runGameMessage msg g = case msg of
   UnsetActiveCard -> pure $ g & activeCardL .~ Nothing
   AfterRevelation iid treacheryId -> do
     afterResolve <- checkAfter $ Window.ResolvesTreachery iid treacheryId
-    push afterResolve
+    pushAll [afterResolve, Do msg]
     pure $ g & activeCardL .~ Nothing
   AddCardEntity card -> do
     let

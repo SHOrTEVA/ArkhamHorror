@@ -86,7 +86,7 @@ const classObject = computed(() => ({
 }
 
 .token {
-  width: 100px;
+  width: min(100px, calc(20vw + 10px));
 }
 
 @keyframes flip {
@@ -137,7 +137,7 @@ const classObject = computed(() => ({
 }
 
 .token-container {
-  width: 100px;
+  width: min(100px, 30vw);
   position: relative;
 }
 </style>

@@ -1,6 +1,6 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.37.0.
+-- This file has been generated from package.yaml by hpack version 0.38.0.
 --
 -- see: https://github.com/sol/hpack
 
@@ -2439,6 +2439,7 @@ library
       Arkham.Helpers.EncounterSet
       Arkham.Helpers.Enemy
       Arkham.Helpers.Event
+      Arkham.Helpers.FlavorText
       Arkham.Helpers.Game
       Arkham.Helpers.GameValue
       Arkham.Helpers.Healing
@@ -2446,7 +2447,6 @@ library
       Arkham.Helpers.Investigator
       Arkham.Helpers.Location
       Arkham.Helpers.Log
-      Arkham.Helpers.Matchers
       Arkham.Helpers.Message
       Arkham.Helpers.Message.Discard
       Arkham.Helpers.Message.Discard.Lifted
@@ -3502,7 +3502,6 @@ library
       Arkham.Scenarios.DisappearanceAtTheTwilightEstate.Story
       Arkham.Scenarios.EchoesOfThePast.Helpers
       Arkham.Scenarios.EchoesOfThePast.Story
-      Arkham.Scenarios.ExtracurricularActivity.FlavorText
       Arkham.Scenarios.ExtracurricularActivity.Helpers
       Arkham.Scenarios.FatalMirage.Helpers
       Arkham.Scenarios.ForTheGreaterGood.Helpers
@@ -3517,6 +3516,7 @@ library
       Arkham.Scenarios.LostInTimeAndSpace.FlavorText
       Arkham.Scenarios.LostInTimeAndSpace.Helpers
       Arkham.Scenarios.MurderAtTheExcelsiorHotel.FlavorText
+      Arkham.Scenarios.MurderAtTheExcelsiorHotel.Helpers
       Arkham.Scenarios.ShatteredAeons.Helpers
       Arkham.Scenarios.ShatteredAeons.Story
       Arkham.Scenarios.TheBoundaryBeyond.Helpers
@@ -3525,7 +3525,7 @@ library
       Arkham.Scenarios.TheCityOfArchives.Story
       Arkham.Scenarios.TheDepthsOfYoth.Helpers
       Arkham.Scenarios.TheDepthsOfYoth.Story
-      Arkham.Scenarios.TheDevourerBelow.Story
+      Arkham.Scenarios.TheDevourerBelow.Helpers
       Arkham.Scenarios.TheDoomOfEztli.Story
       Arkham.Scenarios.TheEssexCountyExpress.Helpers
       Arkham.Scenarios.TheEssexCountyExpress.Story
@@ -3533,10 +3533,9 @@ library
       Arkham.Scenarios.TheHeartOfMadness.Helpers
       Arkham.Scenarios.TheHeartOfMadness.Pylon
       Arkham.Scenarios.TheHouseAlwaysWins.Helpers
-      Arkham.Scenarios.TheHouseAlwaysWins.Story
       Arkham.Scenarios.TheLairOfDagon.Helpers
       Arkham.Scenarios.TheLastKing.Story
-      Arkham.Scenarios.TheMidnightMasks.Story
+      Arkham.Scenarios.TheMidnightMasks.Helpers
       Arkham.Scenarios.TheMiskatonicMuseum.Helpers
       Arkham.Scenarios.TheMiskatonicMuseum.Story
       Arkham.Scenarios.ThePallidMask.Helpers

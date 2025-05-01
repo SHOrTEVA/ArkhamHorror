@@ -748,6 +748,7 @@ function startHandDrag(event: DragEvent, card: (CardContents | CardT.Card)) {
   flex: 0;
   display: flex;
   gap: 5px;
+  overflow-x: auto;
 }
 
 .view-discard-button {
@@ -773,7 +774,6 @@ function startHandDrag(event: DragEvent, card: (CardContents | CardT.Card)) {
   pointer-events: none;
   position: absolute;
   font-weight: bold;
-  font-size: 1.2rem;
   color: var(--title);
   inset: 0;
   width: fit-content;
@@ -870,11 +870,13 @@ function startHandDrag(event: DragEvent, card: (CardContents | CardT.Card)) {
 .split-view .hand {
   flex-wrap: wrap;
   min-height: fit-content;
+  overflow: unset;
 }
 
 .investigator-and-deck {
   display: flex;
   flex-direction: row;
+  flex-wrap: wrap;
   gap: 5px;
 }
 
@@ -894,6 +896,10 @@ function startHandDrag(event: DragEvent, card: (CardContents | CardT.Card)) {
   width: calc((v-bind(totalHandSize) * var(--card-width)) + ((v-bind(totalHandSize) - 1) * 5px));
   max-width: 100%;
   min-width: fit-content;
+
+  @media (max-width: 600px) {
+    display: none;
+  }
 
   &-ok {
     background-color: var(--rogue-dark);

@@ -1399,6 +1399,14 @@ const showVictoryDisplay = () => doShowCards(victoryDisplay, t('scenario.victory
   }
 }
 
+@media screen and (max-width: 400px) {
+  .zoomer { display: none}
+}
+
+@media not screen {
+  .zoomer { display: none}
+}
+
 .barrier {
   display: flex;
   flex-direction: column;

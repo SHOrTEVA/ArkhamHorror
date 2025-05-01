@@ -8,6 +8,7 @@ import Arkham.Difficulty
 import Arkham.EncounterSet qualified as EncounterSet
 import Arkham.Enemy.Cards qualified as Enemies
 import Arkham.Enemy.Creation
+import Arkham.Helpers.FlavorText
 import Arkham.Helpers.Log
 import Arkham.Location.Cards qualified as Locations
 import Arkham.Location.Types (Field (..))
@@ -17,7 +18,7 @@ import Arkham.Prelude
 import Arkham.Projection
 import Arkham.Scenario.Import.Lifted hiding (placeLocationCard, story)
 import Arkham.Scenario.Scenarios.TheDevourerBelow
-import Arkham.Scenarios.TheDevourerBelow.Story
+import Arkham.Scenarios.TheDevourerBelow.Helpers
 import Arkham.Treachery.Cards qualified as Treacheries
 
 newtype ReturnToTheDevourerBelow = ReturnToTheDevourerBelow TheDevourerBelow
@@ -41,11 +42,24 @@ returnToTheDevourerBelow difficulty =
     (referenceL .~ "01142")
 
 instance RunMessage ReturnToTheDevourerBelow where
-  runMessage msg s@(ReturnToTheDevourerBelow theDevourerBelow'@(TheDevourerBelow attrs)) = runQueueT $ case msg of
-    PreScenarioSetup -> do
-      story intro
-      pure s
+  runMessage msg s@(ReturnToTheDevourerBelow theDevourerBelow'@(TheDevourerBelow attrs)) = runQueueT $ scenarioI18n $ case msg of
     Setup -> runScenarioSetup (ReturnToTheDevourerBelow . TheDevourerBelow) attrs do
+      cultistsWhoGotAway <- getRecordedCardCodes CultistsWhoGotAway
+      pastMidnight <- getHasRecord ItIsPastMidnight
+      ghoulPriestIsStillAlive <- getHasRecord GhoulPriestIsStillAlive
+      setup $ ul do
+        li "gatherSets"
+        li "placeLocations"
+        li "setOutOfPlay"
+        li "randomSet"
+        li.nested "cultistsWhoGotAway.instructions" do
+          li.validate (null cultistsWhoGotAway) "cultistsWhoGotAway.zeroNames"
+          li.validate (length cultistsWhoGotAway `elem` [1, 2]) "cultistsWhoGotAway.oneOrTwoNames"
+          li.validate (length cultistsWhoGotAway `elem` [3, 4]) "cultistsWhoGotAway.threeOrFourNames"
+          li.validate (length cultistsWhoGotAway `elem` [5, 6]) "cultistsWhoGotAway.fiveOrSixNames"
+        unscoped $ withVars ["token" .= String "elderThing"] $ li "addToken"
+        li.validate pastMidnight "pastMidnight"
+        li.validate ghoulPriestIsStillAlive "ghoulPriest"
       gather EncounterSet.ReturnToTheDevourerBelow
       gather EncounterSet.TheDevourerBelow
       gather EncounterSet.AncientEvils
@@ -57,7 +71,7 @@ instance RunMessage ReturnToTheDevourerBelow where
         :| [EncounterSet.AgentsOfShubNiggurath, EncounterSet.AgentsOfCthulhu, EncounterSet.AgentsOfHastur]
 
       setAside [Locations.ritualSite, Enemies.umordhoth]
-      whenHasRecord GhoulPriestIsStillAlive $ addToEncounterDeck (Only Enemies.ghoulPriest)
+      when ghoulPriestIsStillAlive $ addToEncounterDeck (Only Enemies.ghoulPriest)
 
       setActDeck actDeck
       setAgendaDeck agendaDeck
@@ -77,11 +91,10 @@ instance RunMessage ReturnToTheDevourerBelow where
            , Locations.arkhamWoodsWoodenBridge
            ]
 
-      cultistsWhoGotAway <- getRecordedCardCodes CultistsWhoGotAway
       placeDoomOnAgenda $ (length cultistsWhoGotAway + 1) `div` 2
 
-      whenHasRecord ItIsPastMidnight
-        $ pushAll
+      when pastMidnight do
+        pushAll
           [ AllRandomDiscard (toSource attrs) AnyCard
           , AllRandomDiscard (toSource attrs) AnyCard
           ]

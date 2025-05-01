@@ -53,19 +53,20 @@ import Arkham.Helpers.Enemy qualified as Msg
 import Arkham.Helpers.Investigator (
   canDiscoverCluesAtYourLocation,
   getCanDiscoverClues,
-  withLocationOf,
  )
+import Arkham.Helpers.Location (withLocationOf)
 import Arkham.Helpers.Message qualified as Msg
 import Arkham.Helpers.Modifiers qualified as Msg
 import Arkham.Helpers.Playable (getIsPlayable)
 import Arkham.Helpers.Query
 import Arkham.Helpers.Ref (sourceToTarget)
-import Arkham.Helpers.Scenario (getInResolution)
+import Arkham.Helpers.Scenario (getEncounterDeckKey, getInResolution, getIsStandalone)
 import Arkham.Helpers.SkillTest qualified as Msg
 import Arkham.Helpers.UI qualified as Msg
 import Arkham.Helpers.Window qualified as Msg
 import Arkham.Helpers.Xp
 import Arkham.History
+import Arkham.I18n
 import Arkham.Id
 import Arkham.Investigate
 import Arkham.Investigate qualified as Investigate
@@ -92,6 +93,7 @@ import Arkham.Source
 import Arkham.Target
 import Arkham.Token
 import Arkham.Trait (Trait)
+import Arkham.Treachery.Types qualified as Field
 import Arkham.Window (Window, WindowType, defaultWindows)
 import Arkham.Window qualified as Window
 import Arkham.Xp
@@ -164,6 +166,18 @@ placeLocation card = do
 placeLocation_ :: (ReverseQueue m, FetchCard card) => card -> m ()
 placeLocation_ = fetchCard >=> Msg.placeLocation_ >=> push
 
+placeLocationIfNotInPlay_ :: (HasCallStack, ReverseQueue m) => CardDef -> m ()
+placeLocationIfNotInPlay_ = void . placeLocationIfNotInPlay
+
+placeLocationIfNotInPlay :: (HasCallStack, ReverseQueue m) => CardDef -> m LocationId
+placeLocationIfNotInPlay def =
+  selectOne (locationIs def) >>= \case
+    Just lid -> pure lid
+    Nothing ->
+      getSetAsideCardMaybe def >>= \case
+        Nothing -> error $ "Location not found in play or set aside: " <> show def
+        Just card -> placeLocation card
+
 placeRandomLocationGroupCards
   :: ReverseQueue m => Text -> [CardDef] -> m ()
 placeRandomLocationGroupCards groupName = genCards >=> placeRandomLocationGroup groupName
@@ -231,6 +245,11 @@ revealBy
   -> location
   -> m ()
 revealBy investigator = push . Msg.RevealLocation (Just $ asId investigator) . asId
+
+storyI :: (HasI18n, ReverseQueue m) => Text -> m ()
+storyI flavor = do
+  players <- allPlayers
+  push $ Msg.story players (i18n flavor)
 
 story :: ReverseQueue m => FlavorText -> m ()
 story flavor = do
@@ -461,6 +480,12 @@ instance FetchCard AssetId where
 instance FetchCard EventId where
   fetchCard = field Field.EventCard
 
+instance FetchCard TreacheryId where
+  fetchCard = field Field.TreacheryCard
+
+instance FetchCard Field.TreacheryAttrs where
+  fetchCard = field Field.TreacheryCard . asId
+
 addCampaignCardToDeck
   :: (AsId investigator, IdOf investigator ~ InvestigatorId, ReverseQueue m, FetchCard card)
   => investigator
@@ -557,8 +582,11 @@ createEnemyAt c lid = do
   push msg
   pure enemyId
 
-createEnemyAtLocationMatching_ :: (ReverseQueue m, IsCard card) => card -> LocationMatcher -> m ()
-createEnemyAtLocationMatching_ c = Msg.pushM . Msg.createEnemyAtLocationMatching_ (toCard c)
+createEnemyAtLocationMatching_
+  :: (ReverseQueue m, FetchCard card) => card -> LocationMatcher -> m ()
+createEnemyAtLocationMatching_ c matcher = do
+  card <- fetchCard c
+  Msg.pushM $ Msg.createEnemyAtLocationMatching_ card matcher
 
 createEnemyAtLocationMatching
   :: (ReverseQueue m, IsCard card) => card -> LocationMatcher -> m EnemyId
@@ -788,6 +816,12 @@ eachInvestigator f = do
 
 forInvestigator :: ReverseQueue m => InvestigatorId -> Message -> m ()
 forInvestigator iid msg = push $ ForInvestigator iid msg
+
+forEachInvestigator :: ReverseQueue m => QueueT Message m () -> m ()
+forEachInvestigator body = eachInvestigator (`forInvestigator'` body)
+
+forInvestigator' :: ReverseQueue m => InvestigatorId -> QueueT Message m () -> m ()
+forInvestigator' iid = evalQueueT >=> traverse_ (forInvestigator iid)
 
 selectEach :: (Query a, HasGame m) => a -> (QueryElement a -> m ()) -> m ()
 selectEach matcher f = select matcher >>= traverse_ f
@@ -1489,6 +1523,10 @@ gainResourcesIfCan a source n = do
   mmsg <- Msg.gainResourcesIfCan a source n
   for_ mmsg push
 
+takeResources
+  :: (ReverseQueue m, Sourceable source, AsId a, IdOf a ~ InvestigatorId) => a -> source -> Int -> m ()
+takeResources a source n = push $ Msg.takeResources (asId a) source n
+
 loseResources :: (ReverseQueue m, Sourceable source) => InvestigatorId -> source -> Int -> m ()
 loseResources iid source n = push $ Msg.LoseResources iid (toSource source) n
 
@@ -1844,7 +1882,7 @@ withCost :: ReverseQueue m => InvestigatorId -> Cost -> QueueT Message m () -> m
 withCost iid cost f = batched \batchId -> payBatchCost batchId iid cost >> f
 
 oncePerCampaign :: ReverseQueue m => Text -> m () -> m ()
-oncePerCampaign k body = do
+oncePerCampaign k body = unlessM getIsStandalone do
   stored @Bool k >>= \case
     Nothing -> do
       push $ SetGlobal CampaignTarget (Aeson.fromText k) (toJSON True)
@@ -2104,6 +2142,7 @@ quietCancelCardDraw card = do
   mtarget <- getCardEntityTarget card
   lift $ Msg.removeAllMessagesMatching \case
     Do (InvestigatorDrewEncounterCard _ c) -> c.id == card.id
+    Do (InvestigatorDrewEncounterCardFrom _ c _) -> c.id == card.id
     InvestigatorDrewEncounterCard _ c -> c.id == card.id
     Do (InvestigatorDrewPlayerCardFrom _ c _) -> c.id == card.id
     InvestigatorDrewPlayerCardFrom _ c _ -> c.id == card.id
@@ -2221,6 +2260,7 @@ changeDrawnBy drawer newDrawer =
     \case
       Revelation me _ -> me == drawer
       Do (InvestigatorDrewEncounterCard me _) -> me == drawer
+      Do (InvestigatorDrewEncounterCardFrom me _ _) -> me == drawer
       InvestigatorDrawEnemy me _ -> me == drawer
       CheckWindows ws -> any (isDrawCard . Window.windowType) ws
       Do (CheckWindows ws) -> any (isDrawCard . Window.windowType) ws
@@ -2229,6 +2269,7 @@ changeDrawnBy drawer newDrawer =
       Revelation _ source' -> [Revelation newDrawer source']
       InvestigatorDrawEnemy _ eid -> [InvestigatorDrawEnemy newDrawer eid]
       Do (InvestigatorDrewEncounterCard _ c) -> [Do (InvestigatorDrewEncounterCard newDrawer c)]
+      Do (InvestigatorDrewEncounterCardFrom _ c frm) -> [Do (InvestigatorDrewEncounterCardFrom newDrawer c frm)]
       CheckWindows ws -> [CheckWindows $ map changeWindow ws]
       Do (CheckWindows ws) -> [Do (CheckWindows $ map changeWindow ws)]
       _ -> error "wrong message found"
@@ -2298,6 +2339,16 @@ attach a = push . toAttach a
 
 enemyCheckEngagement :: ReverseQueue m => EnemyId -> m ()
 enemyCheckEngagement = push . EnemyCheckEngagement
+
+attackIfEngaged
+  :: ( ReverseQueue m
+     , AsId enemy
+     , IdOf enemy ~ EnemyId
+     , AsId investigator
+     , IdOf investigator ~ InvestigatorId
+     )
+  => enemy -> Maybe investigator -> m ()
+attackIfEngaged enemy minvestigator = push $ EnemyAttackIfEngaged (asId enemy) (fmap asId minvestigator)
 
 enemyEngageInvestigator
   :: ( ReverseQueue m
@@ -2420,8 +2471,13 @@ discardUntilFirst
   -> deck
   -> ExtendedCardMatcher
   -> m ()
-discardUntilFirst iid source deck matcher = do
-  push $ DiscardUntilFirst iid (toSource source) (toDeck deck) matcher
+discardUntilFirst iid source deck matcher = case toDeck deck of
+  Deck.EncounterDeck -> whenM (can.target.encounterDeck iid) do
+    key <- getEncounterDeckKey iid
+    push $ DiscardUntilFirst iid (toSource source) (toDeck key) matcher
+  other@(Deck.EncounterDeckByKey _) -> whenM (can.target.encounterDeck iid) do
+    push $ DiscardUntilFirst iid (toSource source) other matcher
+  other -> push $ DiscardUntilFirst iid (toSource source) other matcher
 
 discardUntilN
   :: (ReverseQueue m, Sourceable source, IsDeck deck, Targetable target)
@@ -2716,3 +2772,11 @@ priority body = do
 
 flipCluesToDoom :: (ReverseQueue m, Targetable target) => target -> Int -> m ()
 flipCluesToDoom target n = push $ FlipClues (toTarget target) n
+
+allRandomDiscard :: (ReverseQueue m, Sourceable source) => source -> CardMatcher -> m ()
+allRandomDiscard source matcher = push $ AllRandomDiscard (toSource source) matcher
+
+discardEach
+  :: (ReverseQueue m, Query query, Sourceable source, Targetable (QueryElement query))
+  => source -> query -> m ()
+discardEach source query = selectEach query (toDiscard source)

@@ -1,4 +1,4 @@
-module Arkham.Scenario.Scenarios.TheHouseAlwaysWins (theHouseAlwaysWins, TheHouseAlwaysWins(..)) where
+module Arkham.Scenario.Scenarios.TheHouseAlwaysWins (theHouseAlwaysWins, TheHouseAlwaysWins (..)) where
 
 import Arkham.Act.Cards qualified as Acts
 import Arkham.Agenda.Cards qualified as Agendas
@@ -7,7 +7,9 @@ import Arkham.Campaigns.TheDunwichLegacy.ChaosBag
 import Arkham.Campaigns.TheDunwichLegacy.Key
 import Arkham.EncounterSet qualified as Set
 import Arkham.Enemy.Cards qualified as Enemies
+import Arkham.Exception
 import Arkham.Helpers.Cost
+import Arkham.Helpers.FlavorText
 import Arkham.Helpers.Query
 import Arkham.Helpers.Xp
 import Arkham.Location.Cards qualified as Locations
@@ -17,7 +19,6 @@ import Arkham.Modifier
 import Arkham.Resolution
 import Arkham.Scenario.Import.Lifted
 import Arkham.Scenarios.TheHouseAlwaysWins.Helpers
-import Arkham.Scenarios.TheHouseAlwaysWins.Story
 
 newtype TheHouseAlwaysWins = TheHouseAlwaysWins ScenarioAttrs
   deriving stock Generic
@@ -49,12 +50,24 @@ instance HasChaosTokenValue TheHouseAlwaysWins where
 instance RunMessage TheHouseAlwaysWins where
   runMessage msg s@(TheHouseAlwaysWins attrs) = runQueueT $ scenarioI18n $ case msg of
     PreScenarioSetup -> do
-      story intro
+      flavor $ scope "intro" do
+        h "title"
+        p "body"
       pure s
     StandaloneSetup -> do
       setChaosTokens $ chaosBagContents attrs.difficulty
       pure s
     Setup -> runScenarioSetup TheHouseAlwaysWins attrs do
+      setup do
+        ul do
+          li "gatherSets"
+          li "setAsideEncounterSets"
+          li "placeLocations"
+          li "placeCloverClubPitBoss"
+          li "setAside"
+          unscoped $ li "shuffleRemainder"
+        p "note"
+
       gather Set.TheHouseAlwaysWins
       gather Set.BadLuck
       gather Set.NaomisCrew
@@ -89,58 +102,46 @@ instance RunMessage TheHouseAlwaysWins where
             chaosTokenEffect Skull drawnToken $ ChaosTokenFaceModifier [Zero]
           labeled "Do not spend resources" nothing
       pure s
-    PassedSkillTest iid _ _ (ChaosTokenTarget token) _ _ -> do
-      case token.face of
-        Cultist | isEasyStandard attrs -> gainResourcesIfCan iid Cultist 3
-        _ -> pure ()
+    PassedSkillTestWithToken iid Cultist | isEasyStandard attrs -> do
+      gainResourcesIfCan iid Cultist 3
       pure s
-    FailedSkillTest iid _ _ (ChaosTokenTarget token) _ _ -> do
-      case token.face of
-        Cultist | isHardExpert attrs -> push $ SpendResources iid 3
-        Tablet | isEasyStandard attrs -> push $ SpendResources iid 3
-        _ -> pure ()
+    FailedSkillTestWithToken iid Cultist | isHardExpert attrs -> do
+      spendResources iid 3
       pure s
-    ScenarioResolution NoResolution -> do
-      push R1
+    FailedSkillTestWithToken iid Tablet | isEasyStandard attrs -> do
+      spendResources iid 3
       pure s
-    ScenarioResolution (Resolution 1) -> do
-      story resolution1
-      record OBannionGangHasABoneToPickWithTheInvestigators
-      record DrFrancisMorganWasKidnapped
-      cheaters <- cheated
-      unless (null cheaters) $ addChaosToken ElderThing
-      allGainXpWithBonus attrs $ toBonus "resolution1" 1
-      endOfScenario
-      pure s
-    ScenarioResolution (Resolution 2) -> do
-      investigatorIds <- allInvestigators
-      story resolution2
-      record OBannionGangHasABoneToPickWithTheInvestigators
-      record TheInvestigatorsRescuedDrFrancisMorgan
-      addCampaignCardToDeckChoice investigatorIds DoNotShuffleIn Assets.drFrancisMorgan
-      cheaters <- cheated
-      unless (null cheaters) $ addChaosToken ElderThing
-      allGainXp attrs
-      endOfScenario
-      pure s
-    ScenarioResolution (Resolution 3) -> do
-      story resolution3
-      record NaomiHasTheInvestigatorsBacks
-      record DrFrancisMorganWasKidnapped
-      cheaters <- cheated
-      unless (null cheaters) $ addChaosToken ElderThing
-      allGainXp attrs
-      endOfScenario
-      pure s
-    ScenarioResolution (Resolution 4) -> do
-      story resolution4
-      record OBannionGangHasABoneToPickWithTheInvestigators
-      record DrFrancisMorganWasKidnapped
-      record InvestigatorsWereUnconsciousForSeveralHours
-      eachInvestigator (`sufferPhysicalTrauma` 1)
-      cheaters <- cheated
-      unless (null cheaters) $ addChaosToken ElderThing
-      allGainXpWithBonus attrs $ toBonus "resolution4" 1
-      endOfScenario
+    ScenarioResolution r -> scope "resolutions" do
+      case r of
+        NoResolution -> push R1
+        Resolution 1 -> do
+          resolutionWithXp "resolution1" $ allGainXpWithBonus' attrs $ toBonus "resolution1" 1
+          record OBannionGangHasABoneToPickWithTheInvestigators
+          record DrFrancisMorganWasKidnapped
+          unlessM (null <$> cheated) $ addChaosToken ElderThing
+          endOfScenario
+        Resolution 2 -> do
+          resolutionWithXp "resolution2" $ allGainXp' attrs
+          record OBannionGangHasABoneToPickWithTheInvestigators
+          record TheInvestigatorsRescuedDrFrancisMorgan
+          investigatorIds <- allInvestigators
+          addCampaignCardToDeckChoice investigatorIds DoNotShuffleIn Assets.drFrancisMorgan
+          unlessM (null <$> cheated) $ addChaosToken ElderThing
+          endOfScenario
+        Resolution 3 -> do
+          resolutionWithXp "resolution3" $ allGainXp' attrs
+          record NaomiHasTheInvestigatorsBacks
+          record DrFrancisMorganWasKidnapped
+          unlessM (null <$> cheated) $ addChaosToken ElderThing
+          endOfScenario
+        Resolution 4 -> do
+          resolutionWithXp "resolution4" $ allGainXpWithBonus' attrs $ toBonus "resolution4" 1
+          record OBannionGangHasABoneToPickWithTheInvestigators
+          record DrFrancisMorganWasKidnapped
+          record InvestigatorsWereUnconsciousForSeveralHours
+          eachInvestigator (`sufferPhysicalTrauma` 1)
+          unlessM (null <$> cheated) $ addChaosToken ElderThing
+          endOfScenario
+        other -> throwIO $ UnknownResolution other
       pure s
     _ -> TheHouseAlwaysWins <$> liftRunMessage msg attrs

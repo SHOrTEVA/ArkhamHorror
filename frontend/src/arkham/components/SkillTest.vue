@@ -196,6 +196,10 @@ function sourceCardCode(source: Source) {
     return `${event.cardCode.replace('c', '')}${mutated}`
   }
 
+  if (source.tag === 'InvestigatorSource') {
+    return `${source.contents.replace('c', '')}`
+  }
+
   return null
 }
 
@@ -203,6 +207,7 @@ function modifierSource(mod: Modifier) {
   if(mod.card) {
     return mod.card.contents.cardCode.replace(/^c/, '')
   }
+
   return sourceCardCode(mod.source)
 }
 
@@ -348,7 +353,7 @@ const tokenEffects = computed(() => {
         @choose="choose"
       />
       <div v-if="modifiers.length > 0" class="modifiers">
-        <div v-for="(modifier, idx) in modifiers" :key="idx" class="modifier" :data-image-id="modifierSource(modifier)">
+        <div v-for="(modifier, idx) in modifiers" :key="idx" class="modifier" :class="{ 'sideways': modifier.source.tag === 'InvestigatorSource' }" :data-image-id="modifierSource(modifier)">
           <template v-if="modifier.type.tag === 'CannotCommitCards'">
             <span>{{cannotCommitCardsToWords(modifier.type)}}</span>
           </template>
@@ -476,7 +481,7 @@ const tokenEffects = computed(() => {
   backdrop-filter: blur(0px);
   -webkit-backdrop-filter: blur(0px); /* Safari support */
   background: #75968600;
-  width: fit-content;
+  min-width: fit-content;
   text-align: center;
   z-index: 10;
   overflow: auto;
@@ -500,8 +505,8 @@ const tokenEffects = computed(() => {
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 30px;
-  padding: 0 30px;
+  gap: min(30px, 2vw);
+  padding: 0 min(30px, 2vw);
   text-transform: uppercase;
 }
 
@@ -519,8 +524,8 @@ const tokenEffects = computed(() => {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 30px;
-  height: 30px;
+  width: min(30px, 4vw);
+  height: min(30px, 4vw);
   border-radius: 50%;
 }
 
@@ -531,8 +536,8 @@ const tokenEffects = computed(() => {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 30px;
-  height: 30px;
+  width: min(30px, 4vw);
+  height: min(30px, 4vw);
   border-radius: 50%;
 }
 
@@ -548,7 +553,6 @@ const tokenEffects = computed(() => {
   height: auto;
   border-radius: 5px;
   box-shadow: 1px 1px 6px rgba(0, 0, 0, 0.45);
-  margin-right: calc(var(--card-width) + 5px);
 
   &:has(+ .card-container) {
     margin-right: 0;
@@ -810,10 +814,6 @@ i.iconSkillAgility {
   display: none;
 }
 
-.target-card {
-  margin-left: calc(var(--card-width) + 5px);
-}
-
 .swarming {
   display: flex;
   flex-direction: row;
@@ -911,5 +911,15 @@ i.iconSkillAgility {
   display: flex;
   flex-direction: row;
   gap: 5px;
+}
+
+.target-card {
+  width: 100%;
+  align-items: flex-end;
+}
+
+.test-source {
+  width: 100%;
+  align-items: flex-start;
 }
 </style>

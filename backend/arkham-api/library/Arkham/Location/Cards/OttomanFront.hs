@@ -10,7 +10,6 @@ import Arkham.Location.Import.Lifted
 import Arkham.Matcher
 import Arkham.Scenarios.FatalMirage.Helpers
 import Arkham.Story.Cards qualified as Stories
-import Arkham.Trait (Trait (Eidolon))
 
 newtype OttomanFront = OttomanFront LocationAttrs
   deriving anyclass IsLocation
@@ -37,7 +36,7 @@ instance HasModifiersFor OttomanFront where
           <> at_ (be a)
       )
       [ShroudModifier (-2)]
-    modifySelect a (EnemyWithTrait Eidolon <> at_ (be a)) [EnemyFight 2, RemoveKeyword Retaliate]
+    modifySelect a (NonEliteEnemy <> at_ (be a)) [EnemyFight 2, RemoveKeyword Retaliate]
     clearedOfMirages a mirageCards
 
 instance RunMessage OttomanFront where

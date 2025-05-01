@@ -17,7 +17,6 @@ function entryStyles(entry: FlavorTextEntry): { [key: string]: boolean } {
     case 'HeaderEntry': return {}
     case 'CardEntry': {
       const mods = entry.imageModifiers.map((m) => { return { [imageModifierToStyle(m)]: true }})
-      console.log(mods)
       return [{"card": true}, {"no-overlay": true}, ...mods]
     }
 
@@ -80,7 +79,7 @@ export default defineComponent({
 
 <style scoped lang="scss">
 .composite { display: contents; }
-.columns {
+.columns, :deep(.columns) {
   display: flex;
   flex-direction: row;
   justify-content: space-between;
@@ -92,9 +91,19 @@ export default defineComponent({
     padding: 10px 20px;
     z-index: 5;
   }
-  > * + * {
+  :not(.simple) > * + * {
     border-left: solid 1px black;
   }
+
+  &.simple {
+    justify-content: flex-start;
+    gap: 20px;
+    p, section {
+      margin: 0;
+      padding: 0;
+    }
+  }
+
   > div:has(img) {
     max-width: 300px;
     min-width: 25%;
@@ -261,7 +270,7 @@ ul, :deep(ul) {
   h1 {
     color: #2F3863;
     text-align: center;
-    font-size: 1.2em;
+    font-size: 2em;
     border-bottom: 1px solid #2F3863;
     &::after {
       border-bottom: 1px solid #2F3863;
@@ -275,6 +284,7 @@ ul, :deep(ul) {
   color: #38615F;
   padding-bottom: 2px;
   border-bottom: 1px solid #38615f;
+  font-size: 2em;
   &::after {
     display: block;
     content: " ";
@@ -295,7 +305,9 @@ ul, :deep(ul) {
   display: flex;
   gap: 5px;
   margin-block: 10px;
+  justify-content: space-around;
   img {
+    align-self: center;
     width: 40px;
   }
 }
@@ -323,5 +335,10 @@ div:has(> img.remove) {
     background: rgba(253, 62, 65, 0.31);
     border-radius: 10px;
   }
+}
+
+.center, :deep(.center) {
+  justify-content: center;
+  align-content: center;
 }
 </style>

@@ -67,6 +67,7 @@ b, strong {
 
 img, svg {
   max-width: 100%;
+  -webkit-touch-callout: none
 }
 
 button {
@@ -127,6 +128,11 @@ body {
   color: #222;
   min-height: 100vh;
   background: var(--background);
+  font-size: min(16px, 2vw);
+}
+
+button {
+  font-size: min(12px, 2vw);
 }
 
 #app {
@@ -440,7 +446,7 @@ body {
   --button-2: #532e61;
   --button-2-highlight: #4d2b61;
 
-  --card-width: 60px;
+  --card-width: min(calc(2.5vw + 20px), 60px);
   --card-aspect: 0.705;
   --card-sideways-aspect: 1.41844;
   --card-tarot-aspect: 0.571429;
@@ -454,9 +460,7 @@ body {
 
   --bullet-red: #391714;
 
-  @media (max-width: 800px) {
-    --card-width: 40px;
-  }
+  --pool-token-width: min(30px, 4vw);
 }
 
 h2.title {
@@ -535,6 +539,7 @@ footer {
 }
 
 .card {
+  user-select: none;
   box-shadow: var(--card-shadow);
 }
 

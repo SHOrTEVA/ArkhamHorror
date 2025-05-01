@@ -27,6 +27,7 @@ import Arkham.Placement
 import Arkham.Prelude
 import Arkham.Projection
 import Arkham.Source
+import Arkham.Spawn
 import Arkham.Strategy
 import Arkham.Target
 import Arkham.Token
@@ -84,6 +85,7 @@ data instance Field Enemy :: Type -> Type where
   EnemyAttacking :: Field Enemy (Maybe EnemyAttackDetails)
   EnemyBearer :: Field Enemy (Maybe InvestigatorId)
   EnemyCardsUnderneath :: Field Enemy [Card]
+  EnemyLastKnownLocation :: Field Enemy (Maybe LocationId)
 
 deriving stock instance Show (Field Enemy typ)
 deriving stock instance Ord (Field Enemy typ)
@@ -132,6 +134,7 @@ instance FromJSON (SomeField Enemy) where
     "EnemyAttacking" -> pure $ SomeField EnemyAttacking
     "EnemyBearer" -> pure $ SomeField EnemyBearer
     "EnemyCardsUnderneath" -> pure $ SomeField EnemyCardsUnderneath
+    "EnemyLastKnownLocation" -> pure $ SomeField EnemyLastKnownLocation
     _ -> error "no such field"
 
 data instance Field (OutOfPlayEntity _ Enemy) :: Type -> Type where
@@ -164,6 +167,16 @@ enemy f cardDef stats damageStats = enemyWith f cardDef stats damageStats id
 
 preyIsBearer :: EnemyAttrs -> EnemyAttrs
 preyIsBearer a = a {enemyPrey = BearerOf (toId a)}
+
+setPrey
+  :: (Entity a, EntityAttrs a ~ EnemyAttrs)
+  => InvestigatorMatcher -> CardBuilder EnemyId a -> CardBuilder EnemyId a
+setPrey prey = fmap (overAttrs (\a -> a {enemyPrey = Prey prey}))
+
+setSpawnAt
+  :: (Entity a, EntityAttrs a ~ EnemyAttrs)
+  => LocationMatcher -> CardBuilder EnemyId a -> CardBuilder EnemyId a
+setSpawnAt spawnAt = fmap (overAttrs (\a -> a {enemySpawnAt = Just (SpawnAt spawnAt)}))
 
 enemyWith
   :: (EnemyAttrs -> a)
@@ -212,6 +225,7 @@ enemyWith f cardDef (fight, health, evade) (healthDamage, sanityDamage) g =
             , enemyAttacking = Nothing
             , enemyDelayEngagement = False
             , enemyCardsUnderneath = []
+            , enemyLastKnownLocation = Nothing
             }
     }
 
@@ -432,6 +446,7 @@ fieldLens = \case
   EnemyAttacking -> attackingL
   EnemyBearer -> bearerL
   EnemyCardsUnderneath -> cardsUnderneathL
+  EnemyLastKnownLocation -> lastKnownLocationL
  where
   virtual = error "virtual attribute can not be set directly"
 

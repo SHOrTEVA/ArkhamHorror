@@ -1,3 +1,4 @@
+{-# OPTIONS_GHC -O0 #-}
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE OverloadedRecordDot #-}
 {-# LANGUAGE NoFieldSelectors #-}
@@ -258,6 +259,12 @@ attackedEnemy =
     (windowType -> Window.FailAttackEnemy _ eid _) -> Just eid
     _ -> Nothing
 
+attackSource :: HasCallStack => [Window] -> Source
+attackSource =
+  fromMaybe (error "missing enemy") . asum . map \case
+    (windowType -> Window.EnemyAttacked _ source _) -> Just source
+    _ -> Nothing
+
 evadedEnemy :: HasCallStack => [Window] -> EnemyId
 evadedEnemy =
   fromMaybe (error "missing enemy") . asum . map \case
@@ -324,6 +331,12 @@ cardDiscarded [] = error "missing play card window"
 cardDiscarded ((windowType -> Window.DiscardedFromHand _ _ c) : _) = c
 cardDiscarded ((windowType -> Window.Discarded _ _ c) : _) = c
 cardDiscarded (_ : xs) = cardDiscarded xs
+
+cardsDiscarded :: HasCallStack => [Window] -> [Card]
+cardsDiscarded [] = []
+cardsDiscarded ((windowType -> Window.DiscardedFromHand _ _ c) : ws) = c : cardsDiscarded ws
+cardsDiscarded ((windowType -> Window.Discarded _ _ c) : ws) = c : cardsDiscarded ws
+cardsDiscarded (_ : xs) = cardsDiscarded xs
 
 cardDrawnBy :: HasCallStack => [Window] -> (InvestigatorId, Card)
 cardDrawnBy [] = error "missing play card window"
@@ -1524,11 +1537,11 @@ windowMatches iid rawSource window'@(windowTiming &&& windowType -> (timing', wT
         _ -> noMatch
     Matcher.EnemyAttacked timing whoMatcher sourceMatcher enemyMatcher ->
       guardTiming timing $ \case
-        Window.EnemyAttacked who attackSource enemyId ->
+        Window.EnemyAttacked who source' enemyId ->
           andM
             [ matchWho iid who whoMatcher
             , matches enemyId enemyMatcher
-            , sourceMatches attackSource sourceMatcher
+            , sourceMatches source' sourceMatcher
             ]
         _ -> noMatch
     Matcher.EnemyAttackedSuccessfully timing whoMatcher sourceMatcher enemyMatcher ->
@@ -1590,7 +1603,7 @@ windowMatches iid rawSource window'@(windowTiming &&& windowType -> (timing', wT
       _ -> noMatch
     Matcher.ResolvesTreachery timing whoMatcher treacheryMatcher -> guardTiming timing $ \case
       Window.ResolvesTreachery who treacheryId ->
-        andM [matchWho iid who whoMatcher, treacheryId <=~> treacheryMatcher]
+        andM [matchWho iid who whoMatcher, treacheryId <=~> IncludeOutOfPlayTreachery treacheryMatcher]
       _ -> noMatch
     Matcher.ResolvesChaosToken timing whoMatcher tokenMatcher -> guardTiming timing $ \case
       Window.ResolvesChaosToken who token ->
@@ -1869,6 +1882,15 @@ windowMatches iid rawSource window'@(windowTiming &&& windowType -> (timing', wT
         andM
           [ matchWho iid who whoMatcher
           , event <=~> eventMatcher
+          ]
+      _ -> noMatch
+    Matcher.PlayEvent timing whoMatcher eventMatcher -> guardTiming timing $ \case
+      Window.PlayEvent who event ->
+        andM
+          [ matchWho iid who whoMatcher
+          , case eventMatcher of
+              EventWithId eid -> pure $ event == eid
+              _ -> event <=~> eventMatcher
           ]
       _ -> noMatch
     Matcher.AgendaEntersPlay timing agendaMatcher -> guardTiming timing $ \case

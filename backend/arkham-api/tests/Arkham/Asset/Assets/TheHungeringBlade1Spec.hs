@@ -46,6 +46,7 @@ spec = describe "The Hungering Blade (1)" do
         theHungeringBlade <- selectJust $ assetIs Assets.theHungeringBlade1
         run $ PlaceTokens (TestSource mempty) (toTarget theHungeringBlade) Offering 6
         run $ Helpers.drawCards (toId self) (TestSource mempty) 3
+        withDeck self [Assets.machete]
         enemy `spawnAt` location
         [doAttack] <- self `getActionsFrom` theHungeringBlade
         self `useAbility` doAttack

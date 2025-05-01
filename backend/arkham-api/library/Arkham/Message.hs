@@ -1,5 +1,4 @@
 {-# LANGUAGE TemplateHaskell #-}
-{-# OPTIONS_GHC -O0 #-}
 
 module Arkham.Message (module Arkham.Message, module X) where
 
@@ -77,6 +76,7 @@ import Arkham.SkillTestResult qualified as SkillTest
 import Arkham.SkillType
 import Arkham.Slot
 import Arkham.Source
+import Arkham.Spawn
 import Arkham.Target
 import Arkham.Tarot
 import Arkham.Token qualified as Token
@@ -218,6 +218,10 @@ pattern FailedThisSkillTest iid source <-
 pattern FailedThisSkillTestBy :: InvestigatorId -> Source -> Int -> Message
 pattern FailedThisSkillTestBy iid source n <-
   FailedSkillTest iid _ source SkillTestInitiatorTarget {} _ n
+
+pattern FailedSkillTestWithToken :: InvestigatorId -> ChaosTokenFace -> Message
+pattern FailedSkillTestWithToken iid face <-
+  FailedSkillTest iid _ _ (ChaosTokenTarget (chaosTokenFace -> face)) _ _
 
 pattern ElderSignEffect :: InvestigatorId -> Message
 pattern ElderSignEffect iid <- ResolveChaosToken _ ElderSign iid
@@ -440,8 +444,6 @@ data Message
     AddSlot InvestigatorId SlotType Slot
   | RemoveSlot InvestigatorId SlotType
   | RemoveSlotFrom InvestigatorId Source SlotType
-  | -- Adding Cards to Encounter Deck
-    AddToEncounterDeck EncounterCard
   | -- Scenario Deck Messages
     AddToScenarioDeck ScenarioDeckKey Target
   | AddCardToScenarioDeck ScenarioDeckKey Card
@@ -551,6 +553,7 @@ data Message
   | Continue Text
   | CreateEffect EffectBuilder
   | ObtainCard CardId
+  | RemoveCard CardId
   | ObtainChaosToken ChaosToken
   | CreateEnemy (EnemyCreation Message)
   | CreateSkill SkillId Card InvestigatorId Placement
@@ -660,7 +663,9 @@ data Message
   | EnemyMove EnemyId LocationId
   | EnemyEntered EnemyId LocationId
   | SetBearer Target InvestigatorId
-  | EnemySpawn (Maybe InvestigatorId) LocationId EnemyId
+  | SpawnEnemyAt Card LocationId
+  | SpawnEnemyAtEngagedWith Card LocationId InvestigatorId
+  | EnemySpawn SpawnDetails
   | EnemySpawnAtLocationMatching (Maybe InvestigatorId) LocationMatcher EnemyId
   | EnemySpawnEngagedWithPrey EnemyId
   | EnemySpawnEngagedWith EnemyId InvestigatorMatcher
@@ -763,6 +768,7 @@ data Message
       [Target]
   | InvestigatorDrawEnemy InvestigatorId EnemyId
   | InvestigatorDrewEncounterCard InvestigatorId EncounterCard
+  | InvestigatorDrewEncounterCardFrom InvestigatorId EncounterCard (Maybe DeckSignifier)
   | InvestigatorDrewPlayerCardFrom InvestigatorId PlayerCard (Maybe DeckSignifier)
   | InvestigatorEliminated InvestigatorId
   | InvestigatorKilled Source InvestigatorId
@@ -993,8 +999,6 @@ data Message
   | EndSkillTestWindow
   | SkillTestResults SkillTestResultsData
   | SkillTestUncommitCard InvestigatorId Card
-  | SpawnEnemyAt Card LocationId
-  | SpawnEnemyAtEngagedWith Card LocationId InvestigatorId
   | SpendClues Int [InvestigatorId]
   | SpendResources InvestigatorId Int
   | SpendUses Source Target UseType Int
@@ -1133,6 +1137,18 @@ instance FromJSON Message where
   parseJSON = withObject "Message" \o -> do
     t :: Text <- o .: "tag"
     case t of
+      "EnemySpawn" -> do
+        contents <- (Left <$> o .: "contents") <|> (Right <$> o .: "contents")
+        case contents of
+          Right details -> pure $ EnemySpawn details
+          Left (miid, lid, eid) ->
+            pure
+              $ EnemySpawn
+              $ SpawnDetails
+                { spawnDetailsEnemy = eid
+                , spawnDetailsInvestigator = miid
+                , spawnDetailsSpawnAt = Arkham.Spawn.SpawnAtLocation lid
+                }
       "FightEnemy" -> do
         contents <- (Left <$> o .: "contents") <|> (Right <$> o .: "contents")
         case contents of

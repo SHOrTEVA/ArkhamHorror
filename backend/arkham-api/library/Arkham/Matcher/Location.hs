@@ -94,6 +94,7 @@ data LocationMatcher
   | LocationCanBeEnteredBy EnemyId
   | LocationWithAsset AssetMatcher
   | LocationWithAttachedEvent EventMatcher
+  | LocationWithAttachedAsset AssetMatcher
   | LocationWithAttachment
   | LocationWithCardsUnderneath CardListMatcher
   | LocationWithInvestigator InvestigatorMatcher
@@ -129,6 +130,7 @@ data LocationMatcher
   | LocationCanBeFlipped
   | SingleSidedLocation
   | ClosestPathLocation LocationId LocationId
+  | ClosestPathLocationMatch LocationMatcher LocationMatcher -- both should resolve to a single location
   | ClosestUnbarricadedPathLocation LocationId LocationId
   | LocationWithDefeatedEnemyThisRound
   | HighestShroud LocationMatcher

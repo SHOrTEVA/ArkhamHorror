@@ -129,6 +129,7 @@ import Arkham.Matcher (
  )
 import Arkham.Message qualified as Msg
 import Arkham.Message.Lifted (obtainCard)
+import Arkham.Message.Lifted qualified as Lifted
 import Arkham.Message.Lifted.Choose qualified as Choose
 import Arkham.Modifier
 import Arkham.Modifier qualified as Modifier
@@ -938,19 +939,30 @@ runInvestigatorMessage msg a@InvestigatorAttrs {..} = runQueueT $ case msg of
   RemoveCardFromSearch iid cardId | iid == investigatorId -> do
     pure $ a & foundCardsL %~ Map.map (filter ((/= cardId) . toCardId))
   ShuffleIntoDeck (Deck.InvestigatorDeck iid) (AssetTarget aid) | iid == investigatorId -> do
-    card <- field AssetCard aid
-    obtainCard card
-    push $ RemoveFromPlay (AssetSource aid)
-    push $ ShuffleCardsIntoDeck (Deck.InvestigatorDeck iid) [card]
-    push $ After msg
-    pushWhen (providedSlot a aid) $ RefillSlots a.id
-    pure $ a & (slotsL %~ removeFromSlots aid)
+    if null investigatorDeck
+      then do
+        isDefeated <- field AssetIsDefeated aid
+        when isDefeated $ Lifted.toDiscard GameSource aid
+        pure a
+      else do
+        card <- field AssetCard aid
+        obtainCard card
+        push $ RemoveFromPlay (AssetSource aid)
+        push $ ShuffleCardsIntoDeck (Deck.InvestigatorDeck iid) [card]
+        push $ After msg
+        pushWhen (providedSlot a aid) $ RefillSlots a.id
+        pure $ a & (slotsL %~ removeFromSlots aid)
   ShuffleIntoDeck (Deck.InvestigatorDeck iid) (EventTarget eid) | iid == investigatorId -> do
-    card <- field EventCard eid
-    obtainCard card
-    push $ ShuffleCardsIntoDeck (Deck.InvestigatorDeck iid) [card]
-    push $ After msg
-    pushWhen (providedSlot a eid) $ RefillSlots a.id
+    if null investigatorDeck
+      then do
+        placement <- field EventPlacement eid
+        when (isOutOfPlayPlacement placement) (Lifted.toDiscard GameSource eid)
+      else do
+        card <- field EventCard eid
+        obtainCard card
+        push $ ShuffleCardsIntoDeck (Deck.InvestigatorDeck iid) [card]
+        push $ After msg
+        pushWhen (providedSlot a eid) $ RefillSlots a.id
     pure a
   ShuffleIntoDeck (Deck.InvestigatorDeck iid) (SkillTarget aid) | iid == investigatorId -> do
     card <- field SkillCard aid
@@ -958,8 +970,11 @@ runInvestigatorMessage msg a@InvestigatorAttrs {..} = runQueueT $ case msg of
     if toCardCode card == "06113"
       then pure $ a & bondedCardsL %~ (card :)
       else do
-        push $ ShuffleCardsIntoDeck (Deck.InvestigatorDeck iid) [card]
-        push $ After msg
+        if null investigatorDeck
+          then Lifted.addToDiscard iid (only card)
+          else do
+            Lifted.shuffleCardsIntoDeck iid (only card)
+            push $ After msg
         pure a
   Discarded (AssetTarget aid) _ (PlayerCard card) -> do
     -- TODO: This message is ugly, we should do something different
@@ -1050,17 +1065,20 @@ runInvestigatorMessage msg a@InvestigatorAttrs {..} = runQueueT $ case msg of
           then orConnected (locationWithInvestigator investigatorId)
           else locationWithInvestigator investigatorId
     player <- getPlayer investigatorId
-    push
-      $ chooseOne
-        player
-        [ FightLabel
-            eid
-            $ ChoseEnemy choose.skillTest investigatorId source eid
-            : [ FightEnemy eid choose
-              | not choose.onlyChoose
-              ]
-        | eid <- enemyIds <> map coerce locationIds
-        ]
+    let choices = enemyIds <> map coerce locationIds
+    -- we might have killed the enemy via a reaction before getting here
+    unless (null choices) do
+      push
+        $ chooseOne
+          player
+          [ FightLabel
+              eid
+              $ ChoseEnemy choose.skillTest investigatorId source eid
+              : [ FightEnemy eid choose
+                | not choose.onlyChoose
+                ]
+          | eid <- enemyIds <> map coerce locationIds
+          ]
     pure a
   EngageEnemy iid eid _ True | iid == investigatorId -> do
     modifiers' <- getModifiers (toTarget a)
@@ -1347,7 +1365,7 @@ runInvestigatorMessage msg a@InvestigatorAttrs {..} = runQueueT $ case msg of
                     batchedTimings batchId (Window.WouldMove iid source from destinationLocationId) & \case
                       (whens, _, _) -> Just whens
                   Nothing -> Nothing
-                (whenEntering, atIfEntering, afterEntering) = batchedTimings batchId (Window.Entering iid destinationLocationId)
+                (whenEntering, atIfEntering, _) = batchedTimings batchId (Window.Entering iid destinationLocationId)
 
               -- Windows we need to check as understood:
               -- according to Empirical Hypothesis ruling the order should be like:
@@ -1370,7 +1388,7 @@ runInvestigatorMessage msg a@InvestigatorAttrs {..} = runQueueT $ case msg of
               runAtIfMoves <- checkWindows [atIfMoves]
               runWhenEntering <- checkWindows [whenEntering]
               runAtIfEntering <- checkWindows [atIfEntering]
-              runAfterEnteringMoves <- checkWindows [afterEntering, afterMoves]
+              runAfterMoves <- checkWindows [afterMoves]
 
               pushBatched batchId
                 $ maybeToList mRunWouldMove
@@ -1386,7 +1404,7 @@ runInvestigatorMessage msg a@InvestigatorAttrs {..} = runQueueT $ case msg of
                           , runWhenMoves
                           , runAtIfMoves
                           , MoveTo movement
-                          , runAfterEnteringMoves
+                          , runAfterMoves
                           ]
                        <> maybeToList mRunAfterLeaving
                    ]
@@ -1400,15 +1418,9 @@ runInvestigatorMessage msg a@InvestigatorAttrs {..} = runQueueT $ case msg of
                     batchedTimings batchId (Window.Leaving iid from) & \case
                       (whens, atIfs, afters) -> (Just whens, Just atIfs, Just afters)
                   Nothing -> (Nothing, Nothing, Nothing)
-              mRunWhenLeaving <- case mWhenLeaving of
-                Just whenLeaving -> Just <$> checkWindows [whenLeaving]
-                Nothing -> pure Nothing
-              mRunAtIfLeaving <- case mAtIfLeaving of
-                Just atIfLeaving -> Just <$> checkWindows [atIfLeaving]
-                Nothing -> pure Nothing
-              mRunAfterLeaving <- case mAfterLeaving of
-                Just afterLeaving -> Just <$> checkWindows [afterLeaving]
-                Nothing -> pure Nothing
+              mRunWhenLeaving <- for mWhenLeaving \whenLeaving -> checkWindows [whenLeaving]
+              mRunAtIfLeaving <- for mAtIfLeaving \atIfLeaving -> checkWindows [atIfLeaving]
+              mRunAfterLeaving <- for mAfterLeaving \afterLeaving -> checkWindows [afterLeaving]
               runWhenEntering <- checkWindows [whenEntering]
               runAtIfEntering <- checkWindows [atIfEntering]
               runAfterEntering <- checkWindows [afterEntering]
@@ -2029,6 +2041,7 @@ runInvestigatorMessage msg a@InvestigatorAttrs {..} = runQueueT $ case msg of
         locationWindowsBefore <- checkWindows [mkWhen (Window.DiscoverClues iid lid d.source clueCount)]
         locationWindowsAfter <-
           checkWindows $ mkAfter (Window.DiscoverClues iid lid d.source clueCount)
+            : mkAfter (Window.GainsClues iid d.source clueCount)
             : [mkAfter (Window.DiscoveringLastClue iid lid) | lastClue]
 
         pushAll
@@ -2207,6 +2220,7 @@ runInvestigatorMessage msg a@InvestigatorAttrs {..} = runQueueT $ case msg of
                   pure $ replicate lessSlots aid
               pure $ foldr removeIfMatchesOnce (foldr removeIfMatches slot ignored) (concat assetsToRemove)
       pure (slotType, slots')
+    push $ RefillSlots iid
     pure $ a & slotsL .~ mapFromList updatedSlots
   Do (InvestigatorPlayAsset iid aid) | iid == investigatorId -> do
     -- this asset might already be slotted so check first
@@ -2661,6 +2675,8 @@ runInvestigatorMessage msg a@InvestigatorAttrs {..} = runQueueT $ case msg of
         afterMoveButBeforeEnemyEngagement <-
           Helpers.checkWindows [mkAfter (Window.MovedButBeforeEnemyEngagement iid lid)]
 
+        afterEntering <- checkAfter $ Window.Entering iid lid
+
         pushAll
           $ [ WhenWillEnterLocation iid lid
             , Do (WhenWillEnterLocation iid lid)
@@ -2674,10 +2690,11 @@ runInvestigatorMessage msg a@InvestigatorAttrs {..} = runQueueT $ case msg of
                  ]
              | (iid', player) <- moveWith
              ]
-          <> [ afterMoveButBeforeEnemyEngagement
+          <> moveAfter movement
+          <> [ afterEntering
+             , afterMoveButBeforeEnemyEngagement
              , CheckEnemyEngagement iid
              ]
-          <> moveAfter movement
         pure a
   Do (WhenWillEnterLocation iid lid) | iid == investigatorId -> do
     pure $ a & placementL .~ AtLocation lid
@@ -3116,6 +3133,8 @@ runInvestigatorMessage msg a@InvestigatorAttrs {..} = runQueueT $ case msg of
     let
       cardFilter :: IsCard c => [c] -> [c]
       cardFilter = filter ((/= card.id) . toCardId)
+    doCheck <- hasModifier iid CheckHandSizeAfterDraw
+    when doCheck $ push $ CheckHandSize iid
     pure
       $ a
       & (handL %~ nub . (toCard card :))
@@ -3619,6 +3638,9 @@ runInvestigatorMessage msg a@InvestigatorAttrs {..} = runQueueT $ case msg of
       & (searchL . _Just . Search.drawnCardsL %~ (<> cards))
   AddToHandQuiet iid cards | iid == investigatorId -> do
     for_ cards obtainCard
+    push $ Do msg
+    pure a
+  Do (AddToHandQuiet iid cards) | iid == investigatorId -> do
     assetIds <- catMaybes <$> for cards (selectOne . AssetWithCardId . toCardId)
     pure
       $ a

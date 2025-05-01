@@ -11,7 +11,8 @@ import Arkham.Difficulty
 import Arkham.EncounterSet qualified as Set
 import Arkham.Enemy.Cards qualified as Enemies
 import Arkham.Exception
-import Arkham.FlavorText
+import Arkham.FlavorText (ikey)
+import Arkham.Helpers.FlavorText
 import Arkham.Helpers.Query
 import Arkham.Helpers.Scenario
 import Arkham.Helpers.Xp
@@ -22,6 +23,7 @@ import Arkham.Message.Lifted.Log
 import Arkham.Prelude
 import Arkham.Resolution
 import Arkham.Scenario.Import.Lifted
+import Arkham.Scenarios.TheGathering.Helpers
 import Arkham.Trait (Trait (Ghoul))
 
 newtype TheGathering = TheGathering ScenarioAttrs
@@ -54,15 +56,17 @@ theGatheringAgendaDeck :: [CardDef]
 theGatheringAgendaDeck = [Agendas.whatsGoingOn, Agendas.riseOfTheGhouls, Agendas.theyreGettingOut]
 
 instance RunMessage TheGathering where
-  runMessage msg s@(TheGathering attrs) = runQueueT $ campaignI18n $ scope "theGathering" $ case msg of
+  runMessage msg s@(TheGathering attrs) = runQueueT $ scenarioI18n $ case msg of
     StandaloneSetup -> do
       setChaosTokens $ chaosBagContents attrs.difficulty
       pure s
     PreScenarioSetup -> do
-      story $ flavorText $ compose [h "intro.title", p "intro.body"]
+      flavor $ scope "intro" do
+        h "title"
+        p "body"
       pure s
     Setup -> runScenarioSetup TheGathering attrs do
-      scope "setup" $ story $ flavorText $ ul do
+      setup $ ul do
         li "gatherSets"
         li "placeLocations"
         li "setOutOfPlay"
@@ -101,7 +105,7 @@ instance RunMessage TheGathering where
         Cultist -> assignHorror iid (ChaosTokenSource token) (byDifficulty attrs 1 2)
         _ -> pure ()
       pure s
-    ScenarioResolution resolution -> do
+    ScenarioResolution resolution -> scope "resolutions" do
       resigned <- select ResignedInvestigator
       leadId <- getLead
       let
@@ -112,30 +116,21 @@ instance RunMessage TheGathering where
             addCampaignCardToDeckChoice valids' DoNotShuffleIn Assets.litaChantler
       case resolution of
         NoResolution -> do
-          xp <- allGainXpWithBonus' attrs $ toBonus "bonus" 2
-          story
-            $ withVars ["xp" .= xp]
-            $ i18nWithTitle "resolutions.noResolution"
+          resolutionWithXp "noResolution" $ allGainXpWithBonus' attrs $ toBonus "bonus" 2
           record YourHouseIsStillStanding
           record GhoulPriestIsStillAlive
           chooseToAddLita []
         Resolution 1 -> do
-          xp <- allGainXpWithBonus' attrs $ toBonus "bonus" 2
-          story
-            $ withVars ["xp" .= xp]
-            $ i18nWithTitle "resolutions.resolution1"
+          resolutionWithXp "resolution1" $ allGainXpWithBonus' attrs $ toBonus "bonus" 2
           record YourHouseHasBurnedToTheGround
           chooseToAddLita []
           sufferMentalTrauma leadId 1
         Resolution 2 -> do
-          xp <- allGainXpWithBonus' attrs $ toBonus "bonus" 2
-          story
-            $ withVars ["xp" .= xp]
-            $ i18nWithTitle "resolutions.resolution2"
+          resolutionWithXp "resolution2" $ allGainXpWithBonus' attrs $ toBonus "bonus" 2
           record YourHouseIsStillStanding
           gainXp leadId attrs (ikey "xp.resolution2") 1
         Resolution 3 -> do
-          story $ i18nWithTitle "resolutions.resolution3"
+          story $ i18nWithTitle "resolution3"
           record LitaWasForcedToFindOthersToHelpHerCause
           record YourHouseIsStillStanding
           record GhoulPriestIsStillAlive

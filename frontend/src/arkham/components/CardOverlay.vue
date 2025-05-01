@@ -27,10 +27,31 @@ onMounted(() => {
     }
   }
 
-  document.addEventListener('mouseover', handleMouseover)
+  const isMobile = window.matchMedia('(hover: none) and (pointer: coarse)').matches;
+  let pressTimer : number | undefined = undefined
+
+  const handlePress = (event: Event) => {
+    pressTimer = setTimeout(() => handleMouseover(event), 200)
+    event.preventDefault()
+  }
+  const disablePress = () => {
+    hoveredElement.value = null
+    clearTimeout(pressTimer)
+  }
+
+  if (!isMobile) {
+    document.addEventListener('mouseover', handleMouseover)
+  } else {
+    document.addEventListener('contextmenu', e => e.preventDefault());
+    document.addEventListener('touchstart', handlePress)
+    document.addEventListener('touchend', disablePress)
+    document.addEventListener('mouseup', disablePress)
+  }
 
   onUnmounted(() => {
     document.removeEventListener('mouseover', handleMouseover)
+    document.removeEventListener('touchstart', handlePress)
+    document.removeEventListener('touchstart', disablePress)
   })
 })
 
@@ -39,6 +60,8 @@ const card = computed(() => {
   if (hoveredElement.value.classList.contains('no-overlay')) return null
   return getImage(hoveredElement.value)
 })
+
+const isMobile = window.matchMedia('(hover: none) and (pointer: coarse)').matches;
 
 const allCustomizations = ["09021", "09022", "09023", "09040", "09041", "09042", "09059", "09060", "09061", "09079", "09080", "09081", "09099", "09100", "09101", "09119"]
 
@@ -305,7 +328,7 @@ const getImage = (el: HTMLElement): string | null => {
 </script>
 
 <template>
-  <div class="card-overlay" ref="cardOverlay" :style="{ top: overlayPosition.top + 'px', left: overlayPosition.left + 'px'}" :class="{ sideways, tarot }">
+  <div class="card-overlay" ref="cardOverlay" :style="{ top: overlayPosition.top + 'px', left: overlayPosition.left + 'px'}" :class="{ sideways, tarot, isMobile }">
     <div class="card-image">
       <img v-if="card" :src="card" :class="{ reversed, Reversed: upsideDown }" />
       <img
@@ -413,11 +436,6 @@ const getImage = (el: HTMLElement): string | null => {
   position: absolute;
   z-index: 1000;
   display: flex;
-  .card-image {
-    max-height: 420px;
-    max-width: 300px;
-    height: fit-content;
-  }
   img {
     box-shadow: 1px 1px 6px rgba(0, 0, 0, 0.75);
     border-radius: 15px;
@@ -464,7 +482,7 @@ const getImage = (el: HTMLElement): string | null => {
     height: 300px !important;
     width: fit-content !important;
     height: 300px;
-    aspect-ratio: var(--card-sideways-aspect);
+    //aspect-ratio: var(--card-sideways-aspect);
     width: auto;
     img {
       aspect-ratio: var(--card-sideways-aspect);
@@ -2044,6 +2062,14 @@ const getImage = (el: HTMLElement): string | null => {
     width: 25px;
     height: 25px;
   }
+}
+
+.isMobile {
+  inset: 0 !important;
+  margin: auto;
+  align-self: center;
+  justify-content: center;
+  width: fit-content;
 }
 
 </style>

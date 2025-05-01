@@ -9,8 +9,8 @@ import Arkham.DamageEffect qualified as Msg
 import Arkham.Discover
 import Arkham.Enemy.Types (Field (EnemyLocation))
 import Arkham.Helpers.Customization
-import Arkham.Helpers.Investigator (canHaveDamageHealed, canHaveHorrorHealed, withLocationOf)
-import Arkham.Helpers.Location (getAccessibleLocations)
+import Arkham.Helpers.Investigator (canHaveDamageHealed, canHaveHorrorHealed)
+import Arkham.Helpers.Location (getAccessibleLocations, withLocationOf)
 import Arkham.Helpers.Message qualified as Msg
 import Arkham.Helpers.Modifiers hiding (skillTestModifier)
 import Arkham.Helpers.SkillTest.Target
@@ -43,7 +43,7 @@ override a iid =
     $ ThisEnemy
     $ EnemyWithoutModifier CannotBeAttacked
     <> oneOf
-      [ EnemyAt (ConnectedFrom $ locationWithInvestigator iid)
+      [ EnemyAt (AccessibleFrom $ locationWithInvestigator iid)
           <> (if a.use Charge > 1 then oneOf [not_ AloofEnemy, CanEngageEnemy (a.ability 1)] else not_ AloofEnemy)
       , enemyAtLocationWith iid <> AloofEnemy <> CanEngageEnemy (a.ability 1)
       , enemyAtLocationWith iid <> not_ AloofEnemy

@@ -75,7 +75,8 @@ import Arkham.Target
 import Arkham.Token qualified as Token
 import Arkham.Window (Window (..), mkAfter, mkWhen)
 import Arkham.Window qualified as Window
-import Control.Lens (non, transform)
+import Control.Lens (non, transform, over)
+import Data.Data.Lens (biplate)
 import GHC.Records
 
 activeCostActions :: ActiveCost -> [Action]
@@ -878,10 +879,28 @@ payCost msg c iid skipAdditionalCosts cost = do
       push $ SpendActions iid source' actions' 1
       withPayment AdditionalActionPayment
     UseCost assetMatcher uType n -> do
-      assets <- select $ assetMatcher <> AssetWithSpendableUses (atLeast n) uType
-      push
-        $ chooseOrRunOne player [targetLabel aid [SpendUses source (AssetTarget aid) uType n] | aid <- assets]
-      withPayment $ UsesPayment n
+      if n == 0
+        then pure c
+        else do
+          assets <- select $ assetMatcher <> AssetWithSpendableUses (atLeast 1) uType
+          case assets of
+            [] -> error "No assets found"
+            [x] -> do
+              ok <- x <=~> (assetMatcher <> AssetWithSpendableUses (atLeast n) uType)
+              if ok
+                then do
+                  push $ SpendUses source (AssetTarget x) uType n
+                  withPayment $ UsesPayment n
+                else error "Asset did not have enough tokens"
+            xs -> do
+              push
+                $ chooseOrRunOne
+                  player
+                  [ targetLabel aid $ SpendUses source (AssetTarget aid) uType 1
+                      : [pay (UseCost assetMatcher uType (n - 1)) | n > 1]
+                  | aid <- xs
+                  ]
+              withPayment $ UsesPayment 1
     AllUsesCost assetMatcher uType -> do
       assets <- select $ assetMatcher <> AssetWithSpendableUses (atLeast 1) uType
       assetsWithUses <- for assets \aid -> do
@@ -1342,9 +1361,26 @@ instance RunMessage ActiveCost where
             ForCard {} -> False
             _ -> True
 
+      mods <- case activeCostTarget c of
+        ForCard _ card -> getModifiers card
+        _ -> pure []
+
+      let
+        updateCost = \case
+          x@(UnlessFastActionCost {}) -> do
+            case activeCostTarget c of
+              ForCard _ card -> case card of
+                PlayerCard _ ->
+                  if isJust $ cdFastWindow (toCardDef card) <|> listToMaybe [w | BecomesFast w <- mods]
+                    then Free
+                    else x
+                _ -> x
+              _ -> x
+          x -> x
+
       canStillAfford <-
         withModifiers iid (toModifiers source [ExtraResources extraResources])
-          $ getCanAffordCost_ iid source actions c.windows canModify cost
+          $ getCanAffordCost_ iid source actions c.windows canModify $ over biplate (transform updateCost) cost
       if canStillAfford
         then payCost msg c iid skipAdditionalCosts cost
         else do
@@ -1416,6 +1452,6 @@ instance RunMessage ActiveCost where
       pure c
     Do (DiscardCard _ _ cardId) -> do
       case c.target of
-        ForCard _ card | card.id == cardId -> pure c { activeCostCancelled = True }
+        ForCard _ card | card.id == cardId -> pure c {activeCostCancelled = True}
         _ -> pure c
     _ -> pure c

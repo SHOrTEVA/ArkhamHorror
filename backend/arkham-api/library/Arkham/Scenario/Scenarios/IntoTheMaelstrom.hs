@@ -8,7 +8,7 @@ import Arkham.Campaigns.TheInnsmouthConspiracy.Key
 import Arkham.Card
 import Arkham.EncounterSet qualified as Set
 import Arkham.Enemy.Cards qualified as Enemies
-import Arkham.Helpers.Investigator (getMaybeLocation, withLocationOf)
+import Arkham.Helpers.Location (getLocationOf, withLocationOf)
 import Arkham.Helpers.Query
 import Arkham.Helpers.Xp (toBonus)
 import Arkham.I18n
@@ -127,6 +127,7 @@ instance RunMessage IntoTheMaelstrom where
       selectEach (investigatorWithRecord PossessesADivingSuit) \iid -> do
         divingSuit <- genCard Assets.divingSuit
         createAssetAt_ divingSuit (InPlayArea iid)
+      removeEvery [Assets.divingSuit]
 
       dagonIsAwake <- getHasRecord DagonHasAwakened
 
@@ -147,7 +148,7 @@ instance RunMessage IntoTheMaelstrom where
       case token.face of
         Cultist -> placeDoomOnAgendaAndCheckAdvance 1
         Tablet -> do
-          mlid <- getMaybeLocation iid
+          mlid <- getLocationOf iid
           case mlid of
             Nothing -> assignDamage iid Tablet 1
             Just lid -> do

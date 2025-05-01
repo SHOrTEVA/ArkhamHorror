@@ -2,6 +2,7 @@ module Arkham.Helpers.Enemy where
 
 import Arkham.Asset.Types (Field (..))
 import Arkham.Attack.Types
+import Arkham.Capability
 import Arkham.Card
 import Arkham.Classes.Entity
 import Arkham.Classes.HasGame
@@ -18,7 +19,7 @@ import Arkham.Helpers.Modifiers
 import Arkham.Helpers.Query
 import Arkham.Helpers.Ref
 import Arkham.Helpers.Source (sourceMatches)
-import Arkham.Helpers.Window
+import Arkham.Helpers.Window hiding (attackSource)
 import Arkham.Id
 import Arkham.Keyword hiding (Surge)
 import Arkham.Matcher hiding (canEnterLocation)
@@ -48,6 +49,17 @@ isActionTarget a = isTarget a . toProxyTarget
 spawnAt
   :: (HasGame m, HasQueue Message m, MonadRandom m) => EnemyId -> Maybe InvestigatorId -> SpawnAt -> m ()
 spawnAt _ _ NoSpawn = pure ()
+spawnAt eid miid (SpawnAtLocation lid) = do
+  pushAll
+    $ windows [Window.EnemyWouldSpawnAt eid lid]
+    <> resolve
+      ( EnemySpawn
+          $ SpawnDetails
+            { spawnDetailsInvestigator = miid
+            , spawnDetailsSpawnAt = SpawnAtLocation lid
+            , spawnDetailsEnemy = eid
+            }
+      )
 spawnAt eid miid (SpawnAt locationMatcher) = do
   pushAll
     $ windows [Window.EnemyAttemptsToSpawnAt eid locationMatcher]
@@ -234,7 +246,15 @@ spawnAtOneOf miid eid targetLids = do
     [] -> push (toDiscard GameSource eid)
     [lid] -> do
       windows' <- checkWindows [mkWhen (Window.EnemyWouldSpawnAt eid lid)]
-      pushAll $ windows' : resolve (EnemySpawn miid lid eid)
+      pushAll $ windows'
+        : resolve
+          ( EnemySpawn
+              $ SpawnDetails
+                { spawnDetailsInvestigator = miid
+                , spawnDetailsSpawnAt = SpawnAtLocation lid
+                , spawnDetailsEnemy = eid
+                }
+          )
     lids -> do
       windowPairs <- for lids $ \lid -> do
         windows' <- checkWindows [mkWhen (Window.EnemyWouldSpawnAt eid lid)]
@@ -243,7 +263,15 @@ spawnAtOneOf miid eid targetLids = do
       push
         $ chooseOne
           player
-          [ targetLabel lid $ windows' : resolve (EnemySpawn miid lid eid)
+          [ targetLabel lid $ windows'
+              : resolve
+                ( EnemySpawn
+                    $ SpawnDetails
+                      { spawnDetailsEnemy = eid
+                      , spawnDetailsInvestigator = miid
+                      , spawnDetailsSpawnAt = SpawnAtLocation lid
+                      }
+                )
           | (windows', lid) <- windowPairs
           ]
 
@@ -264,3 +292,12 @@ sourceCanDamageEnemy eid source = do
         (Matcher.SourceMatchesAny [Matcher.EncounterCardSource, matcher])
     CannotBeDamaged -> pure True
     _ -> pure False
+
+getDamageableEnemies
+  :: (HasGame m, AsId investigator, IdOf investigator ~ InvestigatorId, Sourceable source)
+  => investigator -> source -> EnemyMatcher -> m [EnemyId]
+getDamageableEnemies investigator source matcher = do
+  canDealDamage <- can.deal.damage (asId investigator)
+  if canDealDamage
+    then select $ matcher <> canBeDamagedBy source
+    else pure []

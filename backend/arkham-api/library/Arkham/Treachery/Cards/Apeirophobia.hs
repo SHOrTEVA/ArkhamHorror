@@ -2,7 +2,7 @@ module Arkham.Treachery.Cards.Apeirophobia (apeirophobia, Apeirophobia (..)) whe
 
 import Arkham.Campaigns.EdgeOfTheEarth.Helpers
 import Arkham.Helpers.ChaosBag
-import Arkham.Helpers.Investigator (withLocationOf)
+import Arkham.Helpers.Location (withLocationOf)
 import Arkham.Investigator.Projection ()
 import Arkham.Message.Lifted.Choose
 import Arkham.Treachery.Cards qualified as Cards
@@ -27,7 +27,7 @@ instance RunMessage Apeirophobia where
       clues <- iid.clues
       chooseOneM iid do
         labeled "Take 1 horror for each point you failed by." $ assignHorror iid attrs n
-        when (clues >= 2) do
+        when (clues >= 1) do
           labeled "Place 2 of your clues on your location." $ placeCluesOnLocation iid attrs 2
         whenM hasRemainingFrostTokens do
           labeled "Add 1 {frost} token to the chaos bag." $ addChaosToken #frost

@@ -198,8 +198,14 @@ onMounted(() => {
   backdrop-filter: blur(5px);
   -webkit-backdrop-filter: blur(5px); /* Safari support */
   transition-behavior: allow-discrete;
+<<<<<<< HEAD
   max-width: 50%;
   max-height: 80%; 
+=======
+  width: clamp(300px, 50vw, 80%);
+  max-width: fit-content;
+  max-height: 80%;
+>>>>>>> 44f0ee5c47bcdde6e2c65f02716667fd227e800c
   display: flex;
   flex-direction: column;
 
@@ -241,8 +247,9 @@ onMounted(() => {
       border: none;
       color: white;
       border-radius: 50%;
-      width: 24px;
-      height: 24px;
+      width: min(24px, 2vw);
+      height: min(24px, 2vw);
+      aspect-ratio: 1;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -268,6 +275,9 @@ onMounted(() => {
     flex-direction: column;
     gap: 10px;
     margin: 10px;
+    &:has(button.close) {
+      margin: 0;
+    }
     &:has(> .skill-test) {
       margin: 0px;
     }
