@@ -459,8 +459,6 @@ button {
   --select-dark-30: #b200b2;
 
   --bullet-red: #391714;
-
-  --pool-token-width: min(30px, 4vw);
 }
 
 h2.title {
