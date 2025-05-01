@@ -200,7 +200,7 @@ onMounted(() => {
   transition-behavior: allow-discrete;
   width: clamp(300px, 50vw, 80%);
   max-width: fit-content;
-  max-height: 80%; 
+  max-height: 80%;
   display: flex;
   flex-direction: column;
 
