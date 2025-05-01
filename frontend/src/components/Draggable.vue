@@ -198,14 +198,9 @@ onMounted(() => {
   backdrop-filter: blur(5px);
   -webkit-backdrop-filter: blur(5px); /* Safari support */
   transition-behavior: allow-discrete;
-<<<<<<< HEAD
-  max-width: 50%;
-  max-height: 80%; 
-=======
   width: clamp(300px, 50vw, 80%);
   max-width: fit-content;
   max-height: 80%;
->>>>>>> 44f0ee5c47bcdde6e2c65f02716667fd227e800c
   display: flex;
   flex-direction: column;
 

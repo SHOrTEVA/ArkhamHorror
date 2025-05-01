@@ -58,14 +58,6 @@ export interface Props {
   scenario: Scenario
   playerId: string
 }
-
-const scrollableDiv = ref<HTMLElement | null>(null);
-const scrollToBottom = () => {
-  if (scrollableDiv.value) {
-    scrollableDiv.value.scrollTop = scrollableDiv.value.scrollHeight;
-  }
-};
-
 const props = defineProps<Props>()
 const emit = defineEmits(['choose'])
 const debug = useDebug()
@@ -84,7 +76,7 @@ const needsInit = ref(true)
 const showChaosBag = ref(false)
 const showOutOfPlay = ref(false)
 const forcedShowOutOfPlay = ref(false)
-const locationMap = ref<HTMLElement | null>(null);
+const locationMap = ref<Element | null>(null)
 const viewingDiscard = ref(false)
 const cardRowTitle = ref("")
 // Atlach Nacha specific refs
@@ -100,57 +92,7 @@ onMounted(() => {
       rotateImages(true);
     })
   }
-  locationMap.value = document.querySelector(".location-cards");
-  if (locationMap.value instanceof HTMLElement) {
-    console.log(locationMap.value);
-  } else {
-    console.log("locationMap is not initialized yet or is not an HTMLElement.");
-  }
-  scrollToBottom();
 });
-
-// Function to toggle zoom
-function toggleZoom(event: MouseEvent) {
-  const container = document.querySelector(".location-cards");
-
-  if (!container) {
-    console.error("locationMap is not set or is not an HTMLElement.");
-    return;
-  }
-
-  // Ensure the container is scrollable before zooming in
-  container.style.overflow = 'scroll';
-  const rect = container.getBoundingClientRect();
-  const offsetX = event.clientX - rect.left;
-  const offsetY = event.clientY- rect.top;
-  //console.log(offsetX, offsetY);
-  if (locationsZoom.value === 1) {
-    // Zoom in
-    locationsZoom.value = 5;
-
-    const scrollX = (offsetX * locationsZoom.value) - (container.clientWidth / 2);
-    const scrollY = (offsetY * locationsZoom.value) - (container.clientHeight / 2);
-    const locationCards = document.querySelector(".location-cards");
-    if (locationCards instanceof HTMLElement) {
-      locationCards.scrollLeft = 60;
-      locationCards.scrollLeft = 120;
-    } else {
-      console.log("locationCards is not a valid HTMLElement or not found.");
-    }
-    console.log(scrollX,scrollY);
-  } else {
-    // Zoom out
-    locationsZoom.value = 1;
-    const centerX = container.scrollLeft + container.clientWidth / 2;
-    const centerY = container.scrollTop + container.clientHeight / 2;
-
-    const newScrollX = centerX / locationsZoom.value - container.clientWidth / 2;
-    const newScrollY = centerY / locationsZoom.value - container.clientHeight / 2;
-
-    container.scrollLeft = newScrollX;
-    container.scrollTop = newScrollY;
-  }
-}
 
 onUpdated(() => {
   if(props.scenario.id === "c06333") {
@@ -752,12 +694,10 @@ const showVictoryDisplay = () => doShowCards(victoryDisplay, t('scenario.victory
       </div>
 
 
-      <div ref="scrollableDiv" class="location-cards-container">
+      <div class="location-cards-container">
         <Connections :game="game" :playerId="playerId" />
-        <button @click="scrollToBottom">Scroll to Bottom</button>
         <input v-model="locationsZoom" type="range" min="1" max="3" step="0.25" class="zoomer" />
         <transition-group name="map" tag="div" ref="locationMap" class="location-cards" :style="locationStyles" @before-leave="beforeLeave" @dblclick.passive.capture="toggleZoom">
-          
           <Location
             v-for="location in locations"
             class="location"
@@ -790,12 +730,12 @@ const showVictoryDisplay = () => doShowCards(victoryDisplay, t('scenario.victory
           <template v-if="scenario.usesGrid">
             <template v-for="u in unusedLabels" :key="u">
               <div
-          v-if="unusedCanInteract(u) !== -1"
-          class="empty-grid-position card"
-          :class="{ 'can-interact': unusedCanInteract(u) !== -1}"
-          :style="{ 'grid-area': u}"
-          @click="choose(unusedCanInteract(u))"
-          >
+                v-if="unusedCanInteract(u) !== -1"
+                class="empty-grid-position card"
+                :class="{ 'can-interact': unusedCanInteract(u) !== -1}"
+                :style="{ 'grid-area': u}"
+                @click="choose(unusedCanInteract(u))"
+                >
               </div>
             </template>
           </template>

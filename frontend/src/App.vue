@@ -128,12 +128,12 @@ body {
   color: #222;
   min-height: 100vh;
   background: var(--background);
-  font-size: min(16px, 2vw);
+  //font-size: min(16px, 2vw);  //!
 }
 
-button {
-  font-size: min(12px, 2vw);
-}
+button {//!
+  font-size: min(12px, 2vw);//!
+}//!
 
 #app {
   font-family: "Noto Sans", Avenir, Helvetica, Arial, sans-serif;
