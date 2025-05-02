@@ -467,6 +467,18 @@ function beforeLeave(e: Element) {
   el.style.width = width
   el.style.height = height
 }
+
+function toggleZoom(e: MouseEvent) {
+  const el = (e.target as HTMLElement).closest('.location-cards') as HTMLElement;
+  el.style.zoom = el.style.zoom === "9" ? "1" : "9";
+  const rect = el.getBoundingClientRect();
+  console.log(rect);
+  console.log("client: ", e.clientX, e.clientY);
+  console.log("offset: ", el.offsetHeight, el.offsetWidth);
+  el.scrollLeft = e.clientX-rect.left-16.5;
+  el.scrollTop = e.clientY-rect.top-100;
+}
+
 const doShowCards = (cards: ComputedRef<Card[]>, title: string, isDiscards: boolean) => {
   cardRowTitle.value = title
   showCards.ref = cards
