@@ -882,8 +882,8 @@ prompt iid lbl body = do
   msgs <- evalQueueT body
   Arkham.Message.Lifted.chooseOne iid [Label lbl msgs]
 
-prompt_ :: ReverseQueue m => InvestigatorId -> Text -> m ()
-prompt_ iid lbl = Arkham.Message.Lifted.chooseOne iid [Label lbl []]
+prompt_ :: (HasI18n, ReverseQueue m) => InvestigatorId -> Text -> m ()
+prompt_ iid lbl = Arkham.Message.Lifted.chooseOne iid [Label ("$" <> ikey ("label." <> lbl)) []]
 
 aspect
   :: (ReverseQueue m, IsAspect a b, IsMessage b, Sourceable source)
@@ -2540,6 +2540,14 @@ placeCluesOnLocation
   :: (ReverseQueue m, Sourceable source) => InvestigatorId -> source -> Int -> m ()
 placeCluesOnLocation iid source n = push $ InvestigatorPlaceCluesOnLocation iid (toSource source) n
 
+drawCardFrom :: (IsDeck deck, ReverseQueue m) => InvestigatorId -> Card -> deck -> m ()
+drawCardFrom iid card deck = do
+  obtainCard card
+  case toCard card of
+    EncounterCard ec -> push $ InvestigatorDrewEncounterCardFrom iid ec (Just $ toDeck deck)
+    PlayerCard pc -> push $ InvestigatorDrewPlayerCardFrom iid pc (Just $ toDeck deck)
+    VengeanceCard vc -> Arkham.Message.Lifted.drawCardFrom iid vc deck
+
 drawCard :: (ReverseQueue m, IsCard card) => InvestigatorId -> card -> m ()
 drawCard iid card = do
   obtainCard card
@@ -2748,7 +2756,7 @@ updateHistory
   => investigator
   -> HistoryItem
   -> m ()
-updateHistory investigator history = push $ UpdateHistory (asId investigator) history
+updateHistory investigator history = priority $ push $ UpdateHistory (asId investigator) history
 
 setGlobal :: (ReverseQueue m, Targetable target, ToJSON a) => target -> Aeson.Key -> a -> m ()
 setGlobal target k v = push $ SetGlobal (toTarget target) k (toJSON v)

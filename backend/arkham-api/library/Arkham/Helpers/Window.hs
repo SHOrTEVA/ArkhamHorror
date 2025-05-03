@@ -1,7 +1,7 @@
-{-# OPTIONS_GHC -O0 #-}
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE OverloadedRecordDot #-}
 {-# LANGUAGE NoFieldSelectors #-}
+{-# OPTIONS_GHC -O0 #-}
 
 module Arkham.Helpers.Window where
 

@@ -21,9 +21,11 @@ twilightBlade = asset TwilightBlade Cards.twilightBlade
 instance HasModifiersFor TwilightBlade where
   getModifiersFor (TwilightBlade a) = for_ a.controller \iid -> do
     underDiana <- filterCards (CardWithOneOf [#event, #skill]) <$> field InvestigatorCardsUnderneath iid
-    cards <- modifyEach a underDiana [AdditionalCost (ExhaustCost $ toTarget a)]
-    controller <- modified_ a iid $ map AsIfInHand underDiana
-    pure $ cards <> controller
+    modifyEach
+      a
+      underDiana
+      [AdditionalCost (ExhaustCost $ toTarget a), AdditionalCostToCommit iid (ExhaustCost $ toTarget a)]
+    modified_ a iid $ concatMap (\c -> [AsIfInHand c, CanCommitToSkillTestsAsIfInHand c]) underDiana
 
 instance HasAbilities TwilightBlade where
   getAbilities (TwilightBlade a) = [restricted a 1 ControlsThis fightAction_]
@@ -37,11 +39,10 @@ instance RunMessage TwilightBlade where
         labeled "Use {willpower}" $ chooseFightEnemyEdit sid iid source (withSkillType #willpower)
         labeled "Use {combat}" $ chooseFightEnemy sid iid source
       pure a
-    InitiatePlayCard iid card _ _ _ _ | controlledBy attrs iid -> do
+    InitiatePlayCard iid card _ _ ws _ | controlledBy attrs iid -> do
       underDiana <- field InvestigatorCardsUnderneath iid
       when (card `elem` underDiana) do
-        exhaustThis attrs
         cardResolutionModifier card attrs iid $ CannotTriggerAbilityMatching $ AbilityIs (toSource iid) 1
-        push msg
+        playCardPayingCostWithWindows iid card ws
       pure a
     _ -> TwilightBlade <$> liftRunMessage msg attrs
