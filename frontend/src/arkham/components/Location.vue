@@ -291,7 +291,7 @@ function onDrop(event: DragEvent) {
             <div class="wave" v-if="location.floodLevel" :class="{ [location.floodLevel]: true }"></div>
             <img
               :data-id="id"
-              class="card"
+              class="card--locations"
               :src="image"
               :class="{ 'location--can-interact': canInteract }"
               draggable="false"

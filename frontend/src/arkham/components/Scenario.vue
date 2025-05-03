@@ -470,7 +470,7 @@ function beforeLeave(e: Element) {
 
 function toggleZoom(e: MouseEvent) {
   const el = (e.target as HTMLElement).closest('.location-cards') as HTMLElement;
-  el.style.zoom = el.style.zoom === "9" ? "1" : "9";
+  el.style.zoom = el.style.zoom === "5" ? "1" : "5";
   const rect = el.getBoundingClientRect();
   console.log(rect);
   console.log("client: ", e.clientX, e.clientY);
@@ -856,6 +856,15 @@ const showVictoryDisplay = () => doShowCards(victoryDisplay, t('scenario.victory
   height: auto;
   aspect-ratio: var(--card-aspect);
   box-shadow: 1px 1px 6px rgba(0, 0, 0, 0.45);
+}
+
+.card--locations {
+  //border-radius: 5px;
+  //width: 60px;
+  //max-width: 300px;
+  //height: auto;
+  //aspect-ratio: var(--card-aspect);
+  //box-shadow: 1px 1px 6px rgba(0, 0, 0, 0.45);
 }
 
 .card--sideways {
