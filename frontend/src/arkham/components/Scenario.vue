@@ -824,15 +824,6 @@ const showVictoryDisplay = () => doShowCards(victoryDisplay, t('scenario.victory
   box-shadow: 1px 1px 6px rgba(0, 0, 0, 0.45);
 }
 
-.card--locations {
-  //border-radius: 5px;
-  //width: 60px;
-  //max-width: 300px;
-  //height: auto;
-  //aspect-ratio: var(--card-aspect);
-  //box-shadow: 1px 1px 6px rgba(0, 0, 0, 0.45);
-}
-
 .card--sideways {
   width: auto;
   height: calc(var(--card-width) * 2);
