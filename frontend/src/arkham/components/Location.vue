@@ -291,7 +291,7 @@ function onDrop(event: DragEvent) {
             <div class="wave" v-if="location.floodLevel" :class="{ [location.floodLevel]: true }"></div>
             <img
               :data-id="id"
-              class="card--locations"
+              class="card card--locations"
               :src="image"
               :class="{ 'location--can-interact': canInteract }"
               draggable="false"
@@ -412,6 +412,15 @@ function onDrop(event: DragEvent) {
   box-shadow: 1px 1px 6px rgba(0, 0, 0, 0.45);
 }
 
+.card.card--locations {
+  //border-radius: 5px;
+  width: min(calc(10vw + 20px), 60px);
+  //max-width: 300px;
+  //height: auto;
+  //aspect-ratio: var(--card-aspect);
+  //box-shadow: 1px 1px 6px rgba(0, 0, 0, 0.45);
+}
+
 .location-column :deep(.enemy) {
   width: calc(var(--card-width) * 0.8);
 
@@ -449,7 +458,7 @@ function onDrop(event: DragEvent) {
   flex-direction: column;
   position: relative;
   grid-area: location;
-  width: var(--card-width);
+  width: min(calc(10vw + 20px), 60px);//var(--card-width);
 }
 
 .pool {
