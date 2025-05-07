@@ -66,7 +66,7 @@ b, strong {
 }
 
 img, svg {
-  max-width: 100%;
+  max-width: 200%;
   -webkit-touch-callout: none
 }
 

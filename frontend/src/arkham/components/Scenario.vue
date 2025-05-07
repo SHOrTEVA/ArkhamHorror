@@ -932,17 +932,18 @@ const showVictoryDisplay = () => doShowCards(victoryDisplay, t('scenario.victory
 
 .location-cards {
   display: flex;
-  width: 100%;
+  flex: 0 0 150%;
+  width: 200%;
   height: 100%;
   margin: auto;
-  overflow: auto;
+  //overflow: auto;
   scrollbar-gutter: stable both-edges;
   place-content: safe center;
 }
 
 .location-cards-container {
   display: flex;
-  overflow: hidden;
+  overflow: auto;
   flex: 1;
   padding-top: 32px;
   padding-bottom: 32px;
