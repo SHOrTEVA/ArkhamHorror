@@ -906,28 +906,37 @@ runInvestigatorMessage msg a@InvestigatorAttrs {..} = runQueueT $ case msg of
   DiscardHand iid source | iid == investigatorId -> do
     liftRunMessage (DiscardFromHand $ discardAll iid source AnyCard) a
   DiscardCard iid source cardId | iid == investigatorId -> do
-    let card = fromJustNote "must be in hand" $ find ((== cardId) . toCardId) investigatorHand
-    inMulligan <- getInMulligan
-    beforeWindowMsg <- checkWindows [mkWhen (Window.Discarded (Just iid) source card)]
-    afterWindowMsg <- checkWindows [mkAfter (Window.Discarded (Just iid) source card)]
-    afterHandWindowMsg <- checkWindows [mkAfter (Window.DiscardedFromHand iid source card)]
-    if inMulligan
-      then push (Do msg)
-      else pushAll [beforeWindowMsg, Do msg, afterWindowMsg, afterHandWindowMsg]
+    case find ((== cardId) . toCardId) investigatorHand of
+      Just card -> do
+        inMulligan <- getInMulligan
+        beforeWindowMsg <- checkWindows [mkWhen (Window.Discarded (Just iid) source card)]
+        afterWindowMsg <- checkWindows [mkAfter (Window.Discarded (Just iid) source card)]
+        afterHandWindowMsg <- checkWindows [mkAfter (Window.DiscardedFromHand iid source card)]
+        if inMulligan
+          then push (Do msg)
+          else pushAll [beforeWindowMsg, Do msg, afterWindowMsg, afterHandWindowMsg]
+      Nothing -> do
+        card <- getCard cardId
+        beforeWindowMsg <- checkWindows [mkWhen (Window.Discarded (Just iid) source card)]
+        afterWindowMsg <- checkWindows [mkAfter (Window.Discarded (Just iid) source card)]
+        pushAll [beforeWindowMsg, Do msg, afterWindowMsg]
     pure a
   Do (DiscardCard iid _source cardId) | iid == investigatorId -> do
-    let card = fromJustNote "must be in hand" $ find ((== cardId) . toCardId) investigatorHand
-    case card of
-      PlayerCard pc -> do
-        let
-          updateHandDiscard handDiscard =
-            handDiscard
-              { discardAmount = max 0 (discardAmount handDiscard - 1)
-              }
-        push $ AddToDiscard iid pc
-        pure $ a & handL %~ filter (/= card) & discardingL %~ fmap updateHandDiscard
-      EncounterCard _ -> pure $ a & handL %~ filter (/= card) -- TODO: This should discard to the encounter discard
-      VengeanceCard _ -> error "vengeance card"
+    case find ((== cardId) . toCardId) investigatorHand of
+      Just card -> case card of
+        PlayerCard pc -> do
+          let
+            updateHandDiscard handDiscard =
+              handDiscard
+                { discardAmount = max 0 (discardAmount handDiscard - 1)
+                }
+          push $ AddToDiscard iid pc
+          pure $ a & handL %~ filter (/= card) & discardingL %~ fmap updateHandDiscard
+        EncounterCard _ -> pure $ a & handL %~ filter (/= card) -- TODO: This should discard to the encounter discard
+        VengeanceCard _ -> error "vengeance card"
+      Nothing -> do
+        push $ DiscardedCard cardId
+        pure a
   DoneDiscarding iid | iid == investigatorId -> case investigatorDiscarding of
     Nothing -> pure a
     Just handDiscard -> do
@@ -1765,68 +1774,66 @@ runInvestigatorMessage msg a@InvestigatorAttrs {..} = runQueueT $ case msg of
                     (toTarget iid' : damageTargets)
                     horrorTargets
                 ]
-          case strategy of
-            DamageAssetsFirst -> do
-              let
-                targetCount =
-                  if null healthDamageableAssets
-                    then 1 + length healthDamageableInvestigators
-                    else length healthDamageableAssets
-                applyAll = targetCount == 1
-              pure
-                $ [damageInvestigator iid applyAll | null healthDamageableAssets]
-                <> map (`damageInvestigator` applyAll) healthDamageableInvestigators
-                <> map (`damageAsset` applyAll) healthDamageableAssets
-            DamageDirect -> pure [damageInvestigator iid True]
-            DamageAny -> do
-              canBeAssignedDamage <- select $ AssetCanBeAssignedDamageBy iid <> AssetCanBeDamagedBySource source
-              mustBeAssignedDamageFirstBeforeInvestigator <- forMaybeM canBeAssignedDamage $ \aid -> do
-                mods <- getModifiers aid
-                let n = sum [x | NonDirectDamageMustBeAssignToThisN x <- mods]
-                let mustAssignRemaining = n > 0 && health <= n && count (== toTarget aid) damageTargets < n
-                pure $ guard (NonDirectDamageMustBeAssignToThisFirst `elem` mods || mustAssignRemaining) $> aid
-              let onlyAssets = filter (`elem` mustBeAssignedDamageFirstBeforeInvestigator) healthDamageableAssets
-              let
-                targetCount =
-                  if null onlyAssets
-                    then 1 + length healthDamageableAssets + length healthDamageableInvestigators
-                    else length onlyAssets
-              let applyAll = null onlyAssets && targetCount == 1
+          let
+            go = \case
+              DamageAssetsFirst -> do
+                let
+                  targetCount =
+                    if null healthDamageableAssets
+                      then 1 + length healthDamageableInvestigators
+                      else length healthDamageableAssets
+                  applyAll = targetCount == 1
+                pure
+                  $ [damageInvestigator iid applyAll | null healthDamageableAssets]
+                  <> map (`damageInvestigator` applyAll) healthDamageableInvestigators
+                  <> map (`damageAsset` applyAll) healthDamageableAssets
+              DamageDirect -> pure [damageInvestigator iid True]
+              DamageFromHastur -> go DamageAny
+              DamageAny -> do
+                canBeAssignedDamage <- select $ AssetCanBeAssignedDamageBy iid <> AssetCanBeDamagedBySource source
+                mustBeAssignedDamage <- flip filterM canBeAssignedDamage \aid -> do
+                  mods <- getModifiers aid
+                  let n = sum [x | NonDirectDamageMustBeAssignToThisN x <- mods]
+                  pure $ n > 0 && health <= n && count (== toTarget aid) damageTargets < n
 
-              pure $ [damageInvestigator iid applyAll | null onlyAssets]
-                <> map (`damageAsset` applyAll) (if null onlyAssets then healthDamageableAssets else onlyAssets)
-                <> (guard (null onlyAssets) *> map (`damageInvestigator` applyAll) healthDamageableInvestigators)
-            DamageFromHastur -> do
-              canBeAssignedDamage <- select $ AssetCanBeAssignedDamageBy iid <> AssetCanBeDamagedBySource source
-              mustBeAssignedDamageFirstBeforeInvestigator <- forMaybeM canBeAssignedDamage $ \aid -> do
-                mods <- getModifiers aid
-                let n = sum [x | NonDirectDamageMustBeAssignToThisN x <- mods]
-                let mustAssignRemaining = n > 0 && health <= n && count (== toTarget aid) damageTargets < n
-                pure $ guard (NonDirectDamageMustBeAssignToThisFirst `elem` mods || mustAssignRemaining) $> aid
-              let onlyAssets = any (`elem` mustBeAssignedDamageFirstBeforeInvestigator) healthDamageableAssets
-              let targetCount =
-                    length healthDamageableAssets
-                      + ( if not onlyAssets
-                            then 1 + length healthDamageableInvestigators
-                            else length healthDamageableInvestigators
-                        )
-              let applyAll = targetCount == 1
-              pure $ [damageInvestigator iid applyAll | not onlyAssets]
-                <> map (`damageAsset` applyAll) healthDamageableAssets
-                <> (guard (not onlyAssets) *> map (`damageInvestigator` applyAll) healthDamageableInvestigators)
-            DamageFirst def -> do
-              validAssets <-
-                List.intersect healthDamageableAssets
-                  <$> select (matcher <> assetControlledBy iid <> assetIs def)
-              pure
-                $ if null validAssets
-                  then
-                    damageInvestigator iid False
-                      : map (`damageAsset` False) healthDamageableAssets
-                        <> map (`damageInvestigator` False) healthDamageableInvestigators
-                  else map (`damageAsset` False) validAssets
-            SingleTarget -> error "handled elsewhere"
-            DamageEvenly -> error "handled elsewhere"
+                mustBeAssignedDamageFirstBeforeInvestigator <- flip filterM canBeAssignedDamage \aid -> do
+                  mods <- getModifiers aid
+                  pure $ NonDirectDamageMustBeAssignToThisFirst `elem` mods
+
+                let
+                  targetCount =
+                    if
+                      | null mustBeAssignedDamage && null mustBeAssignedDamageFirstBeforeInvestigator ->
+                          1 + length healthDamageableAssets + length healthDamageableInvestigators
+                      | null mustBeAssignedDamage -> length healthDamageableAssets + length healthDamageableInvestigators
+                      | otherwise -> length mustBeAssignedDamage
+
+                let applyAll = null mustBeAssignedDamage && targetCount == 1
+
+                pure
+                  $ [ damageInvestigator iid applyAll
+                    | null mustBeAssignedDamage && null mustBeAssignedDamageFirstBeforeInvestigator
+                    ]
+                  <> map
+                    (`damageAsset` applyAll)
+                    (if null mustBeAssignedDamage then healthDamageableAssets else mustBeAssignedDamage)
+                  <> map
+                    (`damageInvestigator` applyAll)
+                    (guard (null mustBeAssignedDamage) *> healthDamageableInvestigators)
+              DamageFirst def -> do
+                validAssets <-
+                  List.intersect healthDamageableAssets
+                    <$> select (matcher <> assetControlledBy iid <> assetIs def)
+                pure
+                  $ if null validAssets
+                    then
+                      damageInvestigator iid False
+                        : map (`damageAsset` False) healthDamageableAssets
+                          <> map (`damageInvestigator` False) healthDamageableInvestigators
+                    else map (`damageAsset` False) validAssets
+              SingleTarget -> error "handled elsewhere"
+              DamageEvenly -> error "handled elsewhere"
+          go strategy
         else pure []
     sanityDamageMessages <-
       if sanity > 0
@@ -1855,66 +1862,52 @@ runInvestigatorMessage msg a@InvestigatorAttrs {..} = runQueueT $ case msg of
                     damageTargets
                     (toTarget aid : horrorTargets)
                 ]
-          case strategy of
-            DamageAssetsFirst -> do
-              let
-                targetCount =
-                  if null sanityDamageableAssets
-                    then 1 + length sanityDamageableInvestigators
-                    else length sanityDamageableAssets
-                applyAll = targetCount == 1
+          let
+            go = \case
+              DamageAssetsFirst -> do
+                let
+                  targetCount =
+                    if null sanityDamageableAssets
+                      then 1 + length sanityDamageableInvestigators
+                      else length sanityDamageableAssets
+                  applyAll = targetCount == 1
 
-              pure $ [damageInvestigator iid applyAll | null sanityDamageableAssets]
-                <> map (`damageAsset` applyAll) sanityDamageableAssets
-                <> map (`damageInvestigator` applyAll) sanityDamageableInvestigators
-            DamageDirect -> pure [damageInvestigator iid True]
-            DamageAny -> do
-              mustBeAssignedDamageFirstBeforeInvestigator <-
-                select
-                  $ AssetCanBeAssignedHorrorBy iid
-                  <> AssetWithModifier NonDirectHorrorMustBeAssignToThisFirst
-                  <> AssetCanBeDamagedBySource source
-              let onlyAssets = any (`elem` mustBeAssignedDamageFirstBeforeInvestigator) sanityDamageableAssets
-              let targetCount =
-                    length sanityDamageableAssets
-                      + ( if not onlyAssets
-                            then 1 + length sanityDamageableInvestigators
-                            else length sanityDamageableInvestigators
-                        )
-              let applyAll = targetCount == 1
-              pure $ [damageInvestigator iid applyAll | not onlyAssets]
-                <> map (`damageAsset` applyAll) sanityDamageableAssets
-                <> (guard (not onlyAssets) *> map (`damageInvestigator` applyAll) sanityDamageableInvestigators)
-            DamageFromHastur -> do
-              mustBeAssignedDamageFirstBeforeInvestigator <-
-                select
-                  $ AssetCanBeAssignedHorrorBy iid
-                  <> AssetWithModifier NonDirectHorrorMustBeAssignToThisFirst
-                  <> AssetCanBeDamagedBySource source
-              let onlyAssets = any (`elem` mustBeAssignedDamageFirstBeforeInvestigator) sanityDamageableAssets
-              let targetCount =
-                    length sanityDamageableAssets
-                      + ( if not onlyAssets
-                            then 1 + length sanityDamageableInvestigators
-                            else length sanityDamageableInvestigators
-                        )
-              let applyAll = targetCount == 1
-              pure $ [damageInvestigator iid applyAll | not onlyAssets]
-                <> map (`damageAsset` applyAll) sanityDamageableAssets
-                <> (guard (not onlyAssets) *> map (`damageInvestigator` applyAll) sanityDamageableInvestigators)
-            DamageFirst def -> do
-              validAssets <-
-                List.intersect sanityDamageableAssets
-                  <$> select (matcher <> assetControlledBy iid <> assetIs def)
-              pure
-                $ if null validAssets
-                  then
-                    damageInvestigator iid False
-                      : map (`damageAsset` False) sanityDamageableAssets
-                        <> map (`damageInvestigator` False) sanityDamageableInvestigators
-                  else map (`damageAsset` False) validAssets
-            SingleTarget -> error "handled elsewhere"
-            DamageEvenly -> error "handled elsewhere"
+                pure $ [damageInvestigator iid applyAll | null sanityDamageableAssets]
+                  <> map (`damageAsset` applyAll) sanityDamageableAssets
+                  <> map (`damageInvestigator` applyAll) sanityDamageableInvestigators
+              DamageDirect -> pure [damageInvestigator iid True]
+              DamageFromHastur -> go DamageAny
+              DamageAny -> do
+                mustBeAssignedDamageFirstBeforeInvestigator <-
+                  select
+                    $ AssetCanBeAssignedHorrorBy iid
+                    <> AssetWithModifier NonDirectHorrorMustBeAssignToThisFirst
+                    <> AssetCanBeDamagedBySource source
+                let
+                  targetCount =
+                    if null mustBeAssignedDamageFirstBeforeInvestigator
+                      then 1 + length sanityDamageableAssets + length sanityDamageableInvestigators
+                      else length sanityDamageableAssets + length sanityDamageableInvestigators
+
+                let applyAll = targetCount == 1
+
+                pure $ [damageInvestigator iid applyAll | null mustBeAssignedDamageFirstBeforeInvestigator]
+                  <> map (`damageAsset` applyAll) sanityDamageableAssets
+                  <> map (`damageInvestigator` applyAll) sanityDamageableInvestigators
+              DamageFirst def -> do
+                validAssets <-
+                  List.intersect sanityDamageableAssets
+                    <$> select (matcher <> assetControlledBy iid <> assetIs def)
+                pure
+                  $ if null validAssets
+                    then
+                      damageInvestigator iid False
+                        : map (`damageAsset` False) sanityDamageableAssets
+                          <> map (`damageInvestigator` False) sanityDamageableInvestigators
+                    else map (`damageAsset` False) validAssets
+              SingleTarget -> error "handled elsewhere"
+              DamageEvenly -> error "handled elsewhere"
+          go strategy
         else pure []
     player <- getPlayer iid
     push $ chooseOne player $ healthDamageMessages <> sanityDamageMessages
@@ -2992,7 +2985,7 @@ runInvestigatorMessage msg a@InvestigatorAttrs {..} = runQueueT $ case msg of
               wouldDo
                 (EmptyDeck iid (Just $ drawCards iid source n))
                 (Window.DeckWouldRunOutOfCards iid)
-                (Window.DeckRanOutOfCards iid)
+                (Window.DeckHasNoCards iid)
             -- push $ EmptyDeck iid
             pure a
           else do
@@ -3073,7 +3066,7 @@ runInvestigatorMessage msg a@InvestigatorAttrs {..} = runQueueT $ case msg of
     hasForesight <- hasModifier iid (Foresight $ toTitle card)
     let uiRevelation = getPlayer iid >>= (`sendRevelation` (toJSON $ toCard card))
     case toCardType card of
-      PlayerEnemyType -> sendEnemy (toTitle a <> " drew Enemy") (toJSON $ toCard card)
+      PlayerEnemyType -> pure ()
       _ -> when (hasRevelation card) uiRevelation
     mWhenDraw <- for mDeck \deck ->
       checkWindows [mkWhen $ Window.DrawCard iid (toCard card) deck]
@@ -3124,7 +3117,9 @@ runInvestigatorMessage msg a@InvestigatorAttrs {..} = runQueueT $ case msg of
       then
         if toCardType card == PlayerTreacheryType
           then pushAll $ DrewTreachery iid Nothing (toCard card) : maybeToList mAfterDraw
-          else pushAll $ Revelation iid (CardIdSource card.id) : maybeToList mAfterDraw
+          else
+            pushAll $ Revelation iid (CardIdSource card.id)
+              : maybeToList mAfterDraw <> [ResolvedCard iid $ toCard card]
       else
         if toCardType card == PlayerEnemyType
           then pushAll $ DrewPlayerEnemy iid (toCard card) : maybeToList mAfterDraw
@@ -3306,7 +3301,11 @@ runInvestigatorMessage msg a@InvestigatorAttrs {..} = runQueueT $ case msg of
                 . (handL %~ filter (/= card))
           )
           cards
-    pure $ a & update & foundCardsL %~ Map.map (filter (`notElem` cards))
+    let a' = a & update & foundCardsL %~ Map.map (filter (`notElem` cards))
+    when (null a'.deck) do
+      pushM $ checkWhen $ Window.DeckHasNoCards investigatorId
+      pushM $ checkAfter $ Window.DeckHasNoCards investigatorId
+    pure a'
   ChaosTokenCanceled iid source token | iid == investigatorId -> do
     whenWindow <- checkWindows [mkWhen (Window.CancelChaosToken iid token)]
     whenWindow2 <- checkWindows [mkWhen (Window.CancelledOrIgnoredCardOrGameEffect source)]

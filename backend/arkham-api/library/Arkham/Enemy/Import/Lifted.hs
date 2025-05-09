@@ -28,6 +28,7 @@ import Arkham.Enemy.Runner as X (
   push,
   pushAll,
   pushM,
+  setExhausted,
   setMeta,
   setPrey,
   setSpawnAt,
@@ -42,7 +43,6 @@ import Arkham.Id as X
 import Arkham.Message as X (
   Message (..),
   StoryMode (..),
-  getChoiceAmount,
   pattern FailedThisSkillTest,
   pattern FailedThisSkillTestBy,
   pattern PassedThisSkillTest,

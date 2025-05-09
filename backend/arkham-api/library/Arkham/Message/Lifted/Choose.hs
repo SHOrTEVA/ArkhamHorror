@@ -54,6 +54,11 @@ leadChooseOneM choices = do
   lead <- getLead
   chooseOneM lead choices
 
+leadChooseOneAtATimeM :: ReverseQueue m => ChooseT m a -> m ()
+leadChooseOneAtATimeM choices = do
+  lead <- getLead
+  chooseOneAtATimeM lead choices
+
 chooseOneM :: ReverseQueue m => InvestigatorId -> ChooseT m a -> m ()
 chooseOneM iid choices = do
   ((_, ChooseState {label, labelCardCode}), choices') <- runChooseT choices
@@ -71,6 +76,15 @@ chooseSomeM iid txt choices = do
     case label of
       Nothing -> chooseSome iid txt choices'
       Just l -> questionLabel l iid $ ChooseSome (Done txt : choices')
+
+chooseSomeM' :: (HasI18n, ReverseQueue m) => InvestigatorId -> Text -> ChooseT m a -> m ()
+chooseSomeM' iid txt choices = do
+  ((_, ChooseState {label}), choices') <- runChooseT choices
+  let lbl = "$" <> ikey ("label." <> txt)
+  unless (null choices') do
+    case label of
+      Nothing -> chooseSome iid lbl choices'
+      Just l -> questionLabel l iid $ ChooseSome (Done lbl : choices')
 
 chooseSome1M :: ReverseQueue m => InvestigatorId -> Text -> ChooseT m a -> m ()
 chooseSome1M iid txt choices = do
@@ -124,6 +138,11 @@ chooseUpToNM iid n done choices = do
   (_, choices') <- runChooseT choices
   unless (null choices') $ chooseUpToN iid n done choices'
 
+chooseUpToNM' :: (HasI18n, ReverseQueue m) => InvestigatorId -> Int -> Text -> ChooseT m a -> m ()
+chooseUpToNM' iid n done choices = do
+  let lbl = "$" <> ikey ("label." <> done)
+  chooseUpToNM iid n lbl choices
+
 chooseOneAtATimeM :: ReverseQueue m => InvestigatorId -> ChooseT m a -> m ()
 chooseOneAtATimeM iid choices = do
   (_, choices') <- runChooseT choices
@@ -152,6 +171,9 @@ labeled' label action = unterminated do
   msgs <- lift $ evalQueueT action
   tell [Label ("$" <> ikey ("label." <> label)) msgs]
 
+chooseTest :: (HasI18n, ReverseQueue m) => SkillType -> Int -> QueueT Message m () -> ChooseT m ()
+chooseTest skind n body = countVar n $ skillVar skind $ labeled' "test" body
+
 skip :: ReverseQueue m => Text -> ChooseT m ()
 skip = (`labeled` nothing)
 
@@ -168,7 +190,7 @@ portraitLabeled iid action = unterminated do
 labeledI18n :: (HasI18n, ReverseQueue m) => Text -> QueueT Message m () -> ChooseT m ()
 labeledI18n label action = unterminated do
   msgs <- lift $ evalQueueT action
-  tell [Label ("$" <> scope "labels" (ikey label)) msgs]
+  tell [Label ("$" <> scope "label" (ikey label)) msgs]
 
 damageLabeled :: ReverseQueue m => InvestigatorId -> QueueT Message m () -> ChooseT m ()
 damageLabeled iid action = unterminated do
@@ -303,6 +325,9 @@ nothing = pure ()
 
 questionLabeled :: ReverseQueue m => Text -> ChooseT m ()
 questionLabeled label = modify $ \s -> s {Arkham.Message.Lifted.Choose.label = Just label}
+
+questionLabeled' :: (HasI18n, ReverseQueue m) => Text -> ChooseT m ()
+questionLabeled' label = modify $ \s -> s {Arkham.Message.Lifted.Choose.label = Just $ "$" <> ikey ("label." <> label)}
 
 questionLabeledCard :: (ReverseQueue m, HasCardCode a) => a -> ChooseT m ()
 questionLabeledCard a = modify $ \s -> s {Arkham.Message.Lifted.Choose.labelCardCode = Just (toCardCode a)}

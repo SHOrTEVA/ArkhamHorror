@@ -42,6 +42,7 @@ import Arkham.Fight
 import Arkham.Fight qualified as Fight
 import {-# SOURCE #-} Arkham.GameEnv (findCard)
 import Arkham.Helpers
+import Arkham.Helpers.Ability
 import Arkham.Helpers.Act
 import Arkham.Helpers.Action (getActionsWith)
 import Arkham.Helpers.Campaign
@@ -76,7 +77,7 @@ import Arkham.Location.Grid
 import Arkham.Location.Types (Field (..), Location)
 import Arkham.Matcher
 import Arkham.Message hiding (story)
-import Arkham.Message as X (AndThen (..))
+import Arkham.Message as X (AndThen (..), getChoiceAmount)
 import Arkham.Message.Lifted.Queue as X
 import Arkham.Modifier
 import Arkham.Phase (Phase)
@@ -234,6 +235,9 @@ placeLocationCardM = (>>= placeLocationCard)
 reveal :: (AsId location, IdOf location ~ LocationId, ReverseQueue m) => location -> m ()
 reveal = push . Msg.RevealLocation Nothing . asId
 
+revealMatching :: ReverseQueue m => LocationMatcher -> m ()
+revealMatching matcher = selectEach matcher (push . Msg.RevealLocation Nothing)
+
 revealBy
   :: ( AsId investigator
      , IdOf investigator ~ InvestigatorId
@@ -276,6 +280,12 @@ storyOnly [] _ = pure ()
 storyOnly iids flavor = do
   players <- traverse getPlayer iids
   push $ Msg.story players flavor
+
+storyOnly' :: (HasI18n, ReverseQueue m) => [InvestigatorId] -> Scope -> m ()
+storyOnly' [] _ = pure ()
+storyOnly' iids lbl = do
+  players <- traverse getPlayer iids
+  push $ Msg.story players (i18n lbl)
 
 storyWithChooseOne :: ReverseQueue m => FlavorText -> [UI Message] -> m ()
 storyWithChooseOne flavor choices = do
@@ -360,6 +370,12 @@ endOfScenario = push $ EndOfGame Nothing
 
 endOfScenarioThen :: ReverseQueue m => CampaignStep -> m ()
 endOfScenarioThen = push . EndOfGame . Just
+
+dealAssetDamage :: (ReverseQueue m, Sourceable source) => AssetId -> source -> Int -> m ()
+dealAssetDamage aid source damage = push $ Msg.DealAssetDamageWithCheck aid (toSource source) damage 0 True
+
+dealAssetHorror :: (ReverseQueue m, Sourceable source) => AssetId -> source -> Int -> m ()
+dealAssetHorror aid source horror = push $ Msg.DealAssetDamageWithCheck aid (toSource source) 0 horror True
 
 assignDamage
   :: (ReverseQueue m, Sourceable source) => InvestigatorId -> source -> Int -> m ()
@@ -726,6 +742,13 @@ spendClues
   -> m ()
 spendClues investigator n = push $ InvestigatorSpendClues (asId investigator) n
 
+spendCluesAsAGroup
+  :: ReverseQueue m
+  => [InvestigatorId]
+  -> Int
+  -> m ()
+spendCluesAsAGroup investigators n = push $ SpendClues n investigators
+
 gainClues
   :: (ReverseQueue m, Sourceable source, AsId investigator, IdOf investigator ~ InvestigatorId)
   => investigator
@@ -1079,6 +1102,25 @@ chooseAmount iid label choiceLabel minVal maxVal target = do
   player <- getPlayer iid
   Msg.pushM
     $ Msg.chooseAmounts player label (MaxAmountTarget maxVal) [(choiceLabel, (minVal, maxVal))] target
+
+chooseAmount'
+  :: (Targetable target, ReverseQueue m, HasI18n)
+  => InvestigatorId
+  -> Text
+  -> Text
+  -> Int
+  -> Int
+  -> target
+  -> m ()
+chooseAmount' iid label choiceLabel minVal maxVal target = do
+  player <- getPlayer iid
+  Msg.pushM
+    $ Msg.chooseAmounts
+      player
+      ("$" <> ikey ("label." <> label))
+      (MaxAmountTarget maxVal)
+      [(choiceLabel, (minVal, maxVal))]
+      target
 
 chooseN :: ReverseQueue m => InvestigatorId -> Int -> [UI Message] -> m ()
 chooseN iid n msgs = do
@@ -1937,10 +1979,22 @@ afterEnemyAttack enemy body = do
   push $ AfterEnemyAttack (asId enemy) msgs
 
 afterSkillTest
-  :: (MonadTrans t, HasQueue Message m, HasQueue Message (t m)) => QueueT Message (t m) a -> t m ()
-afterSkillTest body = do
+  :: ( MonadTrans t
+     , HasQueue Message m
+     , HasQueue Message (t m)
+     , AsId investigator
+     , IdOf investigator ~ InvestigatorId
+     )
+  => investigator -> Text -> QueueT Message (t m) a -> t m ()
+afterSkillTest investigator lbl body = do
   msgs <- evalQueueT body
-  insertAfterMatching msgs (== EndSkillTestWindow)
+  insertAfterMatching [AfterSkillTestOption (asId investigator) lbl msgs] (== EndSkillTestWindow)
+
+afterSkillTestQuiet
+  :: (MonadTrans t, HasQueue Message m, HasQueue Message (t m)) => QueueT Message (t m) a -> t m ()
+afterSkillTestQuiet body = do
+  msgs <- evalQueueT body
+  insertAfterMatching [AfterSkillTestQuiet msgs] (== EndSkillTestWindow)
 
 afterSearch
   :: (MonadTrans t, HasQueue Message m, HasQueue Message (t m)) => QueueT Message (t m) a -> t m ()
@@ -2101,8 +2155,15 @@ repeated :: ReverseQueue m => Int -> m () -> m ()
 repeated 0 = const (pure ())
 repeated n = replicateM_ n
 
-disengageEnemy :: ReverseQueue m => InvestigatorId -> EnemyId -> m ()
-disengageEnemy iid eid = push $ Msg.DisengageEnemy iid eid
+disengageEnemy
+  :: ( ReverseQueue m
+     , AsId investigator
+     , IdOf investigator ~ InvestigatorId
+     , AsId enemy
+     , IdOf enemy ~ EnemyId
+     )
+  => investigator -> enemy -> m ()
+disengageEnemy investigator enemy = push $ Msg.DisengageEnemy (asId investigator) (asId enemy)
 
 disengageFromAll :: (ReverseQueue m, AsId enemy, IdOf enemy ~ EnemyId) => enemy -> m ()
 disengageFromAll enemy = push $ Msg.DisengageEnemyFromAll (asId enemy)
@@ -2179,7 +2240,10 @@ performActionAction
 performActionAction iid source action = do
   let windows' = defaultWindows iid
   let decreaseCost = flip applyAbilityModifiers [ActionCostModifier (-1)]
-  actions <- filter (`abilityIs` action) <$> getActionsWith iid windows' decreaseCost
+  actions <-
+    filterM (getCanPerformAbility iid windows')
+      . filter (`abilityIs` action)
+      =<< getActionsWith iid windows' decreaseCost
   handCards <- field InvestigatorHand iid
   let actionCards = filter (elem action . cdActions . toCardDef) handCards
   playableCards <- filterM (getIsPlayable iid source (UnpaidCost NoAction) windows') actionCards
@@ -2521,6 +2585,9 @@ shuffleSetAsideIntoEncounterDeck :: (ReverseQueue m, IsCardMatcher matcher) => m
 shuffleSetAsideIntoEncounterDeck matcher = do
   cards <- getSetAsideCardsMatching (toCardMatcher matcher)
   push $ ShuffleCardsIntoDeck Deck.EncounterDeck cards
+
+shuffleScenarioDeckIntoEncounterDeck :: ReverseQueue m => ScenarioDeckKey -> m ()
+shuffleScenarioDeckIntoEncounterDeck = push . ShuffleScenarioDeckIntoEncounterDeck
 
 shuffleSetAsideIntoScenarioDeck
   :: (ReverseQueue m, IsCardMatcher matcher) => ScenarioDeckKey -> matcher -> m ()

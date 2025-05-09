@@ -3487,7 +3487,6 @@ library
       Arkham.Scenarios.BeyondTheGatesOfSleep.FlavorText
       Arkham.Scenarios.BlackStarsRise.Story
       Arkham.Scenarios.BloodOnTheAltar.Helpers
-      Arkham.Scenarios.BloodOnTheAltar.Story
       Arkham.Scenarios.CarnevaleOfHorrors.FlavorText
       Arkham.Scenarios.CarnevaleOfHorrors.Helpers
       Arkham.Scenarios.CityOfTheElderThings.Helpers
@@ -3513,7 +3512,6 @@ library
       Arkham.Scenarios.InTheClutchesOfChaos.Story
       Arkham.Scenarios.InTooDeep.Helpers
       Arkham.Scenarios.IntoTheMaelstrom.Helpers
-      Arkham.Scenarios.LostInTimeAndSpace.FlavorText
       Arkham.Scenarios.LostInTimeAndSpace.Helpers
       Arkham.Scenarios.MurderAtTheExcelsiorHotel.FlavorText
       Arkham.Scenarios.MurderAtTheExcelsiorHotel.Helpers
@@ -3528,7 +3526,6 @@ library
       Arkham.Scenarios.TheDevourerBelow.Helpers
       Arkham.Scenarios.TheDoomOfEztli.Story
       Arkham.Scenarios.TheEssexCountyExpress.Helpers
-      Arkham.Scenarios.TheEssexCountyExpress.Story
       Arkham.Scenarios.TheGathering.Helpers
       Arkham.Scenarios.TheHeartOfMadness.Helpers
       Arkham.Scenarios.TheHeartOfMadness.Pylon
@@ -3537,7 +3534,6 @@ library
       Arkham.Scenarios.TheLastKing.Story
       Arkham.Scenarios.TheMidnightMasks.Helpers
       Arkham.Scenarios.TheMiskatonicMuseum.Helpers
-      Arkham.Scenarios.TheMiskatonicMuseum.Story
       Arkham.Scenarios.ThePallidMask.Helpers
       Arkham.Scenarios.ThePallidMask.Story
       Arkham.Scenarios.ThePitOfDespair.Helpers
@@ -3557,7 +3553,6 @@ library
       Arkham.Scenarios.ToTheForbiddenPeaks.Helpers
       Arkham.Scenarios.TurnBackTime.Story
       Arkham.Scenarios.UndimensionedAndUnseen.Helpers
-      Arkham.Scenarios.UndimensionedAndUnseen.Story
       Arkham.Scenarios.UnionAndDisillusion.Helpers
       Arkham.Scenarios.UnionAndDisillusion.Story
       Arkham.Scenarios.WakingNightmare.FlavorText
@@ -3565,7 +3560,6 @@ library
       Arkham.Scenarios.WakingNightmare.InfestationBag
       Arkham.Scenarios.WeaverOfTheCosmos.Helpers
       Arkham.Scenarios.WhereDoomAwaits.Helpers
-      Arkham.Scenarios.WhereDoomAwaits.Story
       Arkham.Scenarios.WhereTheGodsDwell.Helpers
       Arkham.Script
       Arkham.Search
@@ -4405,8 +4399,6 @@ library
     , monad-logger
     , monoidal-containers
     , mtl >=2.3.1
-    , opentelemetry
-    , opentelemetry-plugin
     , parsec
     , path-pieces
     , persistent
@@ -4444,7 +4436,7 @@ library
     , yesod-websockets
   default-language: GHC2021
   if (flag(dev)) || (flag(library-only))
-    ghc-options: -Wall -fwarn-tabs -O0 -plugin-package opentelemetry-plugin -fplugin=OpenTelemetry.Plugin
+    ghc-options: -Wall -fwarn-tabs -O0
     cpp-options: -DDEVELOPMENT
   else
     ghc-options: -Wall -fwarn-tabs -O2 +RTS -V0 -RTS

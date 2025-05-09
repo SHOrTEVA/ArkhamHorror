@@ -126,7 +126,14 @@ getSkillTestSkillTypes =
     Nothing -> []
 
 getSkillTestMatchingSkillIcons :: HasGame m => m (Set SkillIcon)
-getSkillTestMatchingSkillIcons = maybe mempty keysSet <$> getsSkillTest skillTestIconValues
+getSkillTestMatchingSkillIcons = getSkillTest >>= \case
+  Nothing -> pure mempty
+  Just st -> do
+    mods <- getModifiers st.investigator
+    pure $ setFromList $ foldr applyModifiers (keys $ skillTestIconValues st) mods
+ where
+  applyModifiers (UseSkillInsteadOf x y) = map (\z -> if z == SkillIcon x then SkillIcon y else z)
+  applyModifiers _ = id
 
 isInvestigation :: HasGame m => m Bool
 isInvestigation = (== Just #investigate) <$> getSkillTestAction
@@ -177,7 +184,7 @@ isParley =
   orM
     [ (== Just #parley) <$> getSkillTestAction
     , any (`abilityIs` #parley) <$> getActiveAbilities
-    , selectAny $ EventIsAction #parley
+    , selectAny $ ActiveEvent <> EventIsAction #parley
     ]
 
 getIsBeingInvestigated

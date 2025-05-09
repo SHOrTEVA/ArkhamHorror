@@ -88,7 +88,7 @@ const label = function(body: string) {
 
 const paymentAmountsLabel = computed(() => {
   if (question.value?.tag === QuestionType.CHOOSE_PAYMENT_AMOUNTS) {
-    return formatContent(question.value.label)
+    return label(question.value.label)
   }
 
   return null
@@ -96,7 +96,7 @@ const paymentAmountsLabel = computed(() => {
 
 const amountsLabel = computed(() => {
   if (question.value?.tag === QuestionType.CHOOSE_AMOUNTS) {
-    return formatContent(question.value.label)
+    return label(question.value.label)
   }
 
   if (question.value?.tag === QuestionType.QUESTION_LABEL && question.value?.question?.tag === QuestionType.CHOOSE_AMOUNTS) {
@@ -506,7 +506,7 @@ const cardPiles = computed(() => {
               <legend v-html="amountsLabel"></legend>
               <template v-for="paymentChoice in chooseAmountsChoices" :key="paymentChoice.choiceId">
                 <div v-if="paymentChoice.maxBound !== 0">
-                  <label :for="`choice-${paymentChoice.choiceId}`" v-html="formatContent(paymentChoice.label)"></label> <input type="number" :min="paymentChoice.minBound" :max="paymentChoice.maxBound" v-model.number="amountSelections[paymentChoice.choiceId]" :name="`choice-${paymentChoice.choiceId}`" onclick="this.select()" />
+                  <label :for="`choice-${paymentChoice.choiceId}`" v-html="label(`$choice.${paymentChoice.label}`)"></label> <input type="number" :min="paymentChoice.minBound" :max="paymentChoice.maxBound" v-model.number="amountSelections[paymentChoice.choiceId]" :name="`choice-${paymentChoice.choiceId}`" onclick="this.select()" />
                 </div>
               </template>
               <button :disabled="unmetAmountRequirements">Submit</button>
@@ -574,8 +574,11 @@ const cardPiles = computed(() => {
 
     </template>
   </div>
-  <div v-else-if="question && question.tag === 'QuestionLabel' && question.question.tag !== 'DropDown'" class="standalone-label" v-html="label(question.label)">
-  </div>
+  <template v-else-if="question && question.tag === 'QuestionLabel' && question.question.tag !== 'DropDown'">
+    <div v-if="questionImage" class="question-image">
+      <img :src="questionImage" class="card" />
+    </div>
+  </template>
   <div v-if="doneLabel">
     <button class="done" @click="$emit('choose', doneLabel.index)" v-html="label(doneLabel.label)"></button>
   </div>
@@ -959,7 +962,7 @@ h2 {
   border: 0;
   color: white;
   padding: 0.5em;
-  margin-left: 0.5em;
+  margin-top: 0.5em;
 }
 
 .amount-contents button[disabled] {

@@ -46,11 +46,12 @@ import Data.Proxy
 
 isDiscardable :: Card -> Bool
 isDiscardable = not . isWeakness
- where
-  isWeakness = \case
-    PlayerCard pc -> isJust $ cdCardSubType $ toCardDef pc
-    EncounterCard _ -> True -- maybe?
-    VengeanceCard _ -> False -- should be an error
+
+isWeakness :: IsCard card => card -> Bool
+isWeakness c = case toCard c of
+  PlayerCard pc -> isJust $ cdCardSubType $ toCardDef pc
+  EncounterCard _ -> True -- maybe?
+  VengeanceCard _ -> False -- should be an error
 
 getCardPayments :: HasGame m => Card -> m (Maybe Payment)
 getCardPayments c = do
@@ -225,6 +226,9 @@ passesLimits iid c = allM go (cdLimits $ toCardDef c)
   go = \case
     LimitInPlay m -> case toCardType c of
       EventType -> do
+        n <- selectCount $ Matcher.EventWithTitle (nameTitle $ toName c)
+        pure $ m > n
+      AssetType -> do
         n <- selectCount $ Matcher.AssetWithTitle (nameTitle $ toName c)
         pure $ m > n
       _ -> error $ "Not handling card type: " <> show (toCardType c)

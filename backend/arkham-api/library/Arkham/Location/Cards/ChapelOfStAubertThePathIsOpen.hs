@@ -10,7 +10,6 @@ import Arkham.Helpers.Modifiers
 import Arkham.Location.Cards qualified as Cards
 import Arkham.Location.Import.Lifted
 import Arkham.Matcher
-import Arkham.Message (getChoiceAmount)
 import Arkham.ScenarioLogKey
 
 newtype ChapelOfStAubertThePathIsOpen = ChapelOfStAubertThePathIsOpen LocationAttrs
@@ -24,7 +23,7 @@ chapelOfStAubertThePathIsOpen =
 instance HasModifiersFor ChapelOfStAubertThePathIsOpen where
   getModifiersFor (ChapelOfStAubertThePathIsOpen a) =
     if a.revealed
-      then modifySelect a (InvestigatorWithRemainingSanity $ atMost 3) [CannotDiscoverCluesAt (be a)]
+      then modifySelect a (InvestigatorWithRemainingSanity $ atLeast 4) [CannotDiscoverCluesAt (be a)]
       else blockedUnless a $ remembered FoundAGuide
 
 instance HasAbilities ChapelOfStAubertThePathIsOpen where

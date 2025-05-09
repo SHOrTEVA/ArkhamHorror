@@ -10,8 +10,9 @@ import Arkham.Card
 import Arkham.EncounterSet qualified as Set
 import Arkham.Enemy.Cards qualified as Enemies
 import Arkham.Enemy.Types (Field (..))
+import Arkham.Exception
 import Arkham.Helpers.Effect
-import Arkham.Helpers.Query
+import Arkham.Helpers.FlavorText
 import Arkham.Investigator.Types (Field (..))
 import Arkham.Location.Cards qualified as Locations
 import Arkham.Matcher hiding (ChosenRandomLocation, RevealLocation)
@@ -21,7 +22,6 @@ import Arkham.Projection
 import Arkham.Resolution
 import Arkham.Scenario.Import.Lifted
 import Arkham.Scenarios.UndimensionedAndUnseen.Helpers
-import Arkham.Scenarios.UndimensionedAndUnseen.Story
 import Arkham.SkillTest
 import Arkham.Trait hiding (Cultist, ElderThing)
 
@@ -85,22 +85,48 @@ instance HasChaosTokenValue UndimensionedAndUnseen where
       otherFace -> getChaosTokenValue iid otherFace attrs
 
 instance RunMessage UndimensionedAndUnseen where
-  runMessage msg s@(UndimensionedAndUnseen attrs) = runQueueT $ case msg of
-    PreScenarioSetup -> do
-      story intro
-      lead <- getLead
-      chooseOneM lead do
-        labeled "You try to calm down the townsfolk in order to learn more." $ doStep 1 msg
-        labeled "You try to warn the townsfolk and convince them to evacuate." $ doStep 2 msg
+  runMessage msg s@(UndimensionedAndUnseen attrs) = runQueueT $ scenarioI18n $ case msg of
+    PreScenarioSetup -> scope "intro" do
+      storyWithChooseOneM' (h "title" >> p "body") do
+        labeled' "calm" $ doStep 1 msg
+        labeled' "warn" $ doStep 2 msg
       pure s
-    DoStep n PreScenarioSetup -> do
-      story $ if n == 1 then introPart1 else introPart2
-      record $ if n == 1 then YouCalmedTheTownsfolk else YouWarnedTheTownsfolk
+    DoStep 1 PreScenarioSetup -> scope "intro" do
+      flavor $ h "title" >> p "part1"
+      record YouCalmedTheTownsfolk
+      pure s
+    DoStep 2 PreScenarioSetup -> scope "intro" do
+      flavor $ h "title" >> p "part2"
+      record YouWarnedTheTownsfolk
       pure s
     StandaloneSetup -> do
       setChaosTokens standaloneChaosTokens
       pure . UndimensionedAndUnseen $ attrs & standaloneCampaignLogL .~ standaloneCampaignLog
     Setup -> runScenarioSetup UndimensionedAndUnseen attrs do
+      standalone <- getIsStandalone
+      sacrificedToYogSothoth <-
+        if standalone
+          then pure 3
+          else length <$> getRecordSet SacrificedToYogSothoth
+
+      setup do
+        ul do
+          li "gatherSets"
+          li "placeLocations"
+          li.nested "sacrificedToYogSothoth.instructions" do
+            li.validate (sacrificedToYogSothoth >= 4) "sacrificedToYogSothoth.fourOrMore"
+            li.validate (sacrificedToYogSothoth == 3) "sacrificedToYogSothoth.exactlyThree"
+            li.validate (sacrificedToYogSothoth == 2) "sacrificedToYogSothoth.exactlyTwo"
+            li.validate (sacrificedToYogSothoth <= 1) "sacrificedToYogSothoth.oneOrFewer"
+          li "setAside"
+          li "powderOfIbnGhazi"
+          li "randomBasicWeakness"
+          unscoped $ li "shuffleRemainder"
+
+      scope "choosingARandomLocation" $ flavor do
+        setTitle "title"
+        p "body"
+
       gather Set.UndimensionedAndUnseen
       gather Set.Whippoorwills
       gather Set.BeastThralls
@@ -117,12 +143,6 @@ instance RunMessage UndimensionedAndUnseen where
       coldSpringGlen <- placeOneOf (Locations.coldSpringGlen_244, Locations.coldSpringGlen_245)
       blastedHeath <- placeOneOf (Locations.blastedHeath_248, Locations.blastedHeath_249)
       placeAll [tenAcreMeadow, whateleyRuins, devilsHopYard]
-
-      standalone <- getIsStandalone
-      sacrificedToYogSothoth <-
-        if standalone
-          then pure 3
-          else length <$> getRecordSet SacrificedToYogSothoth
 
       setAside $ replicate 4 Assets.esotericFormula
 
@@ -168,8 +188,9 @@ instance RunMessage UndimensionedAndUnseen where
         Just action | action `elem` [#evade, #fight] -> do
           getSkillTestTarget >>= \case
             Just (EnemyTarget eid) -> do
+              let allBroods = ["02255", "51042", "51043", "51044", "51045"]
               enemyCardCode <- field EnemyCardCode eid
-              when (enemyCardCode == "02255") $ initiateEnemyAttack eid attrs iid
+              when (enemyCardCode `elem` allBroods) $ initiateEnemyAttack eid attrs iid
             _ -> pure ()
         _ -> pure ()
       pure s
@@ -181,25 +202,29 @@ instance RunMessage UndimensionedAndUnseen where
     RequestedPlayerCard iid source mcard _ | isSource attrs source -> do
       for_ mcard $ \card -> shuffleCardsIntoDeck iid [PlayerCard card]
       pure s
-    ScenarioResolution NoResolution -> do
-      push R1
+    ScenarioResolution r -> scope "resolutions" do
+      case r of
+        NoResolution -> do
+          story $ i18nWithTitle "noResolution"
+          do_ R1
+        _ -> do_ msg
       pure s
-    ScenarioResolution (Resolution 1) -> do
-      broodEscapedIntoTheWild <-
-        (+ count ((== "02255") . toCardCode) attrs.setAside)
-          . length
-          <$> getBroodOfYogSothoth
-      story resolution1
-      recordCount BroodEscapedIntoTheWild broodEscapedIntoTheWild
+    Do (ScenarioResolution r) -> scope "resolutions" do
+      case r of
+        Resolution 1 -> do
+          let allBroods = ["02255", "51042", "51043", "51044", "51045"]
+          broodEscapedIntoTheWild <-
+            (+ count ((`elem` allBroods) . toCardCode) attrs.setAside)
+              . length
+              <$> getBroodOfYogSothoth
+          resolutionWithXp "resolution1" $ allGainXp' attrs
+          recordCount BroodEscapedIntoTheWild broodEscapedIntoTheWild
+        Resolution 2 -> do
+          resolutionWithXp "resolution2" $ allGainXp' attrs
+          record NoBroodEscapedIntoTheWild
+        other -> throwIO $ UnknownResolution other
+
       removeCampaignCard Assets.powderOfIbnGhazi
-      allGainXp attrs
-      endOfScenario
-      pure s
-    ScenarioResolution (Resolution 2) -> do
-      story resolution2
-      record NoBroodEscapedIntoTheWild
-      removeCampaignCard Assets.powderOfIbnGhazi
-      allGainXp attrs
       endOfScenario
       pure s
     _ -> UndimensionedAndUnseen <$> liftRunMessage msg attrs

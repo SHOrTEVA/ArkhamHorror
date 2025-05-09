@@ -25,10 +25,6 @@
   "updatePassword": "Update Password",
   "username": "Username",
   "usernameOrEmailAlreadyTaken": "Username or Email already taken",
-  "labels": {
-    "drawTopCardOfEncounterDeck": "Draw the top card of the encounter deck",
-    "takeControlOfKey": "Take control of key"
-  },
   "tooltips": {
     "takeControlOfKey": "Take control of {key} key"
   },
@@ -51,5 +47,9 @@
   "ChooseOne": "Choose one",
   "Choose": "Choose",
   "setup": "Setup",
-  "addToken": "Add 1 {'{'}{token}{'}'} chaos token to the chaos bag for the remainder of the campaign."
+  "addToken": "Add 1 {'{'}{token}{'}'} chaos token to the chaos bag for the remainder of the campaign.",
+  "choice": {
+    "clues": "Clues",
+    "resources": "Resources"
+  }
 }

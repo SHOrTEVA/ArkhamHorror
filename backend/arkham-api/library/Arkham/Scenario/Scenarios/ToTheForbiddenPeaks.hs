@@ -210,7 +210,7 @@ instance RunMessage ToTheForbiddenPeaks where
         loc <- MaybeT $ getLocationOf iid
         Pos _ y <- MaybeT $ field LocationPosition loc
         loc' <- MaybeT $ selectOne (LocationInRow (y - 1))
-        lift $ afterSkillTest $ moveTo (toSource Cultist) iid loc'
+        lift $ afterSkillTestQuiet $ moveTo (toSource Cultist) iid loc'
 
       pure s
     FailedSkillTest iid _ _ (ChaosTokenTarget token) _ _ -> do
@@ -220,7 +220,7 @@ instance RunMessage ToTheForbiddenPeaks where
           loc <- MaybeT $ getLocationOf iid
           Pos _ y <- MaybeT $ field LocationPosition loc
           loc' <- MaybeT $ selectOne (LocationInRow (y - 1))
-          lift $ afterSkillTest $ moveTo (toSource Cultist) iid loc'
+          lift $ afterSkillTestQuiet $ moveTo (toSource Cultist) iid loc'
         Tablet -> withLocationOf iid \loc -> do
           assets <- select $ assetControlledBy iid <> withTrait Expedition
           chooseTargetM iid assets (`P.place` loc)
@@ -236,8 +236,8 @@ instance RunMessage ToTheForbiddenPeaks where
         ElderThing -> whenM (eid <=~> enemyEngagedWith iid) $ initiateEnemyAttack eid ElderThing iid
         _ -> pure ()
       pure s
-    ScenarioResolution resolution -> scope "resolutions" do
-      case resolution of
+    ScenarioResolution r -> scope "resolutions" do
+      case r of
         NoResolution -> do
           story $ i18nWithTitle "noResolution"
           push R2
@@ -266,7 +266,7 @@ instance RunMessage ToTheForbiddenPeaks where
           record TheTeamFoundAnotherWayThroughTheMountains
           crossOutRecordSetEntries SuppliesRecovered $ map toJSON [GreenSoapstone ..]
           endOfScenario
-        _ -> throwIO $ UnknownResolution resolution
+        _ -> throwIO $ UnknownResolution r
       pure s
     HandleOption option -> do
       whenM getIsStandalone do

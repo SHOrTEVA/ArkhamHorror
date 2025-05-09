@@ -151,9 +151,9 @@ instance RunMessage TheWitchingHour where
       setAgendaDeck [Agendas.temperanceXIV, Agendas.theNightHowls]
       setActDeck
         [Acts.lostInTheWoods, Acts.witchHauntings, Acts.pathsIntoTwilight, Acts.aCircleUnbroken]
-    ScenarioResolution resolution -> do
+    ScenarioResolution r -> do
       step <- actStep <$> selectJustField ActSequence AnyAct
-      case resolution of
+      case r of
         NoResolution -> push $ if step == ActStep 4 then R4 else R3
         Resolution 1 -> do
           story resolution1
@@ -190,7 +190,7 @@ instance RunMessage TheWitchingHour where
     FailedSkillTest iid _ _ (ChaosTokenTarget token) _ n -> do
       case token.face of
         Skull | isEasyStandard attrs -> discardTopOfEncounterDeck iid Skull n
-        Tablet -> afterSkillTest $ forTarget attrs msg
+        Tablet -> afterSkillTestQuiet $ forTarget attrs msg
         ElderThing -> do
           enemies <-
             select $ enemy_ $ withTrait Witch <> #exhausted <> at_ (orConnected $ locationWithInvestigator iid)

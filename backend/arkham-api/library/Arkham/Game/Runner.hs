@@ -567,7 +567,7 @@ runGameMessage msg g = case msg of
     acId <- getRandom
     iid <- toId <$> getActiveInvestigator
     -- imods <- getModifiers iid
-    modifiers' <- getModifiers (AbilityTarget iid ability)
+    modifiers' <- getModifiers (AbilityTarget iid $ abilityToRef ability)
     -- TODO: we might want to check the ability index and source
     let
       -- isMovement = abilityIs ability #move
@@ -1505,7 +1505,7 @@ runGameMessage msg g = case msg of
         TreacheryType -> do
           tid <- getRandom
           let treachery = createTreachery card iid tid
-          pushAll [CardEnteredPlay iid card, PlaceTreachery tid (InThreatArea iid)]
+          pushAll [CardEnteredPlay iid card, PlaceTreachery tid (InThreatArea iid), ResolvedCard iid card]
           pure $ g & (entitiesL . treacheriesL %~ insertMap tid treachery)
         EncounterAssetType -> do
           -- asset might have been put into play via revelation
@@ -1772,6 +1772,54 @@ runGameMessage msg g = case msg of
           [iid] -> getPlayer iid
           _ -> getPlayer (gameLeadInvestigatorId g)
         push $ chooseOneAtATime player $ map toUI as
+    pure g
+  AfterSkillTestQuiet _ -> do
+    msgs <- popMessagesMatching \case
+      AfterSkillTestQuiet {} -> True
+      AfterSkillTestOption {} -> True
+      _ -> False
+
+    let
+      isQuiet = \case
+        AfterSkillTestQuiet {} -> True
+        _ -> False
+      (quietMsgs, options) = partition isQuiet msgs
+
+    pushAll options
+
+    for_ (msg : quietMsgs) \case
+      AfterSkillTestQuiet xs -> pushAll xs
+      _ -> pure ()
+    pure g
+  AfterSkillTestOption _ _ msgs' -> do
+    msgs <- popMessagesMatching \case
+      AfterSkillTestQuiet {} -> True
+      AfterSkillTestOption {} -> True
+      _ -> False
+
+    let
+      isQuiet = \case
+        AfterSkillTestQuiet {} -> True
+        _ -> False
+      (quietMsgs, options) = partition isQuiet msgs
+
+    if notNull quietMsgs
+      then do
+        pushAll $ msg : options
+
+        for_ quietMsgs \case
+          AfterSkillTestQuiet xs -> pushAll xs
+          _ -> pure ()
+      else do
+        if null options
+          then pushAll msgs'
+          else do
+            askMap <- fmap (QuestionLabel "Choose after skill test effect to resolve" Nothing . ChooseOneAtATime) . Map.unionsWith (<>) <$> forMaybeM (msg : options) \case
+              AfterSkillTestOption iid lbl xs -> do
+                playerId <- getPlayer iid
+                pure $ Just $ singletonMap playerId [Label lbl xs]
+              _ -> pure Nothing
+            push $ AskMap askMap
     pure g
   SkillTestResultOption txt msgs -> do
     push $ SkillTestResultOptions [Label txt msgs]
@@ -2972,12 +3020,13 @@ runGameMessage msg g = case msg of
 
     pushAll
       $ if ignoreRevelation
-        then [toDiscardBy iid GameSource (TreacheryTarget treacheryId)]
+        then [toDiscardBy iid GameSource (TreacheryTarget treacheryId), ResolvedCard iid (toCard treachery)]
         else
           [ When revelation
           , revelation
           , MoveWithSkillTest $ Run [After revelation, AfterRevelation iid treacheryId]
           , UnsetActiveCard
+          , ResolvedCard iid (toCard treachery)
           ]
     pure $ g & (if ignoreRevelation then activeCardL .~ Nothing else id)
   MoveWithSkillTest msg' -> do

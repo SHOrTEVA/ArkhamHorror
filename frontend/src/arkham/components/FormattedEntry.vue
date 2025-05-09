@@ -91,8 +91,19 @@ export default defineComponent({
     padding: 10px 20px;
     z-index: 5;
   }
-  :not(.simple) > * + * {
-    border-left: solid 1px black;
+
+  .composite {
+    position: relative;
+  }
+
+  .composite:not(:first-child)::after {
+    position: absolute;
+    bottom: -1rem;
+    left: 0;
+    height: calc(100% - 20px);
+    margin-bottom: 20px;
+    content: '';
+    border-left: 1px solid black;
   }
 
   &.simple {
@@ -185,6 +196,9 @@ p, :deep(p) {
 .invalid, :deep(.invalid) {
   &:not(li) {
     display: inline-flex;
+    &:has(.right) {
+      justify-content: flex-end;
+    }
   }
   align-items: center;
   color: #666;
@@ -215,6 +229,9 @@ h3, :deep(h3) {
 .valid, :deep(.valid) {
   &:not(li) {
     display: inline-flex;
+    &:has(.right) {
+      justify-content: flex-end;
+    }
   }
   align-items: center;
   &::before {
@@ -257,6 +274,7 @@ ul, :deep(ul) {
 }
 
 .resolution, :deep(.resolution) {
+  overflow-y: auto;
   li::marker {
     color: var(--bullet-red);
   }

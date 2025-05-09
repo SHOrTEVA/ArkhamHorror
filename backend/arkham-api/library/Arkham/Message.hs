@@ -914,7 +914,6 @@ data Message
   | ReplaceCurrentDraw Source InvestigatorId ChaosBagStep
   | ReplaceEntireDraw Source InvestigatorId ChaosBagStep
   | SetChaosBagChoice Source InvestigatorId ChaosBagStep -- internal
-  | RequestSetAsideCard Source CardCode
   | RequestChaosTokens Source (Maybe InvestigatorId) RevealStrategy RequestedChaosTokenStrategy
   | RequestedEncounterCard Source (Maybe InvestigatorId) (Maybe EncounterCard)
   | RequestedEncounterCards Target [EncounterCard]
@@ -996,6 +995,8 @@ data Message
   | SkillTestEnds SkillTestId InvestigatorId Source
   | SkillTestEnded SkillTestId
   | AfterSkillTestEnds Source Target SkillTest.SkillTestResult
+  | AfterSkillTestOption InvestigatorId Text [Message]
+  | AfterSkillTestQuiet [Message]
   | EndSkillTestWindow
   | SkillTestResults SkillTestResultsData
   | SkillTestUncommitCard InvestigatorId Card

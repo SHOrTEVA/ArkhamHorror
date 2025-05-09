@@ -158,7 +158,7 @@ instance RunMessage ALightInTheFog where
       pure s
     FailedSkillTest iid _ _ (ChaosTokenTarget token) _ _n -> do
       case token.face of
-        Cultist -> afterSkillTest $ doStep 1 msg
+        Cultist -> afterSkillTestQuiet $ doStep 1 msg
         Tablet -> whenAny (locationWithInvestigator iid <> FloodedLocation) do
             assignDamage iid Tablet $ if isEasyStandard attrs then 1 else 2
         ElderThing | isEasyStandard attrs -> withLocationOf iid \lid -> do
@@ -172,10 +172,7 @@ instance RunMessage ALightInTheFog where
     DoStep 1 (FailedSkillTest iid _ _ (ChaosTokenTarget token) _ _n) -> do
       case token.face of
         Cultist -> withLocationOf iid \lid -> do
-          canIncreaseFloodLevel <- lid <=~> CanHaveFloodLevelIncreased 
-          if canIncreaseFloodLevel
-            then increaseThisFloodLevel lid
-            else when (isHardExpert attrs) $ assignHorror iid Cultist 1
+          increaseThisFloodLevelOrElse lid $ when (isHardExpert attrs) $ assignHorror iid Cultist 1
         _ -> pure ()
       pure s
     ForInvestigator iid (ScenarioSpecific "captured" _) -> do
@@ -184,7 +181,7 @@ instance RunMessage ALightInTheFog where
     ForInvestigator iid (ScenarioSpecific "free" _) -> do
       let meta = toResultDefault emptyMeta attrs.meta
       pure $ ALightInTheFog $ attrs & metaL .~ toJSON (meta & capturedL %~ deleteFirst iid)
-    ScenarioResolution resolution -> scope "resolutions" do
+    ScenarioResolution r -> scope "resolutions" do
       let meta = toResultDefault emptyMeta attrs.meta
       let
         defaultResolution = do
@@ -196,7 +193,7 @@ instance RunMessage ALightInTheFog where
           for_ (meta ^. relicsAddedToHandL) (addCampaignCardToDeckChoice investigators DoNotShuffleIn)
           allGainXp attrs
           endOfScenario
-      case resolution of
+      case r of
         NoResolution -> do
           step <- agendaStep <$> selectJustField AgendaSequence AnyAgenda
           push $ if step < AgendaStep 4 then R4 else R3
@@ -214,7 +211,7 @@ instance RunMessage ALightInTheFog where
         Resolution 4 -> do
           story $ i18nWithTitle "resolution4"
           defaultResolution
-        _ -> throw $ UnknownResolution resolution
+        other -> throw $ UnknownResolution other
       pure s
     Resign iid -> do
       getLocationOf iid >>= \case

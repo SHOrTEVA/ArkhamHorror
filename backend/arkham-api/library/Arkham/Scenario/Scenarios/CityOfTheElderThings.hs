@@ -19,6 +19,7 @@ import Arkham.Helpers.Location (withLocationOf)
 import Arkham.Helpers.Query
 import Arkham.Helpers.SkillTest
 import Arkham.Helpers.Text
+import Arkham.Helpers.Xp
 import Arkham.Investigator.Types (Field (..))
 import Arkham.Key
 import Arkham.Location.Cards qualified as Locations
@@ -392,30 +393,38 @@ instance RunMessage CityOfTheElderThings where
         when (isHardExpert attrs) $ assignDamage iid Tablet 1
         failSkillTest
       pure s
-    ScenarioResolution resolution -> scope "resolutions" do
-      case resolution of
+    ScenarioResolution r -> scope "resolutions" do
+      let current = toResultDefault @(Map ChaosTokenFace Int) mempty attrs.meta
+      let bonus = getSum $ foldMap (Sum . (`div` 2)) current
+      case r of
         NoResolution -> do
           story $ i18nWithTitle "noResolution"
           push R2
         Resolution 1 -> do
-          base <- allGainXp' attrs
+          base <-
+            if bonus > 0
+              then allGainXpWithBonus' attrs $ toBonus "bonus" bonus
+              else allGainXp' attrs
           story
             $ withVars ["xp" .= base]
             $ i18nWithTitle "resolution1"
           record TheTeamFoundTheHiddenTunnel
           endOfScenario
         Resolution 2 -> do
-          base <- allGainXp' attrs
+          base <-
+            if bonus > 0
+              then allGainXpWithBonus' attrs $ toBonus "bonus" bonus
+              else allGainXp' attrs
           story
             $ withVars ["xp" .= base]
             $ i18nWithTitle "resolution2"
           record TheTeamWasGuidedToTheHiddenTunnel
           endOfScenario
-        _ -> throwIO $ UnknownResolution resolution
+        _ -> throwIO $ UnknownResolution r
       pure s
-    PlaceKey ScenarioTarget _ -> do
-      let n = toResultDefault @Int 0 attrs.meta
-      pure $ CityOfTheElderThings $ attrs & metaL .~ toJSON (n + 1)
+    PlaceKey ScenarioTarget (TokenKey ct) -> do
+      let current = toResultDefault @(Map ChaosTokenFace Int) mempty attrs.meta
+      pure $ CityOfTheElderThings $ attrs & metaL .~ toJSON (Map.insertWith (+) ct.face 1 current)
     HandleOption option -> do
       investigators <- allInvestigators
       whenM getIsStandalone $ do
