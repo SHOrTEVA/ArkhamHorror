@@ -207,6 +207,7 @@ watch(locations, () => drawHandler())
   width: 100%;
   height: 100%;
   z-index: -100000000;
+  overflow: visible !important;
 }
 
 #line{

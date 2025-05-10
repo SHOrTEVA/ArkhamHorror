@@ -37,3 +37,5 @@ logfile
 *.hp
 
 .kamal/secrets
+frontend/yarn.lock
+frontend/package-lock.json
