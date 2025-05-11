@@ -475,7 +475,7 @@ button {//!
 
   --bullet-red: #391714;
 
-  --pool-token-width: min(30px, 4vw);
+  --pool-token-width: 30px;
 }
 
 h2.title {

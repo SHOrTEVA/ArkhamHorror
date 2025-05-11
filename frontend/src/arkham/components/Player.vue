@@ -762,6 +762,9 @@ function onDrop(event: DragEvent) {
       mix-blend-mode: saturation;
     }
   }
+  @media (max-width: 800px) and (orientation: portrait)  {
+    margin-left: auto;
+  }
 }
 
 .deck, .card {
@@ -919,6 +922,9 @@ function onDrop(event: DragEvent) {
   flex-direction: row;
   flex-wrap: wrap;
   gap: 5px;
+  @media (max-width: 600px) {
+      width: 100%;
+  }
 }
 
 .card-container {
@@ -963,6 +969,10 @@ function onDrop(event: DragEvent) {
   align-items: flex-start;
   flex: 1;
   max-width: 100%;
+
+  @media (max-width: 800px) and (orientation: portrait) {
+    display: none;
+  }
 }
 
 </style>
