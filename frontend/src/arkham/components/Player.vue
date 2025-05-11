@@ -721,6 +721,9 @@ function startHandDrag(event: DragEvent, card: (CardContents | CardT.Card)) {
       mix-blend-mode: saturation;
     }
   }
+  @media (max-width: 800px) and (orientation: portrait)  {
+    margin-left: auto;
+  }
 }
 
 .deck, .card {
@@ -878,6 +881,9 @@ function startHandDrag(event: DragEvent, card: (CardContents | CardT.Card)) {
   flex-direction: row;
   flex-wrap: wrap;
   gap: 5px;
+  @media (max-width: 600px) {
+      width: 100%;
+  }
 }
 
 .card-container {
@@ -922,6 +928,10 @@ function startHandDrag(event: DragEvent, card: (CardContents | CardT.Card)) {
   align-items: flex-start;
   flex: 1;
   max-width: 100%;
+
+  @media (max-width: 800px) and (orientation: portrait) {
+    display: none;
+  }
 }
 
 </style>

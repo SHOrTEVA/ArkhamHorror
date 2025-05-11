@@ -338,7 +338,7 @@ function onDrop(event: DragEvent) {
       @dragenter.prevent
     />
   </div>
-  <div v-else>
+  <div v-else class="player-container">
     <div class="player-area">
       <div class="player-card">
         <div class="stats">
@@ -404,7 +404,6 @@ function onDrop(event: DragEvent) {
         <button v-if="cardsUnderneath.length > 0" class="view-discard-button" @click="showCardsUnderneath">{{cardsUnderneathLabel}}</button>
       </div>
     </div>
-
     <div class="resources">
       <div class="keys" v-if="keys.length > 0">
         <Key v-for="key in keys" :key="key" :name="key" />
@@ -638,6 +637,9 @@ i.action {
   display: flex;
   flex-direction: column;
   width: calc(var(--card-width) * var(--card-sideways-aspect));
+  @media (max-width: 800px) and (orientation: portrait) {
+    width: 65%;
+  }
 }
 
 .portrait {
@@ -722,6 +724,12 @@ i.action {
   animation: become-ghost 1s linear, ghost 3s linear 1s infinite;
 }
 
+.player-container{
+  @media (max-width: 800px) and (orientation: portrait) {
+    width: 75%;
+  }
+}
+
 .player-area {
   display: flex;
 }
@@ -734,6 +742,9 @@ i.action {
 
   @media (prefers-color-scheme: light) {
     color: #efefef;
+  }
+  @media (max-width: 800px) and (orientation: portrait) {
+    margin-left: auto;
   }
 }
 
