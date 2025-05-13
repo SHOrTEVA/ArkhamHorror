@@ -239,10 +239,10 @@ const events = computed(() => props.investigator.events.map((e) => props.game.ev
 const skills = computed(() => props.investigator.skills.map((e) => props.game.skills[e]).filter(e => e))
 const emptySlots = computed(() => props.investigator.slots.filter((s) => s.empty))
 
-const slotImg = (slot: Arkham.Slot) => {
+const slotImg = (slot: Arkham.Slot, idx: number) => {
   switch (slot.tag) {
     case 'HandSlot':
-      return imgsrc('slots/hand.png')
+      return imgsrc(idx === 0 ? 'slots/left-hand.png' : 'slots/hand.png')
     case 'BodySlot':
       return imgsrc('slots/body.png')
     case 'AccessorySlot':
@@ -476,7 +476,7 @@ function startHandDrag(event: DragEvent, card: (CardContents | CardT.Card)) {
 
 
         <div v-for="(slot, idx) in emptySlots" :key="idx" class="slot" :data-index="`${slot}${idx}`">
-          <img :src="slotImg(slot)" />
+          <img :src="slotImg(slot,idx)" />
         </div>
 
         <Enemy
@@ -739,12 +739,34 @@ function startHandDrag(event: DragEvent, card: (CardContents | CardT.Card)) {
 .in-play {
   display: flex;
   flex-wrap: wrap;
+  overflow-x: auto;
   gap: 5px;
   background: #999;
   padding: 10px;
   background: var(--background-dark);
   border-bottom: 1px solid var(--background);
   border-top: 1px solid var(--background);
+  img {
+    pointer-events: none;
+    user-select: none;
+    -webkit-user-drag: none;
+  }
+  @media (max-width: 800px) and (orientation: portrait) {
+    flex-wrap: nowrap; 
+    scrollbar-width: thin;
+    :deep(div){
+      flex-shrink: 0;
+    }
+    :deep(div.slot) {
+      width: 10.71vw;
+      height: 14.994vw;
+    }
+    :deep(.card) {
+      width: 10.71vw ;
+      height: 14.994vw;
+      max-width: 10.71vw;
+    }
+  }
 }
 
 .hand {
@@ -861,6 +883,11 @@ function startHandDrag(event: DragEvent, card: (CardContents | CardT.Card)) {
   img {
     width: calc(var(--card-width) / 2);
     filter: invert(75%);
+  }
+  @media (max-width: 800px) and (orientation: portrait) {
+    img {
+      width: 7vw;
+    }
   }
 }
 

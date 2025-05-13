@@ -697,6 +697,9 @@ function onDrop(event: DragEvent) {
     "investigators attachments assetsAndEnemies";
   grid-template-columns: 60px 1fr 60px;
   grid-column-gap: 10px;
+  @media (max-width: 800px) and (orientation: portrait) {
+    grid-column-gap: .5px;
+  }
 }
 
 .flood-level {
