@@ -915,12 +915,7 @@ runGameMessage msg g = case msg of
       Discard _ _ (EventTarget eid') -> eid == eid'
       _ -> False
     event' <- getEvent eid
-    let
-      removedEntitiesF =
-        if notNull (gameActiveAbilities g) || attr eventWaiting event'
-          then actionRemovedEntitiesL . eventsL %~ insertEntity event'
-          else id
-    pure $ g & entitiesL . eventsL %~ deleteMap eid & removedEntitiesF
+    pure $ g & entitiesL . eventsL %~ deleteMap eid & actionRemovedEntitiesL . eventsL %~ insertEntity event'
   RemoveEnemy eid -> do
     popMessageMatching_ $ \case
       EnemyDefeated eid' _ _ _ -> eid == eid'
@@ -1297,6 +1292,7 @@ runGameMessage msg g = case msg of
                 { spawnDetailsEnemy = enemyId
                 , spawnDetailsInvestigator = Nothing
                 , spawnDetailsSpawnAt = Arkham.Spawn.SpawnAtLocation lid
+                , spawnDetailsOverridden = False
                 }
           pushAll
             [ Will (EnemySpawn details)
@@ -1329,16 +1325,16 @@ runGameMessage msg g = case msg of
   RemovedFromPlay (TreacherySource treacheryId) -> do
     runMessage (RemoveTreachery treacheryId) g
   ReturnToHand iid (EventTarget eventId) -> do
+    event' <- getEvent eventId
     card <- field EventCard eventId
     push $ addToHand iid card
     removedEntitiesF <-
-      if gameInAction g
+      if gameInAction g || attr eventWaiting event'
         then do
-          entity <- getEvent eventId
           pure
             $ actionRemovedEntitiesL
             . eventsL
-            %~ insertEntity (overAttrs (\e -> e {eventPlacement = Unplaced}) entity)
+            %~ insertEntity (overAttrs (\e -> e {eventPlacement = Unplaced}) event')
         else pure id
     pure $ g & entitiesL . eventsL %~ deleteMap eventId & removedEntitiesF
   After (ShuffleIntoDeck _ (AssetTarget aid)) -> do
@@ -1908,6 +1904,7 @@ runGameMessage msg g = case msg of
             { spawnDetailsInvestigator = miid
             , spawnDetailsSpawnAt = Arkham.Spawn.SpawnAtLocation lid
             , spawnDetailsEnemy = eid
+            , spawnDetailsOverridden = False
             }
       )
     pure $ g & (activeCardL .~ Nothing) & (focusedCardsL .~ mempty)
@@ -2522,6 +2519,7 @@ runGameMessage msg g = case msg of
           { spawnDetailsEnemy = enemyId
           , spawnDetailsInvestigator = Nothing
           , spawnDetailsSpawnAt = Arkham.Spawn.SpawnAtLocation lid
+          , spawnDetailsOverridden = False
           }
     windows' <- checkWindows [mkWhen (Window.EnemyWouldSpawnAt enemyId lid)]
     pushAll
@@ -2541,6 +2539,7 @@ runGameMessage msg g = case msg of
           { spawnDetailsEnemy = enemyId
           , spawnDetailsInvestigator = Just iid
           , spawnDetailsSpawnAt = Arkham.Spawn.SpawnAtLocation lid
+          , spawnDetailsOverridden = False
           }
     pushAll
       [ Will (EnemySpawn details)
@@ -2586,6 +2585,7 @@ runGameMessage msg g = case msg of
                 { spawnDetailsEnemy = enemyId
                 , spawnDetailsInvestigator = Just iid
                 , spawnDetailsSpawnAt = Arkham.Spawn.SpawnAtLocation lid
+                , spawnDetailsOverridden = True
                 }
         pushAll
           $ enemyCreationBefore enemyCreation
@@ -2603,6 +2603,7 @@ runGameMessage msg g = case msg of
                 { spawnDetailsEnemy = enemyId
                 , spawnDetailsInvestigator = Nothing
                 , spawnDetailsSpawnAt = Arkham.Spawn.SpawnAtLocation lid
+                , spawnDetailsOverridden = True
                 }
         pushAll
           $ windows'
@@ -2642,6 +2643,7 @@ runGameMessage msg g = case msg of
                       { spawnDetailsEnemy = enemyId
                       , spawnDetailsInvestigator = Nothing
                       , spawnDetailsSpawnAt = Arkham.Spawn.SpawnAtLocation lid
+                      , spawnDetailsOverridden = True
                       }
                in ( [Will (EnemySpawn details), When (EnemySpawn details)]
                   , [After (EnemySpawn details)]

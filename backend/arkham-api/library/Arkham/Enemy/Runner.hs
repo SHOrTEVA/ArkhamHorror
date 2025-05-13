@@ -183,7 +183,9 @@ getCanEngage a = do
 getAvailablePrey :: HasGame m => EnemyAttrs -> m [InvestigatorId]
 getAvailablePrey a = do
   enemyLocation <- field EnemyLocation a.id
-  iids <- fromMaybe [] <$> traverse (select . (<> InvestigatorCanBeEngagedBy a.id) . investigatorAt) enemyLocation
+  iids <-
+    fromMaybe []
+      <$> traverse (select . (<> InvestigatorCanBeEngagedBy a.id) . investigatorAt) enemyLocation
   if null iids
     then pure []
     else do
@@ -233,6 +235,7 @@ instance RunMessage EnemyAttrs where
                       { spawnDetailsInvestigator = Just iid
                       , spawnDetailsSpawnAt = SpawnAtLocation lid
                       , spawnDetailsEnemy = eid
+                      , spawnDetailsOverridden = False
                       }
                 )
           | (iid, lid) <- toList iidsWithLocations
@@ -438,7 +441,7 @@ instance RunMessage EnemyAttrs where
             enemyLocation <- field EnemyLocation enemyId
             let leaveWindows = join $ map (\oldId -> windows [Window.EnemyLeaves eid oldId]) (maybeToList enemyLocation)
             afterWindow <- checkAfter $ Window.EnemyMoves eid lid
-            pushAll $ leaveWindows <> [EnemyEntered eid lid, EnemyCheckEngagement eid, afterWindow]
+            pushAll $ [EnemyEntered eid lid, EnemyCheckEngagement eid] <> leaveWindows <> [afterWindow]
             pure $ a & placementL .~ AtLocation lid
           else a <$ push (EnemyCheckEngagement eid)
     After (EndTurn _) | not enemyDefeated -> a <$ push (EnemyCheckEngagement $ toId a)
@@ -502,7 +505,7 @@ instance RunMessage EnemyAttrs where
                   $ chooseOne lead
                   $ targetLabels xs (only . EnemyEngageInvestigator eid)
       pure a
-    HuntersMove | not enemyExhausted && not (isSwarm a) && not enemyDefeated -> do
+    HuntersMove | not enemyExhausted && not (isSwarm a) && isInPlayPlacement a.placement -> do
       -- TODO: unengaged or not engaged with only prey
       --
       let isAttached = isJust a.placement.attachedTo
@@ -899,7 +902,7 @@ instance RunMessage EnemyAttrs where
     InitiateEnemyAttack details | details.enemy == enemyId -> do
       whenWithoutModifier a CannotAttack do
         mods <- getModifiers a
-        let canBeCancelled = AttacksCannotBeCancelled `notElem` mods
+        let canBeCancelled = details.canBeCanceled && AttacksCannotBeCancelled `notElem` mods
         let strategy = fromMaybe details.strategy $ listToMaybe [s | SetAttackDamageStrategy s <- mods]
         push $ EnemyAttack $ details {attackCanBeCanceled = canBeCancelled, attackDamageStrategy = strategy}
       pure a
@@ -1429,6 +1432,7 @@ instance RunMessage EnemyAttrs where
                             { spawnDetailsInvestigator = Just iid
                             , spawnDetailsSpawnAt = SpawnAtLocation lid
                             , spawnDetailsEnemy = eid
+                            , spawnDetailsOverridden = False
                             }
                       )
                 else
@@ -1455,6 +1459,7 @@ instance RunMessage EnemyAttrs where
                     { spawnDetailsInvestigator = Nothing
                     , spawnDetailsSpawnAt = SpawnAtLocation lid
                     , spawnDetailsEnemy = eid
+                    , spawnDetailsOverridden = False
                     }
               )
         xs -> spawnAtOneOf Nothing eid xs

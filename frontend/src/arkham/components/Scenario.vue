@@ -327,6 +327,7 @@ const showCards = reactive<RefWrapper<any>>({ ref: noCards })
 // Watchers
 watchEffect(() => {
   const oop = outOfPlay.value.length + outOfPlayEnemies.value.length
+
   if (oop == 0) {
     removeEntry("showOutOfPlay")
     showOutOfPlay.value = false
@@ -340,14 +341,18 @@ watchEffect(() => {
       action: () => showOutOfPlay.value = !showOutOfPlay.value
     })
   }
-})
 
-watchEffect(() => {
   const isOutOfPlaySource = (source: Source) => {
     switch (source.tag) {
       case "TreacherySource": {
        return outOfPlayEnemies.value.some((e) => {
           if (source.contents) return e.treacheries.includes(source.contents)
+          return false
+       })
+      }
+      case "EventSource": {
+       return outOfPlayEnemies.value.some((e) => {
+          if (source.contents) return e.events.includes(source.contents)
           return false
        })
       }
@@ -358,8 +363,7 @@ watchEffect(() => {
     if (c.tag !== "AbilityLabel") return false
     return isOutOfPlaySource(c.ability.source)
   }
-  const needsShowOutOfPlay = choices.value.some(isOutOfPlayChoice)
-  forcedShowOutOfPlay.value = needsShowOutOfPlay
+  forcedShowOutOfPlay.value = choices.value.some(isOutOfPlayChoice)
 })
 
 
