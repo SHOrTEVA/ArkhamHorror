@@ -328,7 +328,16 @@ function onDrop(event: DragEvent) {
 </script>
 
 <template>
-  <div v-if="portrait">
+  <div v-if="portrait" class="portrait-container">
+    <span><i class="action" v-for="n in investigator.remainingActions" :key="n"></i></span>
+    <span v-if="investigator.additionalActions.length > 0">
+      <template v-for="action in investigator.additionalActions" :key="action">
+        <button @click="useEffectAction(action)" v-if="action.tag === 'EffectAction'" v-tooltip="action.contents[0]" :class="[{ activeButton: isActiveEffectAction(action)}, `${investigator.class.toLowerCase()}ActionButton`]">
+          <i class="action"></i>
+        </button>
+        <i v-else class="action" :class="`${investigator.class.toLowerCase()}Action`"></i>
+      </template>
+    </span>
     <img
       :src="portraitImage"
       class="portrait"
@@ -642,6 +651,26 @@ i.action {
   width: calc(var(--card-width) * var(--card-sideways-aspect));
   @media (max-width: 800px) and (orientation: portrait) {
     width: 65%;
+  }
+}
+
+.portrait-container{
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+  overflow: visible;
+  :deep(span) {
+    height: 0.87rem;
+    overflow: visible;
+    @media (min-width: 801px) {
+      display: none;
+    }
+    z-index: 10;
+  }
+  :deep(.action) {
+    font-size: 0.35rem;
   }
 }
 

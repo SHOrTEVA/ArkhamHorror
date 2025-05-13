@@ -261,10 +261,10 @@ const events = computed(() => props.investigator.events.map((e) => props.game.ev
 const skills = computed(() => props.investigator.skills.map((e) => props.game.skills[e]).filter(e => e))
 const emptySlots = computed(() => props.investigator.slots.filter((s) => s.empty))
 
-const slotImg = (slot: Arkham.Slot) => {
+const slotImg = (slot: Arkham.Slot, idx: number) => {
   switch (slot.tag) {
     case 'HandSlot':
-      return imgsrc('slots/hand.png')
+      return imgsrc(idx === 0 ? 'slots/left-hand.png' : 'slots/hand.png')
     case 'BodySlot':
       return imgsrc('slots/body.png')
     case 'AccessorySlot':
@@ -552,6 +552,84 @@ function onDrop(event: DragEvent) {
           />
         </transition-group>
       </section>
+        <Skill
+          v-for="skill in skills"
+          :skill="skill"
+          :game="game"
+          :playerId="playerId"
+          :key="skill.id"
+          :data-index="skill.cardId"
+          @choose="$emit('choose', $event)"
+          @showCards="doShowCards"
+        />
+        <Event
+          v-for="event in events"
+          :event="event"
+          :game="game"
+          :playerId="playerId"
+          :key="event.id"
+          :data-index="event.cardId"
+          @choose="$emit('choose', $event)"
+          @showCards="doShowCards"
+        />
+        <Asset
+          v-for="asset in assets"
+          :asset="asset"
+          :game="game"
+          :playerId="playerId"
+          :key="asset.id"
+          :data-index="asset.cardId"
+          @choose="$emit('choose', $event)"
+          @showCards="doShowCards"
+        />
+
+        <Story
+          v-for="story in stories"
+          :key="story.id"
+          :story="story"
+          :game="game"
+          :data-index="story.cardId"
+          :playerId="playerId"
+          @choose="$emit('choose', $event)"
+        />
+
+
+        <div v-for="(slot, idx) in emptySlots" :key="idx" class="slot" :data-index="`${slot}${idx}`">
+          <img :src="slotImg(slot,idx)" />
+        </div>
+
+        <Enemy
+          v-for="enemy in engagedEnemies"
+          :key="enemy.id"
+          :enemy="enemy"
+          :game="game"
+          :data-index="enemy.cardId"
+          :playerId="playerId"
+          @choose="$emit('choose', $event)"
+        />
+
+        <Treachery
+          v-for="treacheryId in investigator.treacheries"
+          :key="treacheryId"
+          :treachery="game.treacheries[treacheryId]"
+          :game="game"
+          :data-index="game.treacheries[treacheryId].cardId"
+          :playerId="playerId"
+          @choose="$emit('choose', $event)"
+        />
+
+        <Location
+          v-for="(location, key) in locations"
+          class="location"
+          :key="key"
+          :game="game"
+          :playerId="playerId"
+          :location="location"
+          :data-index="location.cardId"
+          :style="{ 'grid-area': location.label, 'justify-self': 'center' }"
+          @choose="$emit('choose', $event)"
+        />
+      </transition-group>
     </transition>
 
     <ChoiceModal
@@ -780,12 +858,34 @@ function onDrop(event: DragEvent) {
 .in-play {
   display: flex;
   flex-wrap: wrap;
+  overflow-x: auto;
   gap: 5px;
   background: #999;
   padding: 10px;
   background: var(--background-dark);
   border-bottom: 1px solid var(--background);
   border-top: 1px solid var(--background);
+  img {
+    pointer-events: none;
+    user-select: none;
+    -webkit-user-drag: none;
+  }
+  @media (max-width: 800px) and (orientation: portrait) {
+    flex-wrap: nowrap; 
+    scrollbar-width: thin;
+    :deep(div){
+      flex-shrink: 0;
+    }
+    :deep(div.slot) {
+      width: 10.71vw;
+      height: 14.994vw;
+    }
+    :deep(.card) {
+      width: 10.71vw ;
+      height: 14.994vw;
+      max-width: 10.71vw;
+    }
+  }
 }
 
 .hand {
@@ -902,6 +1002,11 @@ function onDrop(event: DragEvent) {
   img {
     width: calc(var(--card-width) / 2);
     filter: invert(75%);
+  }
+  @media (max-width: 800px) and (orientation: portrait) {
+    img {
+      width: 7vw;
+    }
   }
 }
 
