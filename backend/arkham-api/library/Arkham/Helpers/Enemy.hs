@@ -58,6 +58,7 @@ spawnAt eid miid (SpawnAtLocation lid) = do
             { spawnDetailsInvestigator = miid
             , spawnDetailsSpawnAt = SpawnAtLocation lid
             , spawnDetailsEnemy = eid
+            , spawnDetailsOverridden = False
             }
       )
 spawnAt eid miid (SpawnAt locationMatcher) = do
@@ -232,7 +233,8 @@ enemyAttackMatches youId details@EnemyAttackDetails {..} = \case
     modifiers' <- getModifiers (sourceToTarget attackSource)
     enemyModifiers <- getModifiers attackEnemy
     andM
-      [ pure $ EffectsCannotBeCanceled `notElem` modifiers'
+      [ pure attackCanBeCanceled
+      , pure $ EffectsCannotBeCanceled `notElem` modifiers'
       , pure $ AttacksCannotBeCancelled `notElem` enemyModifiers
       , enemyAttackMatches youId details matcher
       ]
@@ -253,6 +255,7 @@ spawnAtOneOf miid eid targetLids = do
                 { spawnDetailsInvestigator = miid
                 , spawnDetailsSpawnAt = SpawnAtLocation lid
                 , spawnDetailsEnemy = eid
+                , spawnDetailsOverridden = False
                 }
           )
     lids -> do
@@ -270,6 +273,7 @@ spawnAtOneOf miid eid targetLids = do
                       { spawnDetailsEnemy = eid
                       , spawnDetailsInvestigator = miid
                       , spawnDetailsSpawnAt = SpawnAtLocation lid
+                      , spawnDetailsOverridden = False
                       }
                 )
           | (windows', lid) <- windowPairs
