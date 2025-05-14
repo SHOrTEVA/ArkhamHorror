@@ -216,6 +216,9 @@ ul.tabs__header > li.tab--selected {
 
 .player-info {
   margin-top: -32px;
+  @media (max-width: 800px) and (orientation: portrait) {
+    margin-top: 0;
+  }
 }
 
 .tab--lead-player {

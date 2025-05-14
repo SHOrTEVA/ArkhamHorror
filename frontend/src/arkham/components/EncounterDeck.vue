@@ -143,6 +143,7 @@ const debug = useDebug()
   bottom: 0%;
   transform: translateX(-50%) translateY(-50%);
   pointer-events: none;
+  -webkit-text-stroke: 1px black;
 }
 
 .portrait {
