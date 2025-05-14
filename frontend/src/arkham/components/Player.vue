@@ -756,7 +756,54 @@ function onDrop(event: DragEvent) {
         <div v-if="investigator.handSize" class="hand-size" :class="handSizeClasses" :current-length="totalHandSize">Hand Size: {{totalHandSize}}/{{investigator.handSize}}</div>
       </div>
     </div>
+    <div class="hand hand-area-IsMobile">
+        <transition-group tag="section" class="hand" @enter="onEnter" @leave="onLeave" @before-enter="onBeforeEnter"
+          @drop="onDropHand($event)"
+          @dragover.prevent="dragover($event)"
+          @dragenter.prevent
+          >
+          <HandCard
+            v-for="card in playerHand"
+            :card="card"
+            :game="game"
+            :playerId="playerId"
+            :ownerId="investigator.id"
+            :key="toCardContents(card).id"
+            @choose="$emit('choose', $event)"
+            :draggable="debug.active"
+            @dragstart="startHandDrag($event, card)"
+          />
 
+          <template v-for="enemy in inHandEnemies" :key="enemy.id">
+            <Enemy
+              v-if="solo || (playerId == investigator.playerId)"
+              :enemy="enemy"
+              :game="game"
+              :data-index="enemy.cardId"
+              :playerId="playerId"
+              @choose="$emit('choose', $event)"
+            />
+            <div class="card-container" v-else>
+              <img class="card" :src="encounterBack" />
+            </div>
+          </template>
+
+          <template v-for="treacheryId in inHandTreacheries" :key="treacheryId">
+            <Treachery
+              v-if="solo || (playerId == investigator.playerId)"
+              :treachery="game.treacheries[treacheryId]"
+              :game="game"
+              :data-index="treacheryId"
+              :playerId="playerId"
+              @choose="$emit('choose', $event)"
+            />
+            <div class="card-container" v-else>
+              <img class="card" :src="encounterBack" />
+            </div>
+          </template>
+
+        </transition-group>
+    </div>
     <CardRow
       v-if="showCards.ref.length > 0"
       :game="game"
@@ -1049,10 +1096,6 @@ function onDrop(event: DragEvent) {
   max-width: 100%;
   min-width: fit-content;
 
-  @media (max-width: 600px) {
-    display: none;
-  }
-
   &-ok {
     background-color: var(--rogue-dark);
   }
@@ -1076,6 +1119,19 @@ function onDrop(event: DragEvent) {
   max-width: 100%;
 
   @media (max-width: 800px) and (orientation: portrait) {
+    display: none;
+  }
+}
+
+.hand-area-IsMobile {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  align-items: flex-start;
+  flex: 1;
+  max-width: 100%;
+  margin-bottom: -35%;
+  @media (min-width: 801px) {
     display: none;
   }
 }

@@ -583,7 +583,9 @@ const showVictoryDisplay = () => doShowCards(victoryDisplay, t('scenario.victory
               <img
                 :src="topOfEncounterDiscard"
                 class="card"
+                @click="showDiscards"
               />
+              <span class="deck-size">{{discards.length}}</span>
             </div>
 
 
@@ -864,6 +866,18 @@ const showVictoryDisplay = () => doShowCards(victoryDisplay, t('scenario.victory
   aspect-ratio: var(--card-sideways-ratio);
 }
 
+.deck-size {
+  position: absolute;
+  font-weight: bold;
+  font-size: 1.2em;
+  color: rgba(255, 255, 255, 0.6);
+  left: 50%;
+  bottom: 55%;
+  transform: translateX(-50%) translateY(-50%);
+  pointer-events: none;
+  -webkit-text-stroke: 1px black;
+}
+
 .scenario-cards {
   display: flex;
   align-self: center;
@@ -874,6 +888,11 @@ const showVictoryDisplay = () => doShowCards(victoryDisplay, t('scenario.victory
   width: 100%;
   gap: 10px;
   z-index: -2;
+  @media (max-width: 800px) and (orientation: portrait) {
+    padding-top: 10px;
+    padding-bottom: 0;
+    height: calc(var(--card-height) + 10px);
+  }
 }
 
 .clue {
@@ -985,6 +1004,10 @@ const showVictoryDisplay = () => doShowCards(victoryDisplay, t('scenario.victory
   padding-top: 32px;
   padding-bottom: 32px;
   position: relative;
+  @media (max-width: 800px) and (orientation: portrait) {
+    padding-top: 5px;
+    padding-bottom: 5px;
+  }
 }
 
 .portrait {
@@ -1019,6 +1042,9 @@ const showVictoryDisplay = () => doShowCards(victoryDisplay, t('scenario.victory
     display: flex;
     flex-direction: column;
     gap: 5px;
+    @media (max-width: 800px) and (orientation: portrait) {
+      display: none;
+    }
   }
 }
 
