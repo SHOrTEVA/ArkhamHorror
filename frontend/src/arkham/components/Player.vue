@@ -1011,7 +1011,11 @@ function startHandDrag(event: DragEvent, card: (CardContents | CardT.Card)) {
   align-items: flex-start;
   flex: 1;
   max-width: 100%;
-  margin-bottom: -35%;
+  margin-bottom: -15%;
+  :deep(.card){
+    width: calc(var(--card-width) * 4);
+    min-width: calc(var(--card-width) * 4);
+  }
   @media (min-width: 801px) {
     display: none;
   }
