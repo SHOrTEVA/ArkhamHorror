@@ -554,6 +554,12 @@ i.action {
     height: min-content;
     align-self: center;
   }
+  @media (max-width: 800px) and (orientation: portrait)  {
+    justify-content: flex-end;
+    gap: 0;
+    width: fit-content;
+    align-items: flex-end;
+  }
 }
 
 .turn-info {
@@ -648,6 +654,12 @@ i.action {
   width: calc(var(--card-width) * var(--card-sideways-aspect));
   @media (max-width: 800px) and (orientation: portrait) {
     width: 65%;
+    display: flex;
+    flex-direction: row;
+    gap: 1px;
+    :deep(.card) {
+      height: calc(var(--card-width) * 3);
+    }
   }
 }
 
@@ -687,6 +699,12 @@ i.action {
 .stats {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr 1fr;
+  @media (max-width: 800px) and (orientation: portrait) {
+    display: flex;
+    flex-direction: column;
+    width:6.8vw;
+  }
+
 }
 
 .willpower {
@@ -755,7 +773,7 @@ i.action {
 
 .player-container{
   @media (max-width: 800px) and (orientation: portrait) {
-    width: 75%;
+    width: 100%;
   }
 }
 
@@ -774,6 +792,11 @@ i.action {
   }
   @media (max-width: 800px) and (orientation: portrait) {
     margin-left: auto;
+    flex-direction: row;
+    //height:  calc(var(--card-width) * 1.3);
+    :deep(span){
+      display: none;
+    }
   }
 }
 
