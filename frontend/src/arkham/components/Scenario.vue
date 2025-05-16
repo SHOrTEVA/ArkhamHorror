@@ -840,7 +840,7 @@ const showVictoryDisplay = () => doShowCards(victoryDisplay, t('scenario.victory
   position: absolute;
   font-weight: bold;
   font-size: 1.2em;
-  color: rgba(255, 255, 255, 0.6);
+  color: rgba(255, 255, 255, 1);
   left: 50%;
   bottom: 55%;
   transform: translateX(-50%) translateY(-50%);
