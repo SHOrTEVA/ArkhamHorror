@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import { useSettings } from '@/stores/settings';
 import { storeToRefs } from 'pinia';
-import { onMounted, computed, ref, watch } from 'vue'
+import { onMounted,onUnmounted, computed, ref, watch } from 'vue'
 import Draggable from '@/components/Draggable.vue';
 import CardView from '@/arkham/components/Card.vue';
 import { useDebug } from '@/arkham/debug'
@@ -203,15 +203,23 @@ const emitter = useEmitter()
 const cardsUnderneath = computed(() => props.investigator.cardsUnderneath)
 const cardsUnderneathLabel = computed(() => t('investigator.underneathCards', {count: cardsUnderneath.value.length}))
 const devoured = computed(() => props.investigator.devoured)
-
+const isMobile = ref(false);
+function updateIsMobile() {
+  isMobile.value = window.innerWidth < 800;
+}
 onMounted(() => {
   emitter.on('showUnder', (id: string) => {
     if (id === props.investigator.id) {
       showCardsUnderneath(new Event('click'))
     }
   })
-})
+  updateIsMobile();
+  window.addEventListener('resize', updateIsMobile);
+});
 
+onUnmounted(() => {
+  window.removeEventListener('resize', updateIsMobile);
+});
 
 const showCardsUnderneath = (e: Event) => emit('showCards', e, cardsUnderneath, "Cards Underneath", false)
 const showDevoured = (e: Event) => emit('showCards', e, devoured, "Devoured", false)
@@ -558,10 +566,8 @@ i.action {
     align-self: center;
   }
   @media (max-width: 800px) and (orientation: portrait)  {
-    justify-content: flex-end;
-    gap: 0;
-    width: fit-content;
-    align-items: flex-end;
+    gap: 8px;
+    ///width: fit-content;
   }
 }
 
@@ -656,7 +662,7 @@ i.action {
   flex-direction: column;
   width: calc(var(--card-width) * var(--card-sideways-aspect));
   @media (max-width: 800px) and (orientation: portrait) {
-    width: 65%;
+    width: 48%;
     display: flex;
     flex-direction: row;
     gap: 1px;
@@ -794,10 +800,10 @@ i.action {
     color: #efefef;
   }
   @media (max-width: 800px) and (orientation: portrait) {
-    margin-left: auto;
+    margin-left: 0;
     flex-direction: row;
     //height:  calc(var(--card-width) * 1.3);
-    :deep(span){
+    :deep(.action){
       display: none;
     }
   }
