@@ -26,12 +26,17 @@
 import { ModalsContainer } from 'vue-final-modal'
 import { ref, onMounted } from 'vue'
 import { useUserStore } from '@/stores/user'
+import { useSiteSettingsStore } from '@/stores/site_settings'
 import NavBar from '@/components/NavBar.vue'
 import 'floating-vue/dist/style.css'
 
 const store = useUserStore()
+const settingsStore = useSiteSettingsStore()
+
 onMounted(async () => {
+  // order here is important, user must be loaded first
   await store.loadUserFromStorage()
+  await settingsStore.init()
   avifSupported.value = await checkAvifSupport();
 })
 const avifSupported = ref(true);
