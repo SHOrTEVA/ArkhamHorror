@@ -17,13 +17,13 @@ import Asset from '@/arkham/components/Asset.vue';
 import Event from '@/arkham/components/Event.vue';
 import Skill from '@/arkham/components/Skill.vue';
 import HandCard from '@/arkham/components/HandCard.vue';
-import Card from '@/arkham/components/Card.vue';
-import CardRow from '@/arkham/components/CardRow.vue';
 import Investigator from '@/arkham/components/Investigator.vue';
 import ChoiceModal from '@/arkham/components/ChoiceModal.vue';
 import { TarotCard, tarotCardImage } from '@/arkham/types/TarotCard';
 import * as Arkham from '@/arkham/types/Investigator';
 import { useI18n } from 'vue-i18n';
+import Draw from '@/arkham/components/Draw.vue'
+import { IsMobile } from '@/arkham/isMobile';
 const { t } = useI18n();
 
 interface RefWrapper<T> {
@@ -93,20 +93,6 @@ const inHandEnemies = computed(() =>
 
 const discards = computed<ArkhamCard.Card[]>(() => props.investigator.discard.map(c => { return { tag: 'PlayerCard', contents: c }}))
 
-const topOfDiscard = computed(() => discards.value[0])
-
-const topOfDeckRevealed = computed(() =>
-  props.investigator.modifiers?.some((m) => m.type.tag === "OtherModifier" && m.type.contents === "TopCardOfDeckIsRevealed")
-)
-
-const topOfDeck = computed(() => {
-  const topCard = props.investigator.deck[0]
-  if  (topOfDeckRevealed.value && topCard) {
-    return imgsrc(`cards/${topCard.cardCode.replace(/^c/, '')}.avif`)
-  }
-  return imgsrc("player_back.jpg")
-})
-
 const hunchDeck = computed(() => {
   const match = props.investigator.decks.find(([k,]) => k === "HunchDeck")
   if (match) {
@@ -134,19 +120,7 @@ const topOfHunchDeck = computed(() => {
   return null
 })
 
-const playTopOfDeckAction = computed(() => {
-  if(props.playerId !== props.investigator.playerId) {
-    return -1
-  }
-  const topOfDeck = props.investigator.deck[0]
-  if (topOfDeck !== undefined && topOfDeck !== null && topOfDeckTreachery.value === null) {
-    return choices.value.findIndex((c) => c.tag === "TargetLabel" && c.target.contents === props.investigator.deck[0].id)
-  }
-  return -1
-})
-
 const viewingDiscard = ref(false)
-const viewDiscardLabel = computed(() => viewingDiscard.value ? t('close') : pluralize(t('scenario.discardCard'), discards.value.length))
 
 const id = computed(() => props.investigator.id)
 const choices = computed(() => ArkhamGame.choices(props.game, props.playerId))
@@ -164,32 +138,11 @@ const tarotCardAbility = (card: TarotCard) => {
   })
 }
 
-const drawCardsAction = computed(() => {
-  if(props.playerId !== props.investigator.playerId) {
-    return -1
-  }
-  return choices
-    .value
-    .findIndex((c) => {
-      if (c.tag === "ComponentLabel") {
-        return (c.component.tag == "InvestigatorDeckComponent")
-      }
-      return false
-    });
-})
-
 const noCards = computed<ArkhamCard.Card[]>(() => [])
 
 // eslint-disable-next-line
 const showCards = reactive<RefWrapper<any>>({ ref: noCards })
 const cardRowTitle = ref("")
-
-const topOfDeckTreachery = computed(() => {
-  const mTreacheryId = Object.values(props.game.treacheries).
-    filter((t) => t.placement.tag === "OnTopOfDeck" && t.placement.contents === id.value).
-    map((t) => t.id)[0]
-  return mTreacheryId ? props.game.treacheries[mTreacheryId] : null
-})
 
 const inHandTreacheries = computed(() => Object.values(props.game.treacheries).
   filter((t) => t.placement.tag === "HiddenInHand" && t.placement.contents === id.value))
@@ -242,11 +195,6 @@ watch(choices, async (newChoices) => {
   }
 })
 
-const hideCards = () => {
-  showCards.ref = noCards
-  viewingDiscard.value = false
-}
-
 const committedCards = computed(() => props.game.skillTest?.committedCards || [])
 const playerHand = computed(() => props.investigator.hand.
   filter((card) =>
@@ -260,6 +208,7 @@ const debug = useDebug()
 const events = computed(() => props.investigator.events.map((e) => props.game.events[e]).filter(e => e))
 const skills = computed(() => props.investigator.skills.map((e) => props.game.skills[e]).filter(e => e))
 const emptySlots = computed(() => props.investigator.slots.filter((s) => s.empty))
+const { isMobile } = IsMobile();
 
 const slotImg = (slot: Arkham.Slot, idx: number) => {
   switch (slot.tag) {
@@ -385,19 +334,6 @@ const dragover = (e: DragEvent) => {
   e.preventDefault()
   if (e.dataTransfer) {
     e.dataTransfer.dropEffect = 'copy'
-  }
-}
-
-function onDropDiscard(event: DragEvent) {
-  event.preventDefault()
-  if (event.dataTransfer) {
-    const data = event.dataTransfer.getData('text/plain')
-    if (data) {
-      const json = JSON.parse(data)
-      if (json.tag === "CardTarget") {
-        debug.send(props.game.id, {tag: 'DiscardCard', contents: [id.value, {'tag': 'GameSource' }, json.contents]})
-      }
-    }
   }
 }
 
@@ -667,44 +603,13 @@ function onDrop(event: DragEvent) {
           @choose="$emit('choose', $event)"
           @showCards="doShowCards"
         />
-
-        <div class="discard"
-          @drop="onDropDiscard($event)"
-          @dragover.prevent="dragover($event)"
-          @dragenter.prevent
-          >
-          <Card v-if="topOfDiscard" :game="game" :card="topOfDiscard" :playerId="playerId" @choose="$emit('choose', $event)" />
-          <button v-if="discards.length > 0" class="view-discard-button" @click="showDiscards">{{viewDiscardLabel}}</button>
-          <button v-if="debug.active && discards.length > 0" class="view-discard-button" @click="debug.send(game.id, {tag: 'ShuffleDiscardBackIn', contents: investigatorId})">Shuffle Back In</button>
-        </div>
-
-        <div class="deck-container">
-          <div class="top-of-deck">
-            <Treachery
-              v-if="topOfDeckTreachery"
-              :treachery="topOfDeckTreachery"
-              :game="game"
-              :data-index="topOfDeckTreachery.cardId"
-              :playerId="playerId"
-              class="deck"
-              @choose="$emit('choose', $event)"
-            />
-            <img
-              v-else
-              :class="{ 'deck--can-draw': drawCardsAction !== -1, 'card': topOfDeckRevealed }"
-              class="deck"
-              :src="topOfDeck"
-              width="150px"
-              @click="$emit('choose', drawCardsAction)"
-            />
-            <span class="deck-size">{{investigator.deckSize}}</span>
-            <button v-if="playTopOfDeckAction !== -1" @click="$emit('choose', playTopOfDeckAction)">Play</button>
-          </div>
-          <template v-if="debug.active">
-            <button @click="debug.send(game.id, {tag: 'Search', contents: ['Looking', investigatorId, {tag: 'GameSource', contents: []}, { tag: 'InvestigatorTarget', contents: investigatorId }, [[{tag: 'FromDeck', contents: []}, 'ShuffleBackIn']], {tag: 'BasicCardMatch', contents: {tag: 'AnyCard', contents: []}}, { tag: 'DrawFound', contents: [investigatorId, 1]}]})">Select Draw</button>
-            <button @click="debug.send(game.id, {tag: 'ShuffleDeck', contents: {tag: 'InvestigatorDeck', contents: investigatorId}})">Shuffle</button>
-          </template>
-        </div>
+        <Draw
+          v-if="!isMobile"
+          :game="game"
+          :playerId="playerId"
+          :investigator="investigator"
+          @choose="$emit('choose', $event)"
+        />
       </div>
       <div class="hand hand-area">
         <transition-group tag="section" class="hand" @enter="onEnter" @leave="onLeave" @before-enter="onBeforeEnter"
@@ -804,16 +709,6 @@ function onDrop(event: DragEvent) {
 
         </transition-group>
     </div>
-    <CardRow
-      v-if="showCards.ref.length > 0"
-      :game="game"
-      :playerId="playerId"
-      :cards="showCards.ref"
-      :isDiscards="viewingDiscard"
-      :title="cardRowTitle"
-      @choose="$emit('choose', $event)"
-      @close="hideCards"
-    />
   </div>
 </template>
 
@@ -825,12 +720,6 @@ function onDrop(event: DragEvent) {
   align-items: flex-start;
   padding: 10px;
   background: var(--background-dark);
-}
-
-.deck--can-draw {
-  border: 2px solid var(--select);
-  border-radius: 10px;
-  cursor: pointer;
 }
 
 :deep(.location) {
@@ -853,48 +742,6 @@ function onDrop(event: DragEvent) {
     margin-right: 10px;
     transform: rotate(90deg) translateX(-10px);
   }
-}
-
-
-.discard {
-  width: var(--card-width);
-  button {
-    white-space: nowrap;
-    text-wrap: pretty;
-  }
-
-  &:deep(.card) {
-    margin: 0;
-    box-shadow: none;
-  }
-
-  &:deep(.card-container) {
-    width: var(--card-width);
-    margin: 0;
-    position:relative;
-    display: inline-flex;
-    &::after {
-      pointer-events: none;
-      border-radius: 6px;
-      content: "";
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background-color: #FFF;
-      opacity: .85;
-      mix-blend-mode: saturation;
-    }
-  }
-  @media (max-width: 800px) and (orientation: portrait)  {
-    margin-left: auto;
-  }
-}
-
-.deck, .card {
-  border-radius: 6px;
-  max-width: var(--card-width);
 }
 
 .deck {
@@ -940,39 +787,6 @@ function onDrop(event: DragEvent) {
   display: flex;
   gap: 5px;
   overflow-x: auto;
-}
-
-.view-discard-button {
-  width: 100%;
-}
-
-.deck-container {
-  display: flex;
-  flex-direction: column;
-}
-
-.top-of-deck {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  width: fit-content;
-}
-
-.deck-size {
-  background: rgba(0, 0, 0, 0.6);
-  padding: 5px;
-  border-radius: 20px;
-  pointer-events: none;
-  position: absolute;
-  font-weight: bold;
-  color: var(--title);
-  inset: 0;
-  width: fit-content;
-  height: fit-content;
-  aspect-ratio: 1;
-  line-height: 1;
-  margin: auto;
-  transform: translateY(-28.0%);
 }
 
 .hand-move,
@@ -1077,11 +891,6 @@ function onDrop(event: DragEvent) {
   @media (max-width: 600px) {
       width: 100%;
   }
-}
-
-.card-container {
-  display: flex;
-  flex-direction: column;
 }
 
 .hand-size {

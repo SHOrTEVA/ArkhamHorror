@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import { useSettings } from '@/stores/settings';
 import { storeToRefs } from 'pinia';
-import { onMounted,onUnmounted, computed, ref, watch } from 'vue'
+import { onMounted, computed, ref, watch } from 'vue'
 import Draggable from '@/components/Draggable.vue';
 import CardView from '@/arkham/components/Card.vue';
 import { useDebug } from '@/arkham/debug'
@@ -17,8 +17,10 @@ import Token from '@/arkham/components/Token.vue';
 import AbilityButton from '@/arkham/components/AbilityButton.vue'
 import { useMenu } from '@/composeable/menu';
 import { useI18n } from 'vue-i18n';
-import useEmitter from '@/composeable/useEmitter'
-import Resources from './Resources.vue';
+import useEmitter from '@/composeable/useEmitter';
+import Resources from '@/arkham/components/Resources.vue';
+import Draw from '@/arkham/components/Draw.vue';
+import { IsMobile } from '@/arkham/isMobile';
 const { t } = useI18n();
 
 export interface Props {
@@ -40,6 +42,7 @@ const { addEntry, removeEntry } = useMenu()
 const settingsStore = useSettings()
 const { toggleShowBonded } = settingsStore
 const { showBonded } = storeToRefs(settingsStore)
+const { isMobile } = IsMobile();
 
 const doShowBonded = computed(() => {
   return showBonded.value && props.playerId == props.investigator.playerId
@@ -163,22 +166,13 @@ const emitter = useEmitter()
 const cardsUnderneath = computed(() => props.investigator.cardsUnderneath)
 const cardsUnderneathLabel = computed(() => t('investigator.underneathCards', {count: cardsUnderneath.value.length}))
 const devoured = computed(() => props.investigator.devoured)
-const isMobile = ref(false);
-function updateIsMobile() {
-  isMobile.value = window.innerWidth < 800;
-}
+
 onMounted(() => {
   emitter.on('showUnder', (id: string) => {
     if (id === props.investigator.id) {
       showCardsUnderneath(new Event('click'))
     }
   })
-  updateIsMobile();
-  window.addEventListener('resize', updateIsMobile);
-});
-
-onUnmounted(() => {
-  window.removeEventListener('resize', updateIsMobile);
 });
 
 const showCardsUnderneath = (e: Event) => emit('showCards', e, cardsUnderneath, "Cards Underneath", false)
@@ -370,7 +364,13 @@ function onDrop(event: DragEvent) {
           >{{ $t('investigator.skipTriggers') }}</button>
 
           <button v-if="cardsUnderneath.length > 0" class="view-discard-button" @click="showCardsUnderneath">{{cardsUnderneathLabel}}</button>
-          
+          <Draw
+            v-if="isMobile"
+            :game="game"
+            :playerId="playerId"
+            :investigator="investigator"
+            @choose="$emit('choose', $event)"
+          />
         </div>
         <Resources
           v-if="isMobile"

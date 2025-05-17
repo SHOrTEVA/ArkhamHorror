@@ -7,6 +7,10 @@ import type { Game } from '@/arkham/types/Game'
 import {computed, ComputedRef, ref, reactive} from 'vue'
 import { imgsrc, pluralize } from '@/arkham/helpers';
 import { useI18n } from 'vue-i18n';
+import Card from '@/arkham/components/Card.vue';
+import Treachery from '@/arkham/components/Treachery.vue';
+import CardRow from '@/arkham/components/CardRow.vue';
+
 const { t } = useI18n();
 
 interface RefWrapper<T> {
@@ -23,6 +27,9 @@ const props = defineProps<Props>()
 const investigatorId = computed(() => props.investigator.id)
 const debug = useDebug()
 
+const id = computed(() => props.investigator.id)
+const choices = computed(() => ArkhamGame.choices(props.game, props.playerId))
+
 const playTopOfDeckAction = computed(() => {
   if(props.playerId !== props.investigator.playerId) {
     return -1
@@ -34,19 +41,6 @@ const playTopOfDeckAction = computed(() => {
   return -1
 })
 
-const viewingDiscard = ref(false)
-const viewDiscardLabel = computed(() => viewingDiscard.value ? t('close') : pluralize(t('scenario.discardCard'), discards.value.length))
-
-const id = computed(() => props.investigator.id)
-const choices = computed(() => ArkhamGame.choices(props.game, props.playerId))
-
-const doShowCards = (event: Event, cards: ComputedRef<ArkhamCard.Card[]>, title: string, isDiscards: boolean) => {
-  cardRowTitle.value = title
-  showCards.ref = cards
-  viewingDiscard.value = isDiscards
-}
-const showDiscards = (e: Event) => doShowCards(e, discards, t('investigator.discards'), true)
-const discards = computed<ArkhamCard.Card[]>(() => props.investigator.discard.map(c => { return { tag: 'PlayerCard', contents: c }}))
 
 const drawCardsAction = computed(() => {
   if(props.playerId !== props.investigator.playerId) {
@@ -68,6 +62,13 @@ const noCards = computed<ArkhamCard.Card[]>(() => [])
 const showCards = reactive<RefWrapper<any>>({ ref: noCards })
 const cardRowTitle = ref("")
 
+const topOfDeckTreachery = computed(() => {
+  const mTreacheryId = Object.values(props.game.treacheries).
+    filter((t) => t.placement.tag === "OnTopOfDeck" && t.placement.contents === id.value).
+    map((t) => t.id)[0]
+  return mTreacheryId ? props.game.treacheries[mTreacheryId] : null
+})
+
 const topOfDiscard = computed(() => discards.value[0])
 const dragover = (e: DragEvent) => {
   e.preventDefault()
@@ -75,13 +76,6 @@ const dragover = (e: DragEvent) => {
     e.dataTransfer.dropEffect = 'copy'
   }
 }
-
-const topOfDeckTreachery = computed(() => {
-  const mTreacheryId = Object.values(props.game.treacheries).
-    filter((t) => t.placement.tag === "OnTopOfDeck" && t.placement.contents === id.value).
-    map((t) => t.id)[0]
-  return mTreacheryId ? props.game.treacheries[mTreacheryId] : null
-})
 
 const topOfDeckRevealed = computed(() =>
   props.investigator.modifiers?.some((m) => m.type.tag === "OtherModifier" && m.type.contents === "TopCardOfDeckIsRevealed")
@@ -94,6 +88,22 @@ const topOfDeck = computed(() => {
   }
   return imgsrc("player_back.jpg")
 })
+
+const doShowCards = (event: Event, cards: ComputedRef<ArkhamCard.Card[]>, title: string, isDiscards: boolean) => {
+  cardRowTitle.value = title
+  showCards.ref = cards
+  viewingDiscard.value = isDiscards
+}
+const showDiscards = (e: Event) => doShowCards(e, discards, t('investigator.discards'), true)
+const discards = computed<ArkhamCard.Card[]>(() => props.investigator.discard.map(c => { return { tag: 'PlayerCard', contents: c }}))
+
+const hideCards = () => {
+  showCards.ref = noCards
+  viewingDiscard.value = false
+}
+
+const viewingDiscard = ref(false)
+const viewDiscardLabel = computed(() => viewingDiscard.value ? t('close') : pluralize(t('scenario.discardCard'), discards.value.length))
 
 function onDropDiscard(event: DragEvent) {
   event.preventDefault()
@@ -120,6 +130,16 @@ function onDropDiscard(event: DragEvent) {
       <button v-if="discards.length > 0" class="view-discard-button" @click="showDiscards">{{viewDiscardLabel}}</button>
       <button v-if="debug.active && discards.length > 0" class="view-discard-button" @click="debug.send(game.id, {tag: 'ShuffleDiscardBackIn', contents: investigatorId})">Shuffle Back In</button>
     </div>
+    <CardRow
+      v-if="showCards.ref.length > 0"
+      :game="game"
+      :playerId="playerId"
+      :cards="showCards.ref"
+      :isDiscards="viewingDiscard"
+      :title="cardRowTitle"
+      @choose="$emit('choose', $event)"
+      @close="hideCards"
+    />
     <div class="deck-container">
       <div class="top-of-deck">
         <Treachery
@@ -150,4 +170,90 @@ function onDropDiscard(event: DragEvent) {
 </template>
 
 <style scoped lang="scss">
+
+.discard {
+  width: var(--card-width);
+  button {
+    white-space: nowrap;
+    text-wrap: pretty;
+  }
+
+  &:deep(.card) {
+    margin: 0;
+    box-shadow: none;
+  }
+
+  &:deep(.card-container) {
+    width: var(--card-width);
+    margin: 0;
+    position:relative;
+    display: inline-flex;
+    &::after {
+      pointer-events: none;
+      border-radius: 6px;
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: #FFF;
+      opacity: .85;
+      mix-blend-mode: saturation;
+    }
+  }
+  @media (max-width: 800px) and (orientation: portrait)  {
+    margin-left: auto;
+  }
+}
+
+.deck, .card {
+  border-radius: 6px;
+  max-width: var(--card-width);
+}
+
+.card-container {
+  display: flex;
+  flex-direction: column;
+}
+
+.view-discard-button {
+  width: 100%;
+}
+
+.deck-container {
+  display: flex;
+  flex-direction: column;
+}
+
+.deck--can-draw {
+  border: 2px solid var(--select);
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.deck-size {
+  background: rgba(0, 0, 0, 0.6);
+  padding: 5px;
+  border-radius: 20px;
+  pointer-events: none;
+  position: absolute;
+  font-weight: bold;
+  color: var(--title);
+  inset: 0;
+  width: fit-content;
+  height: fit-content;
+  aspect-ratio: 1;
+  line-height: 1;
+  margin: auto;
+  transform: translateY(-28.0%);
+}
+
+.top-of-deck {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: fit-content;
+}
+
 </style>
