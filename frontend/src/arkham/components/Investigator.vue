@@ -370,6 +370,7 @@ function onDrop(event: DragEvent) {
           >{{ $t('investigator.skipTriggers') }}</button>
 
           <button v-if="cardsUnderneath.length > 0" class="view-discard-button" @click="showCardsUnderneath">{{cardsUnderneathLabel}}</button>
+          
         </div>
         <Resources
           v-if="isMobile"
