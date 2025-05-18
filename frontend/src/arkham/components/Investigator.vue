@@ -324,7 +324,7 @@ function onDrop(event: DragEvent) {
       </div>
       <div>
         <div class="player-buttons">
-          <span><i class="action" v-for="n in investigator.remainingActions" :key="n"></i></span>
+          <span class="action-container"><i class="action" v-for="n in investigator.remainingActions" :key="n"></i></span>
           <span v-if="investigator.additionalActions.length > 0">
             <template v-for="action in investigator.additionalActions" :key="action">
             <button @click="useEffectAction(action)" v-if="action.tag === 'EffectAction'" v-tooltip="action.contents[0]" :class="[{ activeButton: isActiveEffectAction(action)}, `${investigator.class.toLowerCase()}ActionButton`]">
@@ -350,7 +350,7 @@ function onDrop(event: DragEvent) {
           :class="{ active: endTurnAction !== -1 && investigator.remainingActions === 0 }"
           :disabled="endTurnAction == -1"
           @click="$emit('choose', endTurnAction)"
-          >{{ $t('investigator.endTurn') }}</button>
+          >{{ isMobile ? 'End' : $t('investigator.endTurn') }}</button>
 
           <button
             v-if="devoured && devoured.length > 0"
@@ -361,7 +361,7 @@ function onDrop(event: DragEvent) {
             :disabled="skipTriggersAction == -1"
             @click="$emit('choose', skipTriggersAction)"
             class="skip-triggers-button"
-          >{{ $t('investigator.skipTriggers') }}</button>
+          >{{ isMobile ? 'Skip' : $t('investigator.skipTriggers') }}</button>
 
           <button v-if="cardsUnderneath.length > 0" class="view-discard-button" @click="showCardsUnderneath">{{cardsUnderneathLabel}}</button>
           <Draw
@@ -653,8 +653,16 @@ i.action {
   @media (max-width: 800px) and (orientation: portrait) {
     margin-left: 0;
     flex-direction: row;
-    //height:  calc(var(--card-width) * 1.3);
-    :deep(.action){
+    gap: 8px;
+    height: calc(var(--pool-token-width)*1.2);
+    overflow: hidden;
+    :deep(button) {
+      width: calc(var(--pool-token-width) * 1.2);
+    }
+    :deep(img) {
+      width: calc(var(--pool-token-width) * 1.2);
+    }
+    :deep(.action-container){
       display: none;
     }
   }

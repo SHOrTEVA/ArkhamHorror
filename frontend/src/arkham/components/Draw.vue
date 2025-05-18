@@ -125,6 +125,7 @@ function onDropDiscard(event: DragEvent) {
       @drop="onDropDiscard($event)"
       @dragover.prevent="dragover($event)"
       @dragenter.prevent
+      @click="showDiscards"
     >
       <Card v-if="topOfDiscard" :game="game" :card="topOfDiscard" :playerId="playerId" @choose="$emit('choose', $event)" />
       <button v-if="discards.length > 0" class="view-discard-button" @click="showDiscards">{{viewDiscardLabel}}</button>
@@ -203,13 +204,21 @@ function onDropDiscard(event: DragEvent) {
     }
   }
   @media (max-width: 800px) and (orientation: portrait)  {
-    margin-left: auto;
+    :deep(button){
+        display: none;
+    }
+    :deep(.card){
+        max-width: calc(var(--pool-token-width)*1.2);
+    }
   }
 }
 
 .deck, .card {
   border-radius: 6px;
   max-width: var(--card-width);
+  @media (max-width: 800px) and (orientation: portrait)  {
+    max-width: calc(var(--pool-token-width)*1.2);
+  }
 }
 
 .card-container {
@@ -224,6 +233,9 @@ function onDropDiscard(event: DragEvent) {
 .deck-container {
   display: flex;
   flex-direction: column;
+  @media (max-width: 800px) and (orientation: portrait)  {
+    margin-left: auto;
+  }
 }
 
 .deck--can-draw {
