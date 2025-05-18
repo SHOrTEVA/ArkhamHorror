@@ -184,7 +184,11 @@ function canAdjustSanity(c: Message): boolean {
   }
   @media (max-width: 800px) and (orientation: portrait)  {
     gap: 8px;
-    ///width: fit-content;
+    margin-top: auto;
+    width: fit-content;
+    :deep(.poolItem) {
+      width: calc(var(--pool-token-width)*1.2);
+    }
   }
 }
 
