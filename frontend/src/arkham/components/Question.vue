@@ -1123,6 +1123,13 @@ h2 {
       border-image-width: 50px;
       content: "";
     }
+    @media (max-width: 800px) and (orientation: portrait)  {
+      padding: 10px;
+      max-width: 100%;
+      &::before {
+        border-image-width: 20px;
+      }
+    }
   }
 }
 
