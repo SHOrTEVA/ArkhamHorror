@@ -533,10 +533,10 @@ i.action {
   :deep(span) {
     height: 0.87rem;
     overflow: visible;
+    z-index: 10;
     @media (min-width: 801px) {
       display: none;
     }
-    z-index: 10;
   }
   :deep(.action) {
     font-size: 0.35rem;
