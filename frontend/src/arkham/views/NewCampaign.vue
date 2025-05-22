@@ -329,6 +329,7 @@ async function start() {
   display: grid;
   gap: 10px;
   button {
+    font-size: large;
     outline: 0;
     padding: 15px;
     background: #6E8640;

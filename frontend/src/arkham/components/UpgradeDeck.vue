@@ -379,6 +379,13 @@ const tabooList = function (investigator: Investigator) {
   align-items: flex-start;
   gap: 10px;
   min-width: 70vw;
+  :deep(button){
+    font-size: small;
+    hyphens: auto;
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+    white-space: pre-wrap;
+  }
 }
 
 .breakdowns {

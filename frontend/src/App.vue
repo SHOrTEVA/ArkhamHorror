@@ -505,6 +505,9 @@ h2.title {
   width: 70vw;
   margin: 0 auto;
   padding-bottom: 10px;
+  @media (max-width: 800px) and (orientation: portrait) {
+    width: fit-content;
+  }
 }
 
 .fade-leave-active,
