@@ -129,7 +129,6 @@ h3 {
     margin-left: auto;
     min-width: 1.5em;
     padding: 0 5px;
-    height: 1.5em;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -150,7 +149,6 @@ h3 {
     margin-left: auto;
     min-width: 1.5em;
     padding: 0 5px;
-    height: 1.5em;
     display: flex;
     justify-content: center;
     align-items: center;

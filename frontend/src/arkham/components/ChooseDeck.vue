@@ -271,6 +271,9 @@ const chosenDeckTabooList = computed(() => {
     color: white;
     margin-bottom: 10px;
   }
+  button{
+    font-size:small;
+  }
 }
 
 .portraits {
@@ -423,6 +426,7 @@ select {
   max-width: unset;
   height: 100%;
   margin: 0;
+  overflow: auto;
 }
 
 form {

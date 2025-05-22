@@ -318,6 +318,7 @@ async function start() {
   border-radius: 3px;
   margin-bottom: 20px;
   button {
+    font-size: large;
     outline: 0;
     padding: 15px;
     background: #6E8640;

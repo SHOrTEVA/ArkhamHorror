@@ -382,6 +382,7 @@ h2 {
     border: 0;
     padding: 5px 10px;
     border-radius: 3px;
+    font-size: small;
   }
 
   .delete-button {
