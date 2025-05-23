@@ -339,6 +339,29 @@ function startHandDrag(event: DragEvent, card: (CardContents | CardT.Card)) {
     event.dataTransfer.setData('text/plain', JSON.stringify({ "tag": "CardTarget", "contents": cardId }))
   }
 }
+
+const touchStartX = ref(0)
+const touchEndX = ref(0)
+const emit = defineEmits(['swipe-right', 'swipe-left'])
+
+function onTouchStart(event: TouchEvent) {
+  touchStartX.value = event.changedTouches[0].screenX
+}
+function onTouchEnd(event: TouchEvent) {
+  touchEndX.value = event.changedTouches[0].screenX
+  handleSwipe()
+}
+function handleSwipe() {
+  const deltaX = touchEndX.value - touchStartX.value
+  if (Math.abs(deltaX) > 50) {
+    if (deltaX > 0) {
+      emit('swipe-right')
+    } else {
+      emit('swipe-left')
+    }
+  }
+}
+
 </script>
 
 <template>
@@ -456,7 +479,7 @@ function startHandDrag(event: DragEvent, card: (CardContents | CardT.Card)) {
       @choose="$emit('choose', $event)"
     />
 
-    <div class="player">
+     <div class="player"  @touchstart="onTouchStart" @touchend="onTouchEnd">
       <div v-if="hunchDeck" class="top-of-deck hunch-deck">
         <HandCard
           v-if="topOfHunchDeck && topOfHunchDeckRevealed"
