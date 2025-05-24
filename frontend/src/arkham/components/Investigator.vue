@@ -655,6 +655,7 @@ i.action {
     overflow: hidden;
     :deep(button) {
       width: calc(var(--pool-token-width) * 1.2);
+      font-size:small;
     }
     :deep(img) {
       width: calc(var(--pool-token-width) * 1.2);
