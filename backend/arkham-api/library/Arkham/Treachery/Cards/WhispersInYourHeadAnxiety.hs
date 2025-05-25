@@ -17,16 +17,15 @@ whispersInYourHeadAnxiety =
 instance HasModifiersFor WhispersInYourHeadAnxiety where
   getModifiersFor (WhispersInYourHeadAnxiety a) = case a.placement of
     HiddenInHand iid -> modified_ a iid [CannotTriggerFastAbilities]
-    _ -> pure mempty
+    _ -> pure ()
 
 instance HasAbilities WhispersInYourHeadAnxiety where
-  getAbilities (WhispersInYourHeadAnxiety a) =
-    [restrictedAbility a 1 InYourHand $ ActionAbility [] $ ActionCost 2]
+  getAbilities (WhispersInYourHeadAnxiety a) = [restricted a 1 InYourHand doubleActionAbility]
 
 instance RunMessage WhispersInYourHeadAnxiety where
   runMessage msg t@(WhispersInYourHeadAnxiety attrs) = runQueueT $ case msg of
     Revelation iid (isSource attrs -> True) -> do
-      placeTreachery attrs (HiddenInHand iid)
+      addHiddenToHand iid attrs
       pure t
     UseThisAbility iid (isSource attrs -> True) 1 -> do
       toDiscardBy iid (attrs.ability 1) attrs

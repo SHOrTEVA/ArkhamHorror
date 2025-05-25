@@ -121,31 +121,26 @@ instance RunMessage ExtracurricularActivity where
     ScenarioResolution r -> scope "resolutions" do
       case r of
         NoResolution -> do
-          xp <- allGainXpWithBonus' attrs $ toBonus "noResolution" 1
-          story $ withVars ["xp" .= xp] $ i18nWithTitle "noResolution"
+          resolutionWithXp "noResolution" $ allGainXpWithBonus' attrs $ toBonus "noResolution" 1
           record ProfessorWarrenRiceWasKidnapped
           record TheInvestigatorsFailedToSaveTheStudents
           addChaosToken Tablet
         Resolution 1 -> do
-          xp <- allGainXp' attrs
-          story $ withVars ["xp" .= xp] $ i18nWithTitle "resolution1"
+          resolutionWithXp "resolution1" $ allGainXp' attrs
           record TheInvestigatorsRescuedProfessorWarrenRice
           addChaosToken Tablet
           investigators <- allInvestigators
           addCampaignCardToDeckChoice investigators DoNotShuffleIn Assets.professorWarrenRice
         Resolution 2 -> do
-          xp <- allGainXp' attrs
-          story $ withVars ["xp" .= xp] $ i18nWithTitle "resolution2"
+          resolutionWithXp "resolution2" $ allGainXp' attrs
           record ProfessorWarrenRiceWasKidnapped
           record TheStudentsWereRescued
         Resolution 3 -> do
-          xp <- allGainXp' attrs
-          story $ withVars ["xp" .= xp] $ i18nWithTitle "resolution3"
+          resolutionWithXp "resolution3" $ allGainXp' attrs
           record ProfessorWarrenRiceWasKidnapped
           record TheExperimentWasDefeated
         Resolution 4 -> do
-          xp <- allGainXpWithBonus' attrs $ toBonus "resolution4" 1
-          story $ withVars ["xp" .= xp] $ i18nWithTitle "resolution4"
+          resolutionWithXp "resolution4" $ allGainXpWithBonus' attrs $ toBonus "resolution4" 1
           record InvestigatorsWereUnconsciousForSeveralHours
           record ProfessorWarrenRiceWasKidnapped
           record TheInvestigatorsFailedToSaveTheStudents

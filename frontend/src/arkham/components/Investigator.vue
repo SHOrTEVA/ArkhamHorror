@@ -269,6 +269,9 @@ function onDrop(event: DragEvent) {
         debug.send(props.game.id, {tag: 'PlaceKey', contents: [{ tag: "InvestigatorTarget", contents: id.value }, { "tag": json.contents }]})
       }
 
+      if (json.tag === "EnemyTarget") {
+        debug.send(props.game.id, {tag: 'EnemyEngageInvestigator', contents: [json.contents, id.value]})
+      }
     }
   }
 }

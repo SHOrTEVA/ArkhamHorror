@@ -281,6 +281,7 @@ spawnedEnemy :: HasCallStack => [Window] -> EnemyId
 spawnedEnemy =
   fromMaybe (error "missing enemy") . asum . map \case
     (windowType -> Window.EnemySpawns eid _) -> Just eid
+    (windowType -> Window.EnemyAttemptsToSpawnAt eid _) -> Just eid
     _ -> Nothing
 
 placedTokens :: Token -> [Window] -> Int
@@ -484,6 +485,11 @@ getDamageSource = \case
   ((windowType -> Window.DealtDamage source _ _ _) : _) -> source
   ((windowType -> Window.DealtExcessDamage source _ _ _) : _) -> source
   (_ : rest) -> getDamageSource rest
+
+getDamageSourceEnemy :: HasCallStack => [Window] -> EnemyId
+getDamageSourceEnemy ws = case (getDamageSource ws).enemy of
+  Nothing -> error "Source was not enemy"
+  Just eid -> eid
 
 getDamageOrHorrorSource :: HasCallStack => [Window] -> Source
 getDamageOrHorrorSource = \case
@@ -876,6 +882,9 @@ windowMatches iid rawSource window'@(windowTiming &&& windowType -> (timing', wT
       _ -> noMatch
     Matcher.DrawingStartingHand timing whoMatcher -> guardTiming timing $ \case
       Window.DrawingStartingHand who -> matchWho iid who whoMatcher
+      _ -> noMatch
+    Matcher.WouldMoveFromHunter timing enemyMatcher -> guardTiming timing $ \case
+      Window.WouldMoveFromHunter eid -> elem eid <$> select enemyMatcher
       _ -> noMatch
     Matcher.MovedFromHunter timing enemyMatcher -> guardTiming timing $ \case
       Window.MovedFromHunter eid -> elem eid <$> select enemyMatcher
@@ -1335,15 +1344,15 @@ windowMatches iid rawSource window'@(windowTiming &&& windowType -> (timing', wT
       let
         isWindowMatch = \case
           Matcher.ResultOneOf xs -> anyM isWindowMatch xs
-          Matcher.FailureResult _ -> guardTiming timing $ \case
-            Window.WouldFailSkillTest who -> matchWho iid who whoMatcher
+          Matcher.FailureResult gameValueMatcher -> guardTiming timing $ \case
+            Window.WouldFailSkillTest who n -> andM [matchWho iid who whoMatcher, gameValueMatches n gameValueMatcher]
             _ -> noMatch
-          Matcher.SuccessResult _ -> guardTiming timing $ \case
-            Window.WouldPassSkillTest who -> matchWho iid who whoMatcher
+          Matcher.SuccessResult gameValueMatcher -> guardTiming timing $ \case
+            Window.WouldPassSkillTest who n -> andM [matchWho iid who whoMatcher, gameValueMatches n gameValueMatcher]
             _ -> noMatch
           Matcher.AnyResult -> guardTiming #when $ \case
-            Window.WouldFailSkillTest who -> matchWho iid who whoMatcher
-            Window.WouldPassSkillTest who -> matchWho iid who whoMatcher
+            Window.WouldFailSkillTest who _ -> matchWho iid who whoMatcher
+            Window.WouldPassSkillTest who _ -> matchWho iid who whoMatcher
             _ -> noMatch
       isWindowMatch skillTestResultMatcher
     Matcher.InitiatedSkillTest timing whoMatcher skillTypeMatcher skillValueMatcher skillTestMatcher ->

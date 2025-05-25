@@ -167,8 +167,23 @@ data instance Field Investigator :: Type -> Type where
 deriving stock instance Show (Field Investigator val)
 deriving stock instance Ord (Field Investigator val)
 
+instance IsLabel "intellect" (Field Investigator Int) where
+  fromLabel = InvestigatorIntellect
+
+instance IsLabel "willpower" (Field Investigator Int) where
+  fromLabel = InvestigatorWillpower
+
+instance IsLabel "agility" (Field Investigator Int) where
+  fromLabel = InvestigatorAgility
+
+instance IsLabel "combat" (Field Investigator Int) where
+  fromLabel = InvestigatorCombat
+
 instance IsLabel "resources" (Field Investigator Int) where
   fromLabel = InvestigatorResources
+
+instance IsLabel "horror" (Field Investigator Int) where
+  fromLabel = InvestigatorHorror
 
 instance ToJSON (Field Investigator typ) where
   toJSON = toJSON . show

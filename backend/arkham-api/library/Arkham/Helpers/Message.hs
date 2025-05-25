@@ -1,3 +1,4 @@
+{-# OPTIONS_GHC -Wno-deprecations #-}
 module Arkham.Helpers.Message (module Arkham.Helpers.Message, module X) where
 
 import Arkham.Prelude
@@ -75,7 +76,9 @@ drawCardsIfCanWith i source n f = do
   canDraw <- can.draw.cards (sourceToFromSource source) (asId i)
   pure $ guard canDraw $> drawCardsWith (asId i) source n f
 
-drawEncounterCardsWith :: Sourceable source => InvestigatorId -> source -> Int -> (CardDraw Message -> CardDraw Message) -> Message
+drawEncounterCardsWith
+  :: Sourceable source
+  => InvestigatorId -> source -> Int -> (CardDraw Message -> CardDraw Message) -> Message
 drawEncounterCardsWith i source n f = DrawCards i $ f $ newCardDraw source Deck.EncounterDeck n
 
 sourceToFromSource :: Sourceable source => source -> FromSource
@@ -270,7 +273,7 @@ placeLocationInGrid pos c = do
 placeLocation_ :: MonadRandom m => Card -> m Message
 placeLocation_ = fmap snd . placeLocation
 
-placeSetAsideLocation :: (MonadRandom m, HasGame m) => CardDef -> m (LocationId, Message)
+placeSetAsideLocation :: (HasCallStack, MonadRandom m, HasGame m) => CardDef -> m (LocationId, Message)
 placeSetAsideLocation = placeLocation <=< getSetAsideCard
 
 placeSetAsideLocation_ :: (MonadRandom m, HasGame m) => CardDef -> m Message
@@ -489,6 +492,9 @@ directDamage iid (toSource -> source) damage = InvestigatorDirectDamage iid sour
 directHorror :: Sourceable source => InvestigatorId -> source -> Int -> Message
 directHorror iid (toSource -> source) horror = InvestigatorDirectDamage iid source 0 horror
 
+directDamageAndHorror :: Sourceable source => InvestigatorId -> source -> Int -> Int -> Message
+directDamageAndHorror iid (toSource -> source) damage horror = InvestigatorDirectDamage iid source damage horror
+
 findAndDrawEncounterCard :: IsCardMatcher a => InvestigatorId -> a -> Message
 findAndDrawEncounterCard investigator cardMatcher = FindAndDrawEncounterCard investigator (toCardMatcher cardMatcher) IncludeDiscard
 
@@ -502,15 +508,15 @@ chooseEngageEnemy :: Sourceable source => InvestigatorId -> source -> Message
 chooseEngageEnemy iid (toSource -> source) = ChooseEngageEnemy iid source Nothing mempty False
 
 search
-  :: (Targetable target, Sourceable source)
-  => InvestigatorId
+  :: (Targetable target, Sourceable source, AsId investigator, IdOf investigator ~ InvestigatorId)
+  => investigator
   -> source
   -> target
   -> [(Zone, ZoneReturnStrategy)]
   -> ExtendedCardMatcher
   -> FoundCardsStrategy
   -> Message
-search iid (toSource -> source) (toTarget -> target) zones matcher strategy = Do (Search $ mkSearch Searching iid source target zones matcher strategy)
+search (asId -> iid) (toSource -> source) (toTarget -> target) zones matcher strategy = Do (Search $ mkSearch Searching iid source target zones matcher strategy)
 
 lookAt
   :: (Targetable target, Sourceable source)
@@ -548,7 +554,9 @@ gainResourcesIfCan a source n = do
 assignEnemyDamage :: DamageAssignment -> EnemyId -> Message
 assignEnemyDamage = flip EnemyDamage
 
-nonAttackEnemyDamage :: (AsId enemy, IdOf enemy ~ EnemyId, Sourceable a) => Maybe InvestigatorId -> a -> Int -> enemy -> Message
+nonAttackEnemyDamage
+  :: (AsId enemy, IdOf enemy ~ EnemyId, Sourceable a)
+  => Maybe InvestigatorId -> a -> Int -> enemy -> Message
 nonAttackEnemyDamage miid source damage enemy = EnemyDamage (asId enemy) (nonAttack miid source damage)
 
 placeDoom :: (Sourceable source, Targetable target) => source -> target -> Int -> Message
@@ -672,3 +680,11 @@ createAssetAt c placement = do
 
 createAssetAt_ :: MonadRandom m => Card -> Placement -> m Message
 createAssetAt_ c placement = snd <$> createAssetAt c placement
+
+createTreacheryAt :: MonadRandom m => Card -> Placement -> m (TreacheryId, Message)
+createTreacheryAt c placement = do
+  treacheryId <- getRandom
+  pure (treacheryId, CreateTreacheryAt treacheryId c placement)
+
+createTreacheryAt_ :: MonadRandom m => Card -> Placement -> m Message
+createTreacheryAt_ c placement = snd <$> createTreacheryAt c placement

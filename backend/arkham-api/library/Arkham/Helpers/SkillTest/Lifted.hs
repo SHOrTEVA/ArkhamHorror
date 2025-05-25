@@ -5,13 +5,14 @@ import Arkham.Classes.HasGame
 import Arkham.Classes.HasQueue
 import Arkham.Helpers.Location (withLocationOf)
 import Arkham.Helpers.Message (toMessage)
-import Arkham.Investigate.Types qualified as I
-import Arkham.Investigate (mkInvestigateLocation)
+import Arkham.Helpers.Ref (sourceToTarget)
 import Arkham.Id
+import Arkham.Investigate (mkInvestigateLocation)
+import Arkham.Investigate.Types qualified as I
 import Arkham.Message (Message (..))
 import Arkham.Message.Lifted
 import Arkham.Prelude
-import Arkham.SkillTest.Base (SkillTest)
+import Arkham.SkillTest.Base (SkillTest (skillTestIsRevelation))
 import Arkham.SkillType
 import Arkham.Source
 import Arkham.Target
@@ -42,7 +43,7 @@ revelationSkillTest
   -> SkillType
   -> GameCalculation
   -> m ()
-revelationSkillTest sid iid source sType calc = push $ Msg.revelationSkillTest sid iid source sType calc
+revelationSkillTest sid iid source sType calc = beginSkillTestEdit sid iid source (sourceToTarget $ toSource source) sType calc \st -> st {skillTestIsRevelation = True}
 
 beginSkillTest
   :: (Sourceable source, Targetable target, ReverseQueue m)
@@ -127,6 +128,25 @@ investigateEdit_
   -> (I.Investigate -> I.Investigate)
   -> m ()
 investigateEdit_ sid iid source f = withLocationOf iid (push . toMessage . f <=< mkInvestigateLocation sid iid source)
+
+investigateLocationEdit_
+  :: (Sourceable source, ReverseQueue m, AsId location, IdOf location ~ LocationId)
+  => SkillTestId
+  -> InvestigatorId
+  -> source
+  -> location
+  -> (I.Investigate -> I.Investigate)
+  -> m ()
+investigateLocationEdit_ sid iid source lid f = push . toMessage . f =<< mkInvestigateLocation sid iid source (asId lid)
+
+investigateLocation_
+  :: (Sourceable source, ReverseQueue m, AsId location, IdOf location ~ LocationId)
+  => SkillTestId
+  -> InvestigatorId
+  -> source
+  -> location
+  -> m ()
+investigateLocation_ sid iid source lid = investigateLocationEdit_ sid iid source lid id
 
 investigate
   :: (Sourceable source, Targetable target, ReverseQueue m)

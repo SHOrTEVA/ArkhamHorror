@@ -1050,6 +1050,7 @@ runInvestigatorMessage msg a@InvestigatorAttrs {..} = runQueueT $ case msg of
       applyMatcherModifiers :: ModifierType -> EnemyMatcher -> EnemyMatcher
       applyMatcherModifiers (Modifier.AlternateFightField someField) original = case someField of
         SomeField Field.EnemyEvade -> original <> EnemyWithEvade
+        SomeField Field.EnemyFight -> original <> EnemyWithFight
         _ -> original
       applyMatcherModifiers _ n = n
       canFightMatcher = case overrides of
@@ -1448,11 +1449,11 @@ runInvestigatorMessage msg a@InvestigatorAttrs {..} = runQueueT $ case msg of
     canMove <- withoutModifier a CannotMove
     when canMove $ pushAll msgs
     pure a
-  Will (PassedSkillTest iid _ _ (InvestigatorTarget iid') _ _) | iid == iid' && iid == investigatorId -> do
-    pushM $ checkWindows [mkWhen (Window.WouldPassSkillTest iid)]
+  Will (PassedSkillTest iid _ _ (InvestigatorTarget iid') _ n) | iid == iid' && iid == investigatorId -> do
+    pushM $ checkWindows [mkWhen (Window.WouldPassSkillTest iid n)]
     pure a
-  Will (FailedSkillTest iid _ _ (InvestigatorTarget iid') _ _) | iid == iid' && iid == toId a -> do
-    pushM $ checkWindows [mkWhen (Window.WouldFailSkillTest iid)]
+  Will (FailedSkillTest iid _ _ (InvestigatorTarget iid') _ n) | iid == iid' && iid == toId a -> do
+    pushM $ checkWindows [mkWhen (Window.WouldFailSkillTest iid n)]
     pure a
   CancelDamage iid n | iid == investigatorId -> lift do
     withQueue_ \queue -> flip map queue $ \case
@@ -2687,13 +2688,13 @@ runInvestigatorMessage msg a@InvestigatorAttrs {..} = runQueueT $ case msg of
                  [ Label "Move too" [Move $ move iid' iid' lid]
                  , Label "Skip" []
                  ]
-             | (iid', player) <- moveWith
+             | movement.means /= Place
+             , (iid', player) <- moveWith
              ]
           <> moveAfter movement
-          <> [ afterEntering
-             , afterMoveButBeforeEnemyEngagement
-             , CheckEnemyEngagement iid
-             ]
+          <> [afterEntering]
+          <> [afterMoveButBeforeEnemyEngagement | movement.means /= Place]
+          <> [CheckEnemyEngagement iid]
         pure a
   Do (WhenWillEnterLocation iid lid) | iid == investigatorId -> do
     pure $ a & placementL .~ AtLocation lid
@@ -3254,7 +3255,7 @@ runInvestigatorMessage msg a@InvestigatorAttrs {..} = runQueueT $ case msg of
     pushWhen (CardsCannotLeaveYourDiscardPile `notElem` modifiers')
       $ ShuffleDiscardBackIn iid
     pure a
-  AllDrawCardAndResource | not (a ^. defeatedL || a ^. resignedL) -> do
+  ForInvestigator iid AllDrawCardAndResource | iid == investigatorId && not (a ^. defeatedL || a ^. resignedL) -> do
     whenM (can.draw.cards a.id) $ do
       mods <- getModifiers a
       let alternateUpkeepDraws = [target | AlternateUpkeepDraw target <- mods]
@@ -3264,11 +3265,13 @@ runInvestigatorMessage msg a@InvestigatorAttrs {..} = runQueueT $ case msg of
           push
             $ chooseOrRunOne
               pid
-              [targetLabel target [SendMessage target AllDrawCardAndResource] | target <- alternateUpkeepDraws]
+              [ targetLabel target [SendMessage target (ForInvestigator investigatorId AllDrawCardAndResource)]
+              | target <- alternateUpkeepDraws
+              ]
         else push $ drawCards investigatorId ScenarioSource 1
-    push $ ForTarget (toTarget a) (DoStep 2 AllDrawCardAndResource)
+    push $ ForTarget (toTarget a) (DoStep 2 (ForInvestigator investigatorId AllDrawCardAndResource))
     pure a
-  ForTarget (isTarget a -> True) (DoStep 2 AllDrawCardAndResource) | not (a ^. defeatedL || a ^. resignedL) -> do
+  ForTarget (isTarget a -> True) (DoStep 2 (ForInvestigator _ AllDrawCardAndResource)) | not (a ^. defeatedL || a ^. resignedL) -> do
     lift $ takeUpkeepResources a
   LoadDeck iid deck | iid == investigatorId -> do
     shuffled <- shuffleM $ flip map (unDeck deck) $ \card ->
@@ -4360,7 +4363,10 @@ runInvestigatorMessage msg a@InvestigatorAttrs {..} = runQueueT $ case msg of
             | iid' <- x : xs
             ]
     pure a
-  UseAbility iid ability windows | iid == investigatorId -> do
+  UseAbility _ ab _ | isSource a ab.source || isProxySource a ab.source -> do
+    push $ Do msg
+    pure a
+  Do (UseAbility iid ability windows) | iid == investigatorId -> do
     activeInvestigator <- selectOne ActiveInvestigator
     mayIgnoreLocationEffectsAndKeywords <- hasModifier iid MayIgnoreLocationEffectsAndKeywords
     let

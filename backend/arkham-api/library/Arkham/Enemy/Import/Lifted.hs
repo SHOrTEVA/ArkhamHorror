@@ -12,6 +12,7 @@ import Arkham.Enemy.Runner as X (
   IsEnemy,
   asSelfLocationL,
   cardCodeL,
+  damageStrategyL,
   defeatedL,
   enemy,
   enemyClues,
@@ -39,6 +40,7 @@ import Arkham.Enemy.Runner as X (
  )
 import Arkham.GameValue as X
 import Arkham.Helpers.Ability as X
+import Arkham.Helpers.Choices as X
 import Arkham.Helpers.Modifiers as X (toModifiers)
 import Arkham.Id as X
 import Arkham.Message as X (
@@ -67,9 +69,6 @@ import Arkham.Modifier
 import Arkham.Queue
 import Arkham.Window qualified as Window
 import Control.Monad.Trans
-
-disengageEnemyFromAll :: ReverseQueue m => EnemyAttrs -> m ()
-disengageEnemyFromAll attrs = push $ DisengageEnemyFromAll attrs.id
 
 insteadOfDiscarding
   :: HasQueue Message m => EnemyAttrs -> QueueT Message (QueueT Message m) () -> QueueT Message m ()

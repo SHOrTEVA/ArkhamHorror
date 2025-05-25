@@ -29,8 +29,11 @@ import Arkham.Window (Window)
 import Arkham.Act.Acts (
   infiltratingTheLodgeEffect,
   theStrangerACityAflameEffect,
+  theStrangerAlaranMistsEffect,
+  theStrangerHereIsMyReplyEffect,
   theStrangerThePathIsMineEffect,
   theStrangerTheShoresOfHaliEffect,
+  theStrangerUnderTheCityEffect,
   theYithianRelicEffect,
  )
 import Arkham.Agenda.Agendas (
@@ -75,7 +78,6 @@ import Arkham.Asset.Assets (
   mrPeabodyEffect,
   pnakoticManuscripts5Effect,
   prismaticSpectaclesLensToTheOtherworld2Effect,
-  riteOfSeekingEffect,
   showmanshipEffect,
   shroudOfShadows4Effect,
   shroudOfShadowsEffect,
@@ -94,13 +96,11 @@ import Arkham.Enemy.Enemies (
   boaConstrictorEffect,
   corruptedOrderlyEffect,
   ichtacaScionOfYigEffect,
-  jeremiahPierceEffect,
   tommyMalloyEffect,
   yogSothothEffect,
  )
 import Arkham.Event.Events (
   atACrossroads1Effect,
-  easyMark1Effect,
   backstab3Effect,
   bideYourTimeEffect,
   bindMonster2Effect,
@@ -110,11 +110,11 @@ import Arkham.Event.Events (
   dawnStar1Effect,
   deliverance3Effect,
   dimensionalVortex5Effect,
+  easyMark1Effect,
   eideticMemory3Effect,
   explosiveWardEffect,
   exposeWeakness1Effect,
   exposeWeakness3Effect,
-  fightOrFlightEffect,
   followedEffect,
   getBehindMeEffect,
   hitAndRunEffect,
@@ -127,12 +127,10 @@ import Arkham.Event.Events (
   oneInTheChamberEffect,
   pilfer3Effect,
   sleightOfHandEffect,
-  slipAway2Effect,
   snipe1Effect,
   spectralRazor2Effect,
   spectralRazorEffect,
   stormOfSpirits3Effect,
-  stormOfSpiritsEffect,
   telescopicSight3Effect,
   thePaintedWorldEffect,
   thirdTimesACharm2Effect,
@@ -415,7 +413,7 @@ allEffects =
     , ("01066", SomeEffect $ noop "01066")
     , ("01069", SomeEffect $ noop "01069")
     , ("01074", SomeEffect $ noop "01074")
-    , ("02028", SomeEffect riteOfSeekingEffect)
+    , ("02028", SomeEffect $ noop "02028")
     , ("02031", SomeEffect bindMonster2Effect)
     , ("02100", SomeEffect pushedIntoTheBeyondEffect)
     , ("02112", SomeEffect $ noop "02112")
@@ -442,8 +440,8 @@ allEffects =
     , ("03100", SomeEffect theKingsEdictEffect)
     , ("03141", SomeEffect mrPeabodyEffect)
     , ("03149", SomeEffect charlesRossEsqEffect)
-    , ("03153", SomeEffect stormOfSpiritsEffect)
-    , ("03155", SomeEffect fightOrFlightEffect)
+    , ("03153", SomeEffect $ noop "03153")
+    , ("03155", SomeEffect $ noop "03155")
     , ("03158", SomeEffect callingInFavorsEffect)
     , ("03209", SomeEffect $ noop "03209")
     , ("03254", SomeEffect $ noop "03254")
@@ -552,9 +550,12 @@ allEffects =
     , ("10131", SomeEffect dawnStar1Effect)
     , ("11079", SomeEffect deliverance3Effect)
     , ("11124", SomeEffect dimensionalVortex5Effect)
-    , ("50044", SomeEffect jeremiahPierceEffect)
+    , ("50044", SomeEffect $ noop "50044")
     , ("52007", SomeEffect $ noop "52007")
     , ("52008", SomeEffect stormOfSpirits3Effect)
+    , ("52015", SomeEffect theStrangerAlaranMistsEffect)
+    , ("52016", SomeEffect theStrangerUnderTheCityEffect)
+    , ("52017", SomeEffect theStrangerHereIsMyReplyEffect)
     , ("53007", SomeEffect mistsOfRlyeh2Effect)
     , ("54006", SomeEffect wellConnected3Effect)
     , ("60101", SomeEffect nathanielChoEffect)
@@ -564,7 +565,7 @@ allEffects =
     , ("60301", SomeEffect winifredHabbamockEffect)
     , ("60305", SomeEffect lockpicksEffect)
     , ("60323", SomeEffect cheapShot2Effect)
-    , ("60324", SomeEffect slipAway2Effect)
+    , ("60324", SomeEffect $ noop "60324")
     , ("60328", SomeEffect pilfer3Effect)
     , ("60329", SomeEffect backstab3Effect)
     , ("60330", SomeEffect copycat3Effect)

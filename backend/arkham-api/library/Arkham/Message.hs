@@ -10,6 +10,7 @@ import Arkham.Text as X
 import Arkham.Ability.Types
 import Arkham.Act.Sequence
 import Arkham.Action hiding (Explore)
+import Arkham.Action qualified as Action
 import Arkham.Action.Additional
 import Arkham.Agenda.Sequence
 import Arkham.Asset.Uses
@@ -96,6 +97,7 @@ messageType Revelation {} = Just RevelationMessage
 messageType DrawChaosToken {} = Just DrawChaosTokenMessage
 messageType ResolveChaosToken {} = Just ResolveChaosTokenMessage
 messageType EnemySpawn {} = Just EnemySpawnMessage
+messageType EnemySpawnAtLocationMatching {} = Just EnemySpawnMessage
 messageType InvestigatorDrawEnemy {} = Just DrawEnemyMessage
 messageType EnemyDefeated {} = Just EnemyDefeatedMessage
 messageType (Discard _ GameSource (EnemyTarget _)) = Just EnemyDefeatedMessage
@@ -107,12 +109,14 @@ messageType InvestigatorDefeated {} = Just InvestigatorDefeatedMessage
 messageType InvestigatorIsDefeated {} = Just InvestigatorDefeatedMessage
 messageType CheckWindows {} = Just CheckWindowMessage
 messageType Explore {} = Just ExploreMessage
-messageType (Do msg) = messageType msg
-messageType (MoveWithSkillTest msg) = messageType msg
-messageType (MovedWithSkillTest _ msg) = messageType msg
 messageType DealAssetDamageWithCheck {} = Just AssetDamageMessage
 messageType DealAssetDirectDamage {} = Just AssetDamageMessage
 messageType AssignAssetDamageWithCheck {} = Just AssetDamageMessage
+messageType (MoveWithSkillTest msg) = messageType msg
+messageType (MovedWithSkillTest _ msg) = messageType msg
+messageType (Do msg) = messageType msg
+messageType (When msg) = messageType msg
+messageType (After msg) = messageType msg
 messageType _ = Nothing
 
 isBlanked :: Message -> Bool
@@ -324,6 +328,9 @@ newtype FromSkillType = FromSkillType SkillType
 newtype ToSkillType = ToSkillType SkillType
   deriving stock (Show, Eq, Generic, Data)
   deriving anyclass (ToJSON, FromJSON)
+
+pattern SuccessfulInvestigationWith :: InvestigatorId -> Target -> Message
+pattern SuccessfulInvestigationWith iid target <- Successful (Action.Investigate, _) iid _ target _
 
 pattern BeginSkillTest :: SkillTest -> Message
 pattern BeginSkillTest skillTest <- BeginSkillTestWithPreMessages' [] skillTest
@@ -582,6 +589,7 @@ data Message
   | CreateEndOfRoundEffect Source [Message]
   | CreateAssetAt AssetId Card Placement
   | CreateEventAt InvestigatorId Card Placement
+  | CreateTreacheryAt TreacheryId Card Placement
   | PlaceAsset AssetId Placement
   | PlaceEvent EventId Placement
   | PlaceTreachery TreacheryId Placement
@@ -875,6 +883,7 @@ data Message
   | CrossOutRecordSetEntries CampaignLogKey [SomeRecorded]
   | RefillSlots InvestigatorId
   | Remember ScenarioLogKey
+  | Forget ScenarioLogKey
   | ScenarioCountSet ScenarioCountKey Int
   | ScenarioCountIncrementBy ScenarioCountKey Int
   | ScenarioCountDecrementBy ScenarioCountKey Int
@@ -994,6 +1003,7 @@ data Message
   | SkillTestCommitCard InvestigatorId Card
   | SkillTestEnds SkillTestId InvestigatorId Source
   | SkillTestEnded SkillTestId
+  | AfterThisTestResolves SkillTestId [Message]
   | AfterSkillTestEnds Source Target SkillTest.SkillTestResult
   | AfterSkillTestOption InvestigatorId Text [Message]
   | AfterSkillTestQuiet [Message]
@@ -1108,6 +1118,7 @@ data Message
   | RotateTarot TarotCard
   | Incursion LocationId
   | SetInvestigatorForm InvestigatorId InvestigatorForm
+  | PlaceReferenceCard Target CardCode
   | -- The Dream Eaters
     PlaceSwarmCards InvestigatorId EnemyId Int
   | PlacedSwarmCard EnemyId Card

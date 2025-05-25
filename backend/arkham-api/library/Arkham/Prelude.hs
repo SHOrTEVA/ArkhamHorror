@@ -490,3 +490,13 @@ mapFold = flip Data.Foldable.foldMap
 
 runDefaultMaybeT :: Functor f => b -> MaybeT f b -> f b
 runDefaultMaybeT def = fmap (fromMaybe def) . runMaybeT
+
+runValidT :: Functor f => MaybeT f () -> f Bool
+runValidT = fmap isJust . runMaybeT
+
+retryUntil :: Monad m => (a -> Bool) -> m a -> m a
+retryUntil p ma = do
+  a <- ma
+  if p a
+    then pure a
+    else retryUntil p ma

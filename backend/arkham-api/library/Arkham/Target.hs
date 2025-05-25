@@ -14,6 +14,7 @@ import {-# SOURCE #-} Arkham.Card.PlayerCard
 import Arkham.ChaosToken.Types
 import Arkham.Id
 import Arkham.Matcher.Agenda
+import {-# SOURCE #-} Arkham.Matcher.Asset
 import Arkham.Matcher.Card
 import Arkham.Matcher.Enemy
 import Arkham.Phase
@@ -113,6 +114,10 @@ instance HasField "investigator" Target (Maybe InvestigatorId) where
     ProxyTarget (CardIdTarget _) t -> t.investigator
     ProxyTarget t _ -> t.investigator
     _ -> Nothing
+
+instance HasField "investigator" (Maybe Target) (Maybe InvestigatorId) where
+  getField Nothing = Nothing
+  getField (Just t) = t.investigator
 
 target_ :: Target -> Target
 target_ = id
@@ -227,6 +232,7 @@ data ActionTarget
   = FirstOneOfPerformed [Action]
   | IsAction Action
   | EnemyAction Action EnemyMatcher
+  | AssetAction Action AssetMatcher
   | IsAnyAction
   | AnyActionTarget [ActionTarget]
   deriving stock (Show, Eq, Ord, Data)
