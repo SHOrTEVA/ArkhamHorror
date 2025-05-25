@@ -396,6 +396,8 @@ function handleSwipe() {
   }
 }
 
+const handArea_margin_bottom = ref('-40')
+
 </script>
 
 <template>
@@ -683,7 +685,7 @@ function handleSwipe() {
         <div v-if="investigator.handSize" class="hand-size" :class="handSizeClasses" :current-length="totalHandSize">Hand Size: {{totalHandSize}}/{{investigator.handSize}}</div>
       </div>
     </div>
-    <div class="hand hand-area-IsMobile">
+    <div class="hand hand-area-IsMobile" :style="{ marginBottom: `${handArea_margin_bottom}%` }" @click="handArea_margin_bottom =-15">
         <transition-group tag="section" class="hand" @enter="onEnter" @leave="onLeave" @before-enter="onBeforeEnter"
           @drop="onDropHand($event)"
           @dragover.prevent="dragover($event)"
@@ -961,7 +963,6 @@ function handleSwipe() {
   align-items: flex-start;
   flex: 1;
   max-width: 100%;
-  margin-bottom: -15%;
   :deep(.card){
     width: calc(var(--card-width) * 4);
     min-width: calc(var(--card-width) * 4);
