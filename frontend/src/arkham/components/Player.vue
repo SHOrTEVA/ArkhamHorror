@@ -2,7 +2,7 @@
 import type { CardContents } from '@/arkham/types/Card';
 import * as CardT from '@/arkham/types/Card';
 import gsap from 'gsap';
-import { computed, inject, Ref, ref, ComputedRef, reactive, watch } from 'vue';
+import { computed, inject, Ref, ref, ComputedRef, reactive, watch, onMounted, onBeforeUnmount } from 'vue';
 import { useDebug } from '@/arkham/debug';
 import { Game } from '@/arkham/types/Game';
 import { toCardContents } from '@/arkham/types/Card';
@@ -397,6 +397,36 @@ function handleSwipe() {
 }
 
 const handArea_margin_bottom = ref('-40')
+const handArea_pointer_events = ref('none')
+const handAreaRef = ref<HTMLElement | null>(null)
+
+onMounted(() => {
+  handAreaRef.value = document.querySelector('.hand-area-IsMobile');
+  (['click', 'touchstart', 'touchend'] as Array<keyof DocumentEventMap>).forEach(event =>
+    document.addEventListener(event, handAreaResetMarginBottom)
+  );
+});
+
+onBeforeUnmount(() => {
+  (['click', 'touchstart', 'touchend'] as Array<keyof DocumentEventMap>).forEach(event =>
+    document.removeEventListener(event, handAreaResetMarginBottom)
+  );
+});
+
+function handAreaMarginBottom(event: MouseEvent) {
+  if (handArea_margin_bottom.value === '-40') {
+    handArea_margin_bottom.value = '-15'
+    handArea_pointer_events.value = 'auto'
+  } 
+}
+
+function handAreaResetMarginBottom(event: MouseEvent | TouchEvent) {
+  const target = event instanceof TouchEvent ? event.targetTouches[0].target : event.target;
+  if (handAreaRef.value && target instanceof Node && !handAreaRef.value.contains(target)) {
+    handArea_margin_bottom.value = '-40'
+    handArea_pointer_events.value = 'none'
+  }
+}
 
 </script>
 
@@ -685,11 +715,12 @@ const handArea_margin_bottom = ref('-40')
         <div v-if="investigator.handSize" class="hand-size" :class="handSizeClasses" :current-length="totalHandSize">Hand Size: {{totalHandSize}}/{{investigator.handSize}}</div>
       </div>
     </div>
-    <div class="hand hand-area-IsMobile" :style="{ marginBottom: `${handArea_margin_bottom}%` }" @click="handArea_margin_bottom =-15">
+    <div class="hand hand-area-IsMobile" :style="{ marginBottom: `${handArea_margin_bottom}%` }" @click="handAreaMarginBottom">
         <transition-group tag="section" class="hand" @enter="onEnter" @leave="onLeave" @before-enter="onBeforeEnter"
           @drop="onDropHand($event)"
           @dragover.prevent="dragover($event)"
           @dragenter.prevent
+          :style="{ pointerEvents: `${handArea_pointer_events}` }"
           >
           <HandCard
             v-for="card in playerHand"

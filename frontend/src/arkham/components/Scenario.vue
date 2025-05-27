@@ -470,7 +470,7 @@ function beforeLeave(e: Element) {
 
 function toggleZoom(e: MouseEvent) {
   const el = (e.target as HTMLElement).closest('.location-cards') as HTMLElement;
-  el.style.zoom = el.style.zoom === "5" ? "1" : "5";
+  el.style.zoom = el.style.zoom === "4" ? "1" : "4";
   const rect = el.getBoundingClientRect();
   console.log(rect);
   console.log("client: ", e.clientX, e.clientY);
