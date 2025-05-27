@@ -89,6 +89,9 @@ instance RunMessage EffectAttrs where
       a <$ push (DisableEffect effectId)
     Move _ | isEndOfWindow a EffectMoveWindow -> do
       a <$ push (DisableEffect effectId)
+    WhenCanMove _ _ | isEndOfWindow a EffectMoveWindow -> do
+      -- We've killed the entire batch at this point so we can resume
+      a <$ push (DisableEffect effectId)
     ResolvedAbility ab | #move `elem` ab.actions && isEndOfWindow a EffectMoveWindow -> do
       a <$ push (DisableEffect effectId)
     NextSkillTest sid -> pure $ replaceNextSkillTest sid a
@@ -113,4 +116,16 @@ instance RunMessage EffectAttrs where
           modifiers' <- traverse updateModifier modifiers
           pure $ a {effectMetadata = Just $ EffectModifiers modifiers'}
         _ -> pure a
+    UseAbility _ ab _ | isSource a ab.source || isProxySource a ab.source -> do
+      push $ Do msg
+      pure a
+    InSearch msg'@(UseAbility _ ab _) | isSource a ab.source || isProxySource a ab.source -> do
+      push $ Do msg'
+      pure a
+    InDiscard _ msg'@(UseAbility _ ab _) | isSource a ab.source || isProxySource a ab.source -> do
+      push $ Do msg'
+      pure a
+    InHand _ msg'@(UseAbility _ ab _) | isSource a ab.source || isProxySource a ab.source -> do
+      push $ Do msg'
+      pure a
     _ -> pure a

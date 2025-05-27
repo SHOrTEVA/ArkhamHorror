@@ -63,7 +63,7 @@ noStoneUnturned =
     { cdSkills = [#wild]
     , cdCardTraits = singleton Insight
     , cdCriteria =
-        Just $ exists $ affectsOthers $ InvestigatorAt YourLocation <> can.manipulate.deck
+        Just $ exists $ affectsOthers $ colocatedWithMatch You <> can.manipulate.deck
     }
 
 sleightOfHand :: CardDef
@@ -208,8 +208,8 @@ aTestOfWill1 =
     , cdLevel = Just 1
     }
 
-devilsLuck :: CardDef
-devilsLuck =
+devilsLuck1 :: CardDef
+devilsLuck1 =
   (event "03157" "Devil's Luck" 1 Survivor)
     { cdSkills = [#agility]
     , cdCardTraits = singleton Fortune

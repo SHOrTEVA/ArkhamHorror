@@ -7,7 +7,9 @@ import Arkham.Message as X (
   Message (..),
   UI (..),
   pattern FailedThisSkillTest,
+  pattern FailedThisSkillTestBy,
   pattern PassedThisSkillTest,
+  pattern PassedThisSkillTestBy,
   pattern PlaceClues,
   pattern UseThisAbility,
  )
@@ -15,6 +17,7 @@ import Arkham.Message.Lifted as X hiding (story)
 import Arkham.Prelude as X
 import Arkham.Source as X
 import Arkham.Story.Runner as X (
+  Is (..),
   IsStory,
   StoryAttrs,
   StoryCard,
