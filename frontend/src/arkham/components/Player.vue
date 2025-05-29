@@ -392,15 +392,17 @@ const handAreaRef = ref<HTMLElement | null>(null);
 
 onMounted(() => {
   handAreaRef.value = document.querySelector('.hand-area-IsMobile');
-  ['click', 'touchstart', 'touchend'].forEach(event =>
-    document.addEventListener(event, resetHandAreaMarginBottom)
-  );
+  if (handAreaRef.value) {
+    ['click', 'touchstart', 'touchend'].forEach(event =>
+      document.addEventListener(event, resetHandAreaMarginBottom));
+  }
 });
 
 onBeforeUnmount(() => {
-  ['click', 'touchstart', 'touchend'].forEach(event =>
-    document.removeEventListener(event, resetHandAreaMarginBottom)
-  );
+  if (handAreaRef.value) {
+    ['click', 'touchstart', 'touchend'].forEach(event =>
+      document.removeEventListener(event, resetHandAreaMarginBottom));
+  }
 });
 
 function toggleHandAreaMarginBottom() {
