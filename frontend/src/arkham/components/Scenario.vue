@@ -470,16 +470,36 @@ function beforeLeave(e: Element) {
 
 function toggleZoom(e: MouseEvent) {
   const el = (e.target as HTMLElement).closest('.location-cards') as HTMLElement;
-  //el.style.zoom = el.style.zoom === "4" ? "1" : "4";
-  el.style.transform = el.style.transform === "scale(4)" ? "scale(1)" : "scale(4)";
+  //el.style.padding = "10px"
+  el.style.zoom = el.style.zoom === "4" ? "1" : "4"
+  //el.style.transform = el.style.transform === "scale(4)" ? "scale(1)" : "scale(4)";
+  
   const rect = el.getBoundingClientRect();
-  console.log(rect);
-  console.log("client: ", e.clientX, e.clientY);
-  console.log("offset: ", el.offsetHeight, el.offsetWidth);
-  console.log("scroll: ", el.scrollTop, el.scrollLeft);
+  console.log(rect)
+  console.log("client: ", e.clientX, e.clientY)
+  console.log("offset: ", el.offsetHeight, el.offsetWidth)
+  console.log("scroll: ", el.scrollTop, el.scrollLeft)
+
+  Object.values(props.game.investigators).forEach((i) => {
+    if (i.playerId === props.playerId) {
+      console.log("found player", i.id, i.name, i.location);
+      const locationImg = document.querySelector(`img[data-id="${i.location}"]`);
+      if (locationImg) {
+        console.log("Found location image:", locationImg);
+        const locationRect = locationImg.getBoundingClientRect();
+        const containerRect = el.getBoundingClientRect();
+        const x = locationRect.left - containerRect.left + el.scrollLeft;
+        const y = locationRect.top - containerRect.top + el.scrollTop;
+        console.log(`Position relative to .location-cards: x=${x}px, y=${y}px`);
+        el.scrollLeft = x/4
+        el.scrollTop = y/4
+      }
+    }
+  });
   //el.style.transformOrigin = `${e.clientX - rect.left + el.scrollLeft}px ${e.clientY-rect.top + el.scrollTop}px`;
-  //el.scrollLeft = e.clientX-rect.left-16.5;
-  //el.scrollTop = e.clientY-rect.top-100;
+  //el.style.transformOrigin = "center center"
+  //el.scrollLeft = e.clientX-rect.left-16.5
+  //el.scrollTop = e.clientY-rect.top-100
 }
 
 const doShowCards = (cards: ComputedRef<Card[]>, title: string, isDiscards: boolean) => {
