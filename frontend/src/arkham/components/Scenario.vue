@@ -470,8 +470,13 @@ function beforeLeave(e: Element) {
 
 function toggleZoom(e: MouseEvent) {
   const el = (e.target as HTMLElement).closest('.location-cards') as HTMLElement;
+<<<<<<< HEAD
   el.style.zoom = el.style.zoom === "4" ? "1" : "4";
   //el.style.transform = el.style.transform === "scale(4)" ? "scale(1)" : "scale(4)";
+=======
+  //el.style.zoom = el.style.zoom === "4" ? "1" : "4";
+  el.style.transform = el.style.transform === "scale(4)" ? "scale(1)" : "scale(4)";
+>>>>>>> 014dfeef4 (Update Scenario.vue)
   const rect = el.getBoundingClientRect();
   console.log(rect);
   console.log("client: ", e.clientX, e.clientY);
@@ -748,7 +753,6 @@ const showVictoryDisplay = () => doShowCards(victoryDisplay, t('scenario.victory
       <div class="location-cards-container" @dblclick.passive.capture="toggleZoom">
         <Connections :game="game" :playerId="playerId" />
         <input v-model="locationsZoom" type="range" min="1" max="3" step="0.25" class="zoomer" />
-<<<<<<< Updated upstream
         <transition-group name="map" tag="div" ref="locationMap" class="location-cards" :style="locationStyles" @before-leave="beforeLeave">
           <Location
             v-for="location in locations"
