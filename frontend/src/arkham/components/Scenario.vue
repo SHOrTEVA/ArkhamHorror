@@ -748,6 +748,7 @@ const showVictoryDisplay = () => doShowCards(victoryDisplay, t('scenario.victory
       <div class="location-cards-container" @dblclick.passive.capture="toggleZoom">
         <Connections :game="game" :playerId="playerId" />
         <input v-model="locationsZoom" type="range" min="1" max="3" step="0.25" class="zoomer" />
+<<<<<<< Updated upstream
         <transition-group name="map" tag="div" ref="locationMap" class="location-cards" :style="locationStyles" @before-leave="beforeLeave">
           <Location
             v-for="location in locations"
