@@ -70,19 +70,38 @@ function isCardAction(c: Message): boolean {
 
 const cardAction = computed(() => choices.value.findIndex(isCardAction))
 const canInteract = computed(() => abilities.value.length > 0 || cardAction.value !== -1)
+let clickTimeout: number | null = null;
+let clickCount = 0;
 
-async function clicked() {
-  if(cardAction.value !== -1) {
-    emits('choose', cardAction.value)
-  } else if (abilities.value.length > 0) {
-    showAbilities.value = !showAbilities.value
-    await nextTick()
-    if (showAbilities.value === true) {
-      abilitiesEl.value?.focus()
-    } else {
-      abilitiesEl.value?.blur()
+async function clicked(e:MouseEvent) {
+  clickCount++;
+  if (clickTimeout) {
+    clearTimeout(clickTimeout);
+  }  
+  clickTimeout = setTimeout(async () => {
+    if (clickCount === 1){
+      if(cardAction.value !== -1) {
+        emits('choose', cardAction.value)
+      } 
+      else if (abilities.value.length > 0) {
+        showAbilities.value = !showAbilities.value
+        await nextTick()
+        if (showAbilities.value === true) {
+          abilitiesEl.value?.focus()
+        } 
+        else {
+          abilitiesEl.value?.blur()
+        }
+      }
     }
-  }
+    //else if (clickCount === 2) {
+      // Handle double click
+    //}
+
+    // Reset click count and timeout
+    clickCount = 0;
+    clickTimeout = null;
+  }, 300);
 }
 
 async function chooseAbility(ability: number) {
