@@ -318,6 +318,7 @@ function onDrop(event: DragEvent) {
               @dragover.prevent="dragover($event)"
               @dragenter.prevent
               @click="clicked"
+              @dblclick="clicked"
             />
           </div>
 
