@@ -470,36 +470,36 @@ function beforeLeave(e: Element) {
 
 function toggleZoom(e: MouseEvent) {
   const el = (e.target as HTMLElement).closest('.location-cards') as HTMLElement;
-  //el.style.padding = "10px"
-  el.style.zoom = el.style.zoom === "4" ? "1" : "4"
-  //el.style.transform = el.style.transform === "scale(4)" ? "scale(1)" : "scale(4)";
-  
-  const rect = el.getBoundingClientRect();
-  console.log(rect)
-  console.log("client: ", e.clientX, e.clientY)
-  console.log("offset: ", el.offsetHeight, el.offsetWidth)
-  console.log("scroll: ", el.scrollTop, el.scrollLeft)
+  const zoomValue = 4;
+  const isZoomedIn = el.style.zoom === String(zoomValue);
 
-  Object.values(props.game.investigators).forEach((i) => {
-    if (i.playerId === props.playerId) {
-      console.log("found player", i.id, i.name, i.location);
-      const locationImg = document.querySelector(`img[data-id="${i.location}"]`);
-      if (locationImg) {
-        console.log("Found location image:", locationImg);
-        const locationRect = locationImg.getBoundingClientRect();
-        const containerRect = el.getBoundingClientRect();
-        const x = locationRect.left - containerRect.left + el.scrollLeft;
-        const y = locationRect.top - containerRect.top + el.scrollTop;
-        console.log(`Position relative to .location-cards: x=${x}px, y=${y}px`);
-        el.scrollLeft = x/4
-        el.scrollTop = y/4
-      }
+  // Save scroll position before zoom change
+  const scrollLeftValue = el.scrollLeft;
+  const scrollTopValue = el.scrollTop;
+
+  // Toggle zoom
+  el.style.zoom = isZoomedIn ? "1" : String(zoomValue);
+
+  // Adjust padding and scroll position after zoom change
+  const containerRect = el.getBoundingClientRect();
+  const investigator = Object.values(props.game.investigators).find(i => i.playerId === props.playerId);
+
+  if (investigator) {
+    const locationImg = document.querySelector(`img[data-id="${investigator.location}"]`);
+    if (locationImg) {
+      const locationRect = locationImg.getBoundingClientRect();
+      const paddingValue = (containerRect.height - locationRect.height) / (2 * zoomValue) + "px";
+
+      el.style.paddingTop = isZoomedIn ? "" : paddingValue;
+      el.style.paddingBottom = isZoomedIn ? "" : paddingValue;
+
+      const x = locationRect.left - containerRect.left + scrollLeftValue - (containerRect.width - locationRect.width) / 2;
+      const y = locationRect.top - containerRect.top + scrollTopValue;
+
+      el.scrollLeft = isZoomedIn ? scrollLeftValue : x / zoomValue;
+      el.scrollTop = isZoomedIn ? scrollTopValue : y / zoomValue;
     }
-  });
-  //el.style.transformOrigin = `${e.clientX - rect.left + el.scrollLeft}px ${e.clientY-rect.top + el.scrollTop}px`;
-  //el.style.transformOrigin = "center center"
-  //el.scrollLeft = e.clientX-rect.left-16.5
-  //el.scrollTop = e.clientY-rect.top-100
+  }
 }
 
 const doShowCards = (cards: ComputedRef<Card[]>, title: string, isDiscards: boolean) => {
@@ -766,7 +766,7 @@ const showVictoryDisplay = () => doShowCards(victoryDisplay, t('scenario.victory
       </div>
 
 
-      <div class="location-cards-container" @dblclick.passive.capture="toggleZoom">
+      <div class="location-cards-container" @dblclick.passive="toggleZoom">
         <Connections :game="game" :playerId="playerId" />
         <input v-model="locationsZoom" type="range" min="1" max="3" step="0.25" class="zoomer" />
         <transition-group name="map" tag="div" ref="locationMap" class="location-cards" :style="locationStyles" @before-leave="beforeLeave">

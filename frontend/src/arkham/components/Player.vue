@@ -413,7 +413,7 @@ function toggleHandAreaMarginBottom() {
 }
 
 function resetHandAreaMarginBottom(event: Event) {
-  const target = event instanceof TouchEvent && event.targetTouches.length > 0 
+  const target = typeof TouchEvent !== 'undefined' && event instanceof TouchEvent && event.targetTouches.length > 0 
     ? event.targetTouches[0].target 
     : event.target;
   if (handAreaRef.value && target instanceof Node && !handAreaRef.value.contains(target)) {
