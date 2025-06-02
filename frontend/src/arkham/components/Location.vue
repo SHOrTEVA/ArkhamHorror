@@ -104,6 +104,11 @@ async function clicked(e:MouseEvent) {
   }, 300);
 }
 
+function dbclicked(e:MouseEvent) {
+  e.stopPropagation()
+}
+
+
 async function chooseAbility(ability: number) {
   showAbilities.value = false
   abilitiesEl.value?.blur()
@@ -318,7 +323,7 @@ function onDrop(event: DragEvent) {
               @dragover.prevent="dragover($event)"
               @dragenter.prevent
               @click="clicked"
-              @dblclick="clicked"
+              @dblclick="dbclicked"
             />
           </div>
 
