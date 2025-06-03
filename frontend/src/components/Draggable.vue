@@ -155,7 +155,7 @@ onMounted(() => {
     const initialLeftPosition = (windowWidth - rect.width) / 2
     let initialTopPosition = (windowHeight - rect.height) / 2
     if(isMobile.value){
-      initialTopPosition = 52
+      initialTopPosition = 60
     }
     el.style.left = `${initialLeftPosition}px`
     el.style.top = `${initialTopPosition}px`
