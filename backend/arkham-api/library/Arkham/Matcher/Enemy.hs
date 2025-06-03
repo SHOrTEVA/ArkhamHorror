@@ -55,6 +55,7 @@ data EnemyMatcher
   | EnemyAttachedTo TargetMatcher
   | EnemyCanEnter LocationMatcher
   | EnemyCanSpawnIn LocationMatcher
+  | EnemyWantsToSpawnIn LocationMatcher
   | EnemyCanMove
   | EnemyWillMoveWith InvestigatorMatcher
   | EnemyWithSealedChaosTokens Int ChaosTokenMatcher
@@ -138,6 +139,7 @@ data EnemyMatcher
   | EnemyWhenOtherEnemy EnemyMatcher
   | EnemyIfReturnTo EnemyMatcher EnemyMatcher
   | EnemyWithAnyCardsUnderneath
+  | SignatureEnemy
   | -- | Must be replaced
     ThatEnemy
   deriving stock (Show, Eq, Ord, Data)

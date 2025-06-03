@@ -1,4 +1,4 @@
-{-# OPTIONS_GHC -Wno-orphans -Wno-deprecations #-}
+{-# OPTIONS_GHC -Wno-orphans #-}
 
 module Arkham.Game.Runner where
 
@@ -1202,10 +1202,23 @@ runGameMessage msg g = case msg of
       & (actionRemovedEntitiesL . skillsL %~ Map.foldr' (\s m -> Map.insert s.id s m) skills')
       & setTurnHistory
   Msg.SkillTestEnded _ -> do
+    let abilitiesToResolve = filter abilityTriggersSkillTest (g ^. activeAbilitiesL)
+    replaceAllMessagesMatching
+      \case
+        ResolvedAbility ab -> ab `elem` abilitiesToResolve
+        _ -> False
+      \case
+        ResolvedAbility ab -> [Priority $ ResolvedAbility ab]
+        other -> [other]
+
     pure
       $ g
       & (skillTestL .~ Nothing)
       & (skillTestResultsL .~ Nothing)
+      & (activeAbilitiesL %~ filter (not . abilityTriggersSkillTest))
+  Msg.AbilityIsSkillTest aref -> do
+    let updateAbility ab = if ab.ref == aref then ab { abilityTriggersSkillTest = True } else ab
+    pure $ g & (activeAbilitiesL %~ map updateAbility)
   Do msg'@(Search {}) -> do
     inSearch <- fromQueue (elem FinishedSearch)
     if inSearch
@@ -1276,6 +1289,11 @@ runGameMessage msg g = case msg of
       $ g
       & (focusedCardsL %~ map (filter (/= EncounterCard card)))
       . (foundCardsL . each %~ filter (/= EncounterCard card))
+  Msg.PlaceUnderneath _ cards -> do
+    pure
+      $ g
+      & (focusedCardsL %~ map (filter (`notElem` cards)))
+      . (foundCardsL . each %~ filter (`notElem` cards))
   ReturnToHand iid (SkillTarget skillId) -> do
     card <- field SkillCard skillId
     pushAll [RemoveFromPlay (toSource skillId), addToHand iid card]
@@ -1299,9 +1317,11 @@ runGameMessage msg g = case msg of
         _ -> False
 
       card <- field AssetCard assetId
+      underneath <- field AssetCardsUnderneath assetId
       if assetIsStory $ toAttrs asset
         then push $ toDiscard GameSource $ toTarget assetId
         else pushAll [RemoveFromPlay (toSource assetId), addToHand iid card]
+      for_ underneath (push . addToDiscard iid)
     pure g
   PlaceEnemy enemyId placement | not (isOutOfPlayZonePlacement placement) -> do
     enemy <- getEnemy enemyId
@@ -3334,8 +3354,6 @@ instance RunMessage Game where
         >>= runGameMessage msg
       )
       <&> handleActionDiff g
-      . set enemyMovingL Nothing
-      . set enemyEvadingL Nothing
 
 runPreGameMessage :: Runner Game
 runPreGameMessage msg g = case msg of

@@ -1,4 +1,4 @@
-{-# OPTIONS_GHC -Wno-orphans -Wno-deprecations #-}
+{-# OPTIONS_GHC -Wno-orphans #-}
 
 module Arkham.Event.Runner (
   module X,
@@ -264,6 +264,7 @@ runEventMessage msg a@EventAttrs {..} = case msg of
     pushM $ checkAfter $ Window.SpentToken source (toTarget a) useType' n
     runMessage (RemoveTokens source target useType' n) a
   MoveTokens s source _ tType n | isSource a source -> runMessage (RemoveTokens s (toTarget a) tType n) a
+  MoveTokens _s (InvestigatorSource _) target Clue _ | isTarget a target -> pure a
   MoveTokens s _ target tType n | isTarget a target -> runMessage (PlaceTokens s (toTarget a) tType n) a
   RemoveTokens _ target tType n | isTarget a target -> pure $ a & tokensL %~ subtractTokens tType n
   PlaceTokens source target tType n | isTarget a target -> do

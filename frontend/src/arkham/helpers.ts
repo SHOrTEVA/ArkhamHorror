@@ -5,6 +5,7 @@ import zh from '@/digests/zh.json'
 import { useSiteSettingsStore } from '@/stores/site_settings'
 
 export function toCapitalizedWords(name: string) {
+  console.log(name)
   // const words = name.match(/[A-Z]+[a-z']+/g) || [];
   const words = name.match(/[A-Z]?[a-z']+|[A-Z]/g) || [];
   return capitalize(words.map(lowercase).join(" "));
@@ -230,4 +231,14 @@ export function groupBy<T, K extends string | number | symbol>(
     result[key].push(item);
     return result;
   }, {} as Record<K, T[]>);
+}
+
+export function localizeArkhamDBBaseUrl() {
+  const language = localStorage.getItem('language') || 'en'
+
+  const baseUrl = new URL('https://arkhamdb.com');
+  if (language === "en") return baseUrl.origin;
+
+  baseUrl.hostname = `${language}.${baseUrl.hostname}`;
+  return baseUrl.origin;
 }

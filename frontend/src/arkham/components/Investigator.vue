@@ -463,7 +463,7 @@ i.action {
 }
 
 .neutralAction {
-  color: var(--neutral-extra-dark) !important;
+  color: var(--neutral) !important;
 }
 
 .guardianActionButton {

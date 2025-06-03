@@ -584,6 +584,7 @@ windowMatches iid rawSource window'@(windowTiming &&& windowType -> (timing', wT
   let guardTiming t body = if timing' == t then body wType else noMatch
   let mtchr = Matcher.replaceYouMatcher iid umtchr
   case mtchr of
+    Matcher.NotWindow inner -> not <$> windowMatches iid rawSource window' inner
     Matcher.TakeControlOfKey timing whoMatcher _keyMatcher -> guardTiming timing \case
       Window.TakeControlOfKey who _ -> matchWho iid who whoMatcher
       _ -> noMatch
@@ -916,6 +917,9 @@ windowMatches iid rawSource window'@(windowTiming &&& windowType -> (timing', wT
           [ matchWho iid who whoMatcher
           , abilityMatches ability abilityMatcher
           ]
+      _ -> noMatch
+    Matcher.CommittingCardsFromHandToSkillTestStep timing whoMatcher -> guardTiming timing $ \case
+      Window.CommittingCardsFromHandToSkillTestStep who -> matchWho iid who whoMatcher
       _ -> noMatch
     Matcher.CommittedCard timing whoMatcher cardMatcher -> guardTiming timing $ \case
       Window.CommittedCard who card ->

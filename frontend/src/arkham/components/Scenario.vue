@@ -639,7 +639,6 @@ const showVictoryDisplay = () => doShowCards(victoryDisplay, t('scenario.victory
             />
           </div>
 
-
           <EncounterDeck
             v-if="spectralEncounterDeck"
             :spectral="spectralEncounterDeck.length"
@@ -1266,6 +1265,7 @@ const showVictoryDisplay = () => doShowCards(victoryDisplay, t('scenario.victory
 .empty-grid-position {
   content: " ";
   box-shadow: unset;
+  justify-self: center;
 }
 
 .can-interact {

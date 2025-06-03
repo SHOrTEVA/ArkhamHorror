@@ -385,6 +385,7 @@ data Message
   | AddSubscriber Target
   | SetInvestigator PlayerId Investigator
   | ResolvedAbility Ability -- INTERNAL, See Arbiter of Fates
+  | AbilityIsSkillTest AbilityRef
   | -- Story Card Messages
     ReadStory InvestigatorId Card StoryMode (Maybe Target)
   | ReadStoryWithPlacement InvestigatorId Card StoryMode (Maybe Target) Placement
@@ -994,6 +995,7 @@ data Message
   | ShuffleCardsIntoDeck DeckSignifier [Card]
   | ShuffleDiscardBackIn InvestigatorId
   | ShuffleEncounterDiscardBackIn
+  | ShuffleEncounterDiscardBackInByKey ScenarioEncounterDeckKey
   | ShuffleDeck DeckSignifier
   | ShuffleIntoDeck DeckSignifier Target
   | ShuffleCardsIntoTopOfDeck DeckSignifier Int [Card]
