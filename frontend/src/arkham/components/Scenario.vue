@@ -482,23 +482,26 @@ function toggleZoom(e: MouseEvent) {
 
   // Adjust padding and scroll position after zoom change
   const containerRect = el.getBoundingClientRect();
-  const investigator = Object.values(props.game.investigators).find(i => i.playerId === props.playerId);
-
-  if (investigator) {
-    const locationImg = document.querySelector(`img[data-id="${investigator.location}"]`);
-    if (locationImg) {
-      const locationRect = locationImg.getBoundingClientRect();
-      const paddingValue = (containerRect.height - locationRect.height) / (2 * zoomValue) + "px";
-
-      el.style.paddingTop = isZoomedIn ? "" : paddingValue;
-      el.style.paddingBottom = isZoomedIn ? "" : paddingValue;
-
-      const x = locationRect.left - containerRect.left + scrollLeftValue - (containerRect.width - locationRect.width) / 2;
-      const y = locationRect.top - containerRect.top + scrollTopValue;
-
-      el.scrollLeft = isZoomedIn ? scrollLeftValue : x / zoomValue;
-      el.scrollTop = isZoomedIn ? scrollTopValue : y / zoomValue;
+  const target = e.target as HTMLElement; 
+  let locationImg = null;
+  if (target && target.classList.contains('card--locations')){
+    locationImg = target;
+  }
+  else{
+    const investigator = Object.values(props.game.investigators).find(i => i.playerId === props.playerId);
+    if (investigator) {
+      locationImg = document.querySelector(`img[data-id="${investigator.location}"]`);      
     }
+  }
+  if (locationImg) {
+    const locationRect = locationImg.getBoundingClientRect();
+    const paddingValue = (containerRect.height - locationRect.height) / (2 * zoomValue) + "px"
+    el.style.paddingTop = isZoomedIn ? "" : paddingValue;
+    el.style.paddingBottom = isZoomedIn ? "" : paddingValue
+    const x = locationRect.left - containerRect.left + scrollLeftValue - (containerRect.width - locationRect.width) / 2;
+    const y = locationRect.top - containerRect.top + scrollTopValue
+    el.scrollLeft = isZoomedIn ? scrollLeftValue : x / zoomValue;
+    el.scrollTop = isZoomedIn ? scrollTopValue : y / zoomValue;
   }
 }
 
