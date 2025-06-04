@@ -386,6 +386,10 @@ const tabooList = function (investigator: Investigator) {
     word-wrap: break-word;
     white-space: pre-wrap;
   }
+  @media (max-width: 800px) and (orientation: portrait) {
+      flex-direction: column;
+      align-items: center;
+  }
 }
 
 .breakdowns {
