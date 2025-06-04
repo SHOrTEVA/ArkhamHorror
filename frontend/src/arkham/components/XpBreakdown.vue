@@ -194,5 +194,8 @@ h3 {
     flex: 1;
     height: fit-content;
   }
+  @media (max-width: 800px) and (orientation: portrait) {
+      flex-direction: column;
+  }
 }
 </style>
