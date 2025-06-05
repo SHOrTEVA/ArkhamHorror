@@ -515,15 +515,54 @@ function resetHandAreaMarginBottom(event: Event) {
             <img :src="slotImg(slot)" />
           </div>
 
-          <Enemy
-            v-for="enemy in engagedEnemies"
-            :key="enemy.id"
-            :enemy="enemy"
-            :game="game"
-            :data-index="enemy.cardId"
-            :playerId="playerId"
-            @choose="$emit('choose', $event)"
-          />
+        <img
+          v-if="investigatorId === 'c89001'"
+          class="card"
+          @click="realityAcid = realityAcid === '89005' ? '89005b' : '89005'"
+          :src="imgsrc(`cards/${realityAcid}.avif`)"
+        />
+        <Enemy
+          v-if = "isMobile"
+          v-for="enemy in engagedEnemies"
+          :key="enemy.id"
+          :enemy="enemy"
+          :game="game"
+          :data-index="enemy.cardId"
+          :playerId="playerId"
+          @choose="$emit('choose', $event)"
+        />
+        <Treachery
+          v-if = "isMobile"
+          v-for="treacheryId in investigator.treacheries"
+          :key="treacheryId"
+          :treachery="game.treacheries[treacheryId]"
+          :game="game"
+          :data-index="game.treacheries[treacheryId].cardId"
+          :playerId="playerId"
+          @choose="$emit('choose', $event)"
+        />
+
+        <Location
+          v-if = "isMobile"
+          v-for="(location, key) in locations"
+          class="location"
+          :key="key"
+          :game="game"
+          :playerId="playerId"
+          :location="location"
+          :data-index="location.cardId"
+          :style="{ 'grid-area': location.label, 'justify-self': 'center' }"
+          @choose="$emit('choose', $event)"
+        />
+        <Treachery
+          v-for="treachery in currentTreacheries"
+          :key="treachery.id"
+          :treachery="treachery"
+          :game="game"
+          :data-index="treachery.cardId"
+          :playerId="playerId"
+          @choose="$emit('choose', $event)"
+        />
 
           <Treachery
             v-for="treacheryId in investigator.treacheries"
@@ -606,6 +645,7 @@ function resetHandAreaMarginBottom(event: Event) {
         />
 
         <Treachery
+          v-if = "!isMobile"
           v-for="treacheryId in investigator.treacheries"
           :key="treacheryId"
           :treachery="game.treacheries[treacheryId]"
@@ -616,6 +656,7 @@ function resetHandAreaMarginBottom(event: Event) {
         />
 
         <Location
+          v-if = "!isMobile"
           v-for="(location, key) in locations"
           class="location"
           :key="key"
