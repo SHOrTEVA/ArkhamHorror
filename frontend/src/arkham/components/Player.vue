@@ -441,7 +441,16 @@ function resetHandAreaMarginBottom(event: Event) {
           @click="realityAcid = realityAcid === '89005' ? '89005b' : '89005'"
           :src="imgsrc(`cards/${realityAcid}.avif`)"
         />
-
+        <Enemy
+          v-if = "isMobile"
+          v-for="enemy in engagedEnemies"
+          :key="enemy.id"
+          :enemy="enemy"
+          :game="game"
+          :data-index="enemy.cardId"
+          :playerId="playerId"
+          @choose="$emit('choose', $event)"
+        />
         <Treachery
           v-for="treachery in currentTreacheries"
           :key="treachery.id"
@@ -499,6 +508,7 @@ function resetHandAreaMarginBottom(event: Event) {
         </div>
 
         <Enemy
+          v-if = "!isMobile"
           v-for="enemy in engagedEnemies"
           :key="enemy.id"
           :enemy="enemy"
