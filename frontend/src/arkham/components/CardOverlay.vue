@@ -25,6 +25,11 @@ onMounted(() => {
       }
       canDisablePress = true
     }
+    else{
+      if (!isMobile){
+        hoveredElement.value = null
+      }
+    }
   }
 
   const isMobile = window.matchMedia('(hover: none) and (pointer: coarse)').matches;
@@ -501,7 +506,9 @@ const getImage = (el: HTMLElement): string | null => {
     //width: fit-content !important;
     //aspect-ratio: var(--card-sideways-aspect);
     width: auto;
-    overflow: auto;
+    @media (max-width: 800px) and (orientation: portrait){
+      overflow: auto;
+    }
     img {
       aspect-ratio: var(--card-sideways-aspect);
       border-radius: 15px;
