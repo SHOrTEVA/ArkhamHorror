@@ -452,6 +452,29 @@ function resetHandAreaMarginBottom(event: Event) {
           @choose="$emit('choose', $event)"
         />
         <Treachery
+          v-if = "isMobile"
+          v-for="treacheryId in investigator.treacheries"
+          :key="treacheryId"
+          :treachery="game.treacheries[treacheryId]"
+          :game="game"
+          :data-index="game.treacheries[treacheryId].cardId"
+          :playerId="playerId"
+          @choose="$emit('choose', $event)"
+        />
+
+        <Location
+          v-if = "isMobile"
+          v-for="(location, key) in locations"
+          class="location"
+          :key="key"
+          :game="game"
+          :playerId="playerId"
+          :location="location"
+          :data-index="location.cardId"
+          :style="{ 'grid-area': location.label, 'justify-self': 'center' }"
+          @choose="$emit('choose', $event)"
+        />
+        <Treachery
           v-for="treachery in currentTreacheries"
           :key="treachery.id"
           :treachery="treachery"
@@ -519,6 +542,7 @@ function resetHandAreaMarginBottom(event: Event) {
         />
 
         <Treachery
+          v-if = "!isMobile"
           v-for="treacheryId in investigator.treacheries"
           :key="treacheryId"
           :treachery="game.treacheries[treacheryId]"
@@ -529,6 +553,7 @@ function resetHandAreaMarginBottom(event: Event) {
         />
 
         <Location
+          v-if = "!isMobile"
           v-for="(location, key) in locations"
           class="location"
           :key="key"
