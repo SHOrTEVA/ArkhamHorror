@@ -351,6 +351,21 @@ function startDrag(event: DragEvent, enemy: Arkham.Enemy) {
   border: 2px solid var(--select);
   border-radius: 5px;
   cursor: pointer;
+  @media (max-width: 800px) and (orientation: portrait){
+    border: 2px solid red;
+    filter: drop-shadow(0 0 0.5vmin darkred) drop-shadow(0 0.5vmin 0.5vmin darkred) drop-shadow(0.5vmin -0.5vmin 1vmin darkred) drop-shadow(0 0 1vmin darkred);
+    animation: blood-drip 0.5s ease-in-out, blood-glow 3s cubic-bezier(0.55, 0.085, 0.68, 0.53) infinite;
+
+    @keyframes blood-drip {
+      0% { transform: translateY(0); }
+      50% { transform: translateY(0.25vmin); }
+      100% { transform: translateY(0); }
+    }
+
+    @keyframes blood-glow {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.9; }
+    }} 
 }
 
 .enemy {

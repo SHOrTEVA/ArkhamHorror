@@ -595,6 +595,7 @@ function resetHandAreaMarginBottom(event: Event) {
         </div>
 
         <Enemy
+          v-if = "!isMobile"
           v-for="enemy in engagedEnemies"
           :key="enemy.id"
           :enemy="enemy"
