@@ -539,7 +539,18 @@ function onDrop(event: DragEvent) {
   &:deep(.card) {
     width: calc(var(--card-width) * 0.8) !important;
   }
-
+  &:deep(.pool) {
+    width: 200%!important;
+    height: fit-content;
+    top:1em;
+    font-size: .5em;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+  }
+  &:deep(.poolItem) {
+    width: calc(var(--card-width) * 0.4) !important;
+  }
   &:hover {
     animation-fill-mode:forwards;
     div:not(:last-child) {

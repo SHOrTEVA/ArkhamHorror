@@ -216,6 +216,15 @@ const isVertical = computed(() => {
     height: min-content;
     align-self: center;
   }
+  @media (max-width: 800px) and (orientation: portrait) {
+    :deep(span) {
+      font-size:.55em;
+    }
+    :deep(.poolItem.poolItem-doom) {
+      width: .7em;
+      height: fit-content;
+    }
+  }
 }
 
 .button{
