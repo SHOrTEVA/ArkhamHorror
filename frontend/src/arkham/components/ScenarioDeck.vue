@@ -76,6 +76,10 @@ const deckLabel = computed(() => {
   padding: 0 2px;
   transform: translateX(-50%) translateY(50%);
   background: rgba(255,255,255,0.8);
+  @media (max-width: 800px) and (orientation: portrait) {
+    font-size: .6em;
+    top:-1.5em
+  }
 }
 
 .deck-size {
