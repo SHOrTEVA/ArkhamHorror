@@ -580,6 +580,18 @@ function onDrop(event: DragEvent) {
   &.clues {
     top: 10%;
   }
+  @media (max-width: 800px) and (orientation: portrait) {
+      &:deep(.poolItem) {
+        width: calc(var(--card-width) * 0.6) !important;
+      }
+      top:35%!important;
+      left:80%;
+      width: fit-content;
+      height: fit-content;
+      :deep(span) {
+        width: fit-content!important;
+      }
+  }
   pointer-events: none;
 }
 
