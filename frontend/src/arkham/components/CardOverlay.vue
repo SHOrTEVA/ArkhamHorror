@@ -36,7 +36,7 @@ onMounted(() => {
   let pressTimer : number | undefined = undefined
   const handlePress = (event: Event) => {
     pressTimer = setTimeout(() => handleMouseover(event), 200)
-    event.preventDefault()
+    //event.preventDefault()
   }
   const disablePress = () => {
     if (canDisablePress) {
