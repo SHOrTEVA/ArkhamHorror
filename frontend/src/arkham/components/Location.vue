@@ -577,6 +577,7 @@ function onDrop(event: DragEvent) {
   align-self: flex-start;
   align-items: flex-end;
   gap: 2px;
+  pointer-events: none;
   &.clues {
     top: 10%;
   }
@@ -592,7 +593,6 @@ function onDrop(event: DragEvent) {
         width: fit-content!important;
       }
   }
-  pointer-events: none;
 }
 
 .card-frame {

@@ -49,7 +49,14 @@ onMounted(() => {
     }
   }
   const filterPress = () => {
-    if (hoveredElement.value?.classList.length === 1 && hoveredElement.value.classList.contains('card')) {
+    if (hoveredElement.value?.classList.contains('in-hand')) {
+        hoveredElement.value = null
+    }
+    clearTimeout(pressTimer)
+  }
+
+  const filterMove = () => {
+    if (hoveredElement.value?.classList.contains('card--locations')) {
         hoveredElement.value = null
     }
     clearTimeout(pressTimer)
@@ -60,6 +67,7 @@ onMounted(() => {
   } else {
     document.addEventListener('contextmenu', e => e.preventDefault());
     document.addEventListener('touchstart', handlePress)
+    document.addEventListener('touchmove', filterMove)
     document.addEventListener('touchend', filterPress)
     document.addEventListener('mouseup', disablePress)
   }
