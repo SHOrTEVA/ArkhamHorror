@@ -1426,6 +1426,7 @@ library
       Arkham.Campaign.Campaigns.NightOfTheZealot
       Arkham.Campaign.Campaigns.ReturnToNightOfTheZealot
       Arkham.Campaign.Campaigns.ReturnToTheDunwichLegacy
+      Arkham.Campaign.Campaigns.ReturnToTheForgottenAge
       Arkham.Campaign.Campaigns.ReturnToThePathToCarcosa
       Arkham.Campaign.Campaigns.TheCircleUndone
       Arkham.Campaign.Campaigns.TheDreamEaters
@@ -1553,6 +1554,7 @@ library
       Arkham.Effect
       Arkham.Effect.Builder
       Arkham.Effect.Effects
+      Arkham.Effect.Effects.AbilityEffect
       Arkham.Effect.Effects.ChaosTokenEffect
       Arkham.Effect.Effects.EndOfRoundEffect
       Arkham.Effect.Effects.EndOfTurnEffect
@@ -1692,6 +1694,7 @@ library
       Arkham.Enemy.Cards.GugSentinel
       Arkham.Enemy.Cards.HandOfTheBrotherhood
       Arkham.Enemy.Cards.HarbingerOfValusia
+      Arkham.Enemy.Cards.HarbingerOfValusiaTheSleeperReturns
       Arkham.Enemy.Cards.HarlanEarnstoneCrazedByTheCurse
       Arkham.Enemy.Cards.HasturLordOfCarcosa
       Arkham.Enemy.Cards.HasturTheKingInYellow
@@ -1843,6 +1846,7 @@ library
       Arkham.Enemy.Cards.SeekerOfCarcosa
       Arkham.Enemy.Cards.SeepingNightmare
       Arkham.Enemy.Cards.SerpentFromYoth
+      Arkham.Enemy.Cards.SerpentGuardian
       Arkham.Enemy.Cards.SerpentOfTenochtitlan
       Arkham.Enemy.Cards.SerpentsOfYig
       Arkham.Enemy.Cards.SerpentsOfYigAdvanced
@@ -1896,6 +1900,7 @@ library
       Arkham.Enemy.Cards.TheWingedSerpent
       Arkham.Enemy.Cards.Thrall
       Arkham.Enemy.Cards.TidalTerror
+      Arkham.Enemy.Cards.TindalosAlpha
       Arkham.Enemy.Cards.TommyMalloy
       Arkham.Enemy.Cards.TonysQuarry
       Arkham.Enemy.Cards.Umordhoth
@@ -1904,6 +1909,7 @@ library
       Arkham.Enemy.Cards.ValentinoRivas
       Arkham.Enemy.Cards.VassalOfTheLurker
       Arkham.Enemy.Cards.VengefulHound
+      Arkham.Enemy.Cards.VengefulSerpent
       Arkham.Enemy.Cards.VengefulShade
       Arkham.Enemy.Cards.VengefulSpecter
       Arkham.Enemy.Cards.VengefulWitch
@@ -2618,6 +2624,7 @@ library
       Arkham.Location.Cards.AlchemyLabs
       Arkham.Location.Cards.AltarToDagon
       Arkham.Location.Cards.AncientHall
+      Arkham.Location.Cards.AncientHallRearrangedByTime
       Arkham.Location.Cards.AncientPlanetarium
       Arkham.Location.Cards.AnotherDimension
       Arkham.Location.Cards.APocketInTime
@@ -2702,6 +2709,7 @@ library
       Arkham.Location.Cards.Celephais
       Arkham.Location.Cards.Cellar
       Arkham.Location.Cards.ChamberOfTime
+      Arkham.Location.Cards.ChamberOfTimeRearrangedByTime
       Arkham.Location.Cards.ChapelAttic_175
       Arkham.Location.Cards.ChapelAttic_176
       Arkham.Location.Cards.ChapelAtticSpectral_175
@@ -2728,6 +2736,7 @@ library
       Arkham.Location.Cards.CliffsideRoad_a
       Arkham.Location.Cards.CliffsideRoad_b
       Arkham.Location.Cards.Cloister
+      Arkham.Location.Cards.CloudForest
       Arkham.Location.Cards.CloverClubBar
       Arkham.Location.Cards.CloverClubCardroom
       Arkham.Location.Cards.CloverClubLounge
@@ -2824,6 +2833,7 @@ library
       Arkham.Location.Cards.EntryHallAtDeathsDoorstep
       Arkham.Location.Cards.EntryHallSpectral
       Arkham.Location.Cards.Entryway
+      Arkham.Location.Cards.EntrywayRearrangedByTime
       Arkham.Location.Cards.EsotericOrderOfDagon
       Arkham.Location.Cards.EsotericOrderOfDagonInTooDeep
       Arkham.Location.Cards.ExhibitHallAthabaskanExhibit
@@ -2889,6 +2899,7 @@ library
       Arkham.Location.Cards.GlacialGrotto
       Arkham.Location.Cards.Gondola
       Arkham.Location.Cards.GrandChamber
+      Arkham.Location.Cards.GrandChamberRearrangedByTime
       Arkham.Location.Cards.GrandEntryway
       Arkham.Location.Cards.GrandGuignol
       Arkham.Location.Cards.GrandRue
@@ -3031,6 +3042,7 @@ library
       Arkham.Location.Cards.MoonBeastGalley
       Arkham.Location.Cards.MoonForest
       Arkham.Location.Cards.Morgue
+      Arkham.Location.Cards.MosaicChamber
       Arkham.Location.Cards.MoundOfBones
       Arkham.Location.Cards.MouthOfKnYanTheCavernsMaw
       Arkham.Location.Cards.MouthOfKnYanTheDepthsBeneath
@@ -3136,6 +3148,7 @@ library
       Arkham.Location.Cards.RitualGrounds
       Arkham.Location.Cards.RitualSite
       Arkham.Location.Cards.RiverCanyon
+      Arkham.Location.Cards.RiversideTemple
       Arkham.Location.Cards.Rivertown
       Arkham.Location.Cards.Rivertown_292
       Arkham.Location.Cards.Rivertown_293
@@ -3170,6 +3183,7 @@ library
       Arkham.Location.Cards.ScienceBuilding
       Arkham.Location.Cards.SculpturedCrypt
       Arkham.Location.Cards.SealedExit
+      Arkham.Location.Cards.SealedPassage
       Arkham.Location.Cards.SeaOfBones
       Arkham.Location.Cards.SeaOfPitch_262
       Arkham.Location.Cards.SeaOfPitch_263
@@ -3197,6 +3211,7 @@ library
       Arkham.Location.Cards.SkaiRiver
       Arkham.Location.Cards.SlaughteredWoods
       Arkham.Location.Cards.SleepingCar
+      Arkham.Location.Cards.SnakePit
       Arkham.Location.Cards.SnowCoveredCrag
       Arkham.Location.Cards.SnowGraves
       Arkham.Location.Cards.SouthChurch_298
@@ -3279,6 +3294,7 @@ library
       Arkham.Location.Cards.TheSummit
       Arkham.Location.Cards.TheThroneRoom
       Arkham.Location.Cards.TheWhiteShip
+      Arkham.Location.Cards.ThroneRoom
       Arkham.Location.Cards.TidalPool
       Arkham.Location.Cards.TightTurn_a
       Arkham.Location.Cards.TightTurn_b
@@ -3289,10 +3305,12 @@ library
       Arkham.Location.Cards.TitanicRamp_184
       Arkham.Location.Cards.TitanicRamp_185
       Arkham.Location.Cards.TombOfShadows
+      Arkham.Location.Cards.TombOfTheAncients
       Arkham.Location.Cards.ToweringLuminosity
       Arkham.Location.Cards.TowerOfKoth
       Arkham.Location.Cards.TowersOfPnakotus
       Arkham.Location.Cards.TownHall
+      Arkham.Location.Cards.TrailOfTheDead
       Arkham.Location.Cards.TrainTracks
       Arkham.Location.Cards.TrappersCabin
       Arkham.Location.Cards.TrapRoom
@@ -3340,6 +3358,7 @@ library
       Arkham.Location.Cards.WaitingRoom
       Arkham.Location.Cards.WalterGilmansRoom
       Arkham.Location.Cards.WarrenObservatory
+      Arkham.Location.Cards.Waterfall
       Arkham.Location.Cards.WavewornIsland
       Arkham.Location.Cards.WellOfSouls
       Arkham.Location.Cards.WhateleyRuins_250
@@ -3478,6 +3497,7 @@ library
       Arkham.Scenario.Scenarios.ReturnToExtracurricularActivities
       Arkham.Scenario.Scenarios.ReturnToLostInTimeAndSpace
       Arkham.Scenario.Scenarios.ReturnToTheDevourerBelow
+      Arkham.Scenario.Scenarios.ReturnToTheDoomOfEztli
       Arkham.Scenario.Scenarios.ReturnToTheEssexCountyExpress
       Arkham.Scenario.Scenarios.ReturnToTheGathering
       Arkham.Scenario.Scenarios.ReturnToTheHouseAlwaysWins
@@ -3486,6 +3506,7 @@ library
       Arkham.Scenario.Scenarios.ReturnToTheMiskatonicMuseum
       Arkham.Scenario.Scenarios.ReturnToThePallidMask
       Arkham.Scenario.Scenarios.ReturnToTheUnspeakableOath
+      Arkham.Scenario.Scenarios.ReturnToTheUntamedWilds
       Arkham.Scenario.Scenarios.ReturnToUndimensionedAndUnseen
       Arkham.Scenario.Scenarios.ReturnToWhereDoomAwaits
       Arkham.Scenario.Scenarios.ShatteredAeons
@@ -3568,6 +3589,7 @@ library
       Arkham.Scenarios.TheDepthsOfYoth.Helpers
       Arkham.Scenarios.TheDepthsOfYoth.Story
       Arkham.Scenarios.TheDevourerBelow.Helpers
+      Arkham.Scenarios.TheDoomOfEztli.Helpers
       Arkham.Scenarios.TheDoomOfEztli.Story
       Arkham.Scenarios.TheEssexCountyExpress.Helpers
       Arkham.Scenarios.TheGathering.Helpers
@@ -3585,7 +3607,7 @@ library
       Arkham.Scenarios.TheSecretName.Helpers
       Arkham.Scenarios.TheSecretName.Story
       Arkham.Scenarios.TheUnspeakableOath.Helpers
-      Arkham.Scenarios.TheUntamedWilds.Story
+      Arkham.Scenarios.TheUntamedWilds.Helpers
       Arkham.Scenarios.TheVanishingOfElinaHarper.Helpers
       Arkham.Scenarios.TheWagesOfSin.Helpers
       Arkham.Scenarios.TheWagesOfSin.Story
@@ -3920,6 +3942,7 @@ library
       Arkham.Treachery.Cards.BeastOfTheBayou
       Arkham.Treachery.Cards.Bedeviled
       Arkham.Treachery.Cards.BeneathTheLodge
+      Arkham.Treachery.Cards.BestLaidPlans
       Arkham.Treachery.Cards.BetweenWorlds
       Arkham.Treachery.Cards.BeyondTheVeil
       Arkham.Treachery.Cards.BlackStarsRise
@@ -4125,6 +4148,7 @@ library
       Arkham.Treachery.Cards.MeddlesomeFamiliar
       Arkham.Treachery.Cards.Melancholy
       Arkham.Treachery.Cards.MemoryOfOblivion
+      Arkham.Treachery.Cards.MergingTimelines
       Arkham.Treachery.Cards.Mesmerize
       Arkham.Treachery.Cards.MiasmaticTorment
       Arkham.Treachery.Cards.MorbidAwareness
@@ -4187,6 +4211,7 @@ library
       Arkham.Treachery.Cards.RealityAcid5U21
       Arkham.Treachery.Cards.RealmOfMadness
       Arkham.Treachery.Cards.RealmOfTorment
+      Arkham.Treachery.Cards.ResentfulWilds
       Arkham.Treachery.Cards.RestlessJourneyFallacy
       Arkham.Treachery.Cards.RestlessJourneyHardship
       Arkham.Treachery.Cards.RestlessJourneyLies
@@ -4350,6 +4375,7 @@ library
       Arkham.Treachery.Cards.Wracked
       Arkham.Treachery.Cards.WrackedByNightmares
       Arkham.Treachery.Cards.WrackedByTime
+      Arkham.Treachery.Cards.WrathOfYig
       Arkham.Treachery.Cards.WukWukWuk
       Arkham.Treachery.Cards.Yaztaroth
       Arkham.Treachery.Cards.YithianPresence
