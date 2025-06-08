@@ -4,6 +4,9 @@ import Arkham.Ability
 import Arkham.Agenda.Cards qualified as Cards
 import Arkham.Agenda.Import.Lifted
 import Arkham.Campaigns.TheForgottenAge.Helpers
+import Arkham.Helpers.Investigator
+import Arkham.Helpers.Location
+import Arkham.Matcher hiding (InvestigatorDefeated)
 import Arkham.Treachery.Cards qualified as Treacheries
 
 newtype Intruders = Intruders AgendaAttrs
@@ -19,10 +22,13 @@ instance HasAbilities Intruders where
 instance RunMessage Intruders where
   runMessage msg a@(Intruders attrs) = runQueueT $ case msg of
     UseThisAbility iid (isSource attrs -> True) 1 -> do
-      runExplore iid (attrs.ability 1)
+      locationSymbols <- toConnections =<< getJustLocation iid
+      let source = attrs.ability 1
+      push $ Explore iid source (mapOneOf CardWithPrintedLocationSymbol locationSymbols)
       pure a
     AdvanceAgenda (isSide B attrs -> True) -> do
       eachInvestigator (investigatorDefeated attrs)
-      eachUnpoisoned \iid -> addCampaignCardToDeck iid DoNotShuffleIn Treacheries.poisoned
+      getUnpoisoned
+        >>= traverse_ \iid -> addCampaignCardToDeck iid DoNotShuffleIn Treacheries.poisoned
       pure a
     _ -> Intruders <$> liftRunMessage msg attrs

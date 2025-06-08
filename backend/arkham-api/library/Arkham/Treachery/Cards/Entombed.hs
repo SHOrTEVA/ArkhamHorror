@@ -1,4 +1,4 @@
-module Arkham.Treachery.Cards.Entombed (entombed) where
+module Arkham.Treachery.Cards.Entombed (entombed, Entombed (..)) where
 
 import Arkham.Ability
 import Arkham.Helpers.Modifiers

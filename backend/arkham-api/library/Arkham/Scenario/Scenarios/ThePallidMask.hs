@@ -181,8 +181,6 @@ instance RunMessage ThePallidMask where
       unableToFindNigel <- getHasRecord YouWereUnableToFindNigel
       let awokeInsideTheCatacombs = didNotEscapeGazeOfThePhantom || unableToFindNigel
 
-      record $ if awokeInsideTheCatacombs then YouAwokeInsideTheCatacombs else YouEnteredTheCatacombsOnYourOwn
-
       flavor do
         h "title"
         p.validate awokeInsideTheCatacombs "readIntro1"

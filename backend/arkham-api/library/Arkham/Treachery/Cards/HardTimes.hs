@@ -1,7 +1,6 @@
-module Arkham.Treachery.Cards.HardTimes (hardTimes) where
+module Arkham.Treachery.Cards.HardTimes (hardTimes, HardTimes (..)) where
 
 import Arkham.Ability
-import Arkham.Card
 import Arkham.Discard
 import Arkham.Helpers.Message.Discard
 import Arkham.Helpers.Window (cardsDrawn)
@@ -18,9 +17,7 @@ hardTimes = treachery HardTimes Cards.hardTimes
 
 instance HasAbilities HardTimes where
   getAbilities (HardTimes a) =
-    [ restrictedAbility a 1 InYourThreatArea
-        $ forced
-        $ DrawsCards #after You (NotCards $ HasCard $ CardWithId (toCardId a)) (atLeast 1)
+    [ restrictedAbility a 1 InYourThreatArea $ forced $ DrawsCards #after You (atLeast 1)
     , restrictedAbility a 2 OnSameLocation $ ActionAbility [] $ ActionCost 2
     ]
 

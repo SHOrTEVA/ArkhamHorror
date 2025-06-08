@@ -21,6 +21,7 @@ import Arkham.Projection
 import Arkham.Source
 import Arkham.Target
 import Arkham.Trait
+import Arkham.Window (Window)
 import Data.Aeson.TH
 import Data.Data
 import GHC.Records
@@ -45,7 +46,7 @@ data instance Field Effect :: Type -> Type where
   EffectCardCode :: Field Effect CardCode
   EffectCard :: Field Effect (Maybe Card)
   EffectAbilities :: Field Effect [Ability]
-  EffectMeta :: Field Effect (Maybe (EffectMetadata Message))
+  EffectMeta :: Field Effect (Maybe (EffectMetadata Window Message))
 
 cardEffect :: (EffectAttrs -> a) -> CardDef -> EffectArgs -> a
 cardEffect f def = f . uncurry (baseAttrs (toCardCode def))
@@ -62,7 +63,7 @@ data EffectBuilder = EffectBuilder
   , effectBuilderTarget :: Target
   , effectBuilderSource :: Source
   , effectBuilderTraits :: Set Trait
-  , effectBuilderMetadata :: Maybe (EffectMetadata Message)
+  , effectBuilderMetadata :: Maybe (EffectMetadata Window Message)
   , effectBuilderWindow :: Maybe EffectWindow
   , effectBuilderDisableWindow :: Maybe EffectWindow
   , effectBuilderOnDisable :: Maybe [Message]
@@ -84,7 +85,7 @@ data EffectAttrs = EffectAttrs
   , effectSource :: Source
   , effectCardId :: Maybe CardId
   , effectTraits :: Set Trait
-  , effectMetadata :: Maybe (EffectMetadata Message)
+  , effectMetadata :: Maybe (EffectMetadata Window Message)
   , effectWindow :: Maybe EffectWindow
   , effectDisableWindow :: Maybe EffectWindow
   , effectFinished :: Bool
@@ -129,7 +130,7 @@ instance HasField "source" Effect Source where
 instance HasField "target" Effect Target where
   getField = effectTarget . toAttrs
 
-instance HasField "metadata" Effect (Maybe (EffectMetadata Message)) where
+instance HasField "metadata" Effect (Maybe (EffectMetadata Window Message)) where
   getField = effectMetadata . toAttrs
 
 finishedL :: Lens' EffectAttrs Bool
@@ -150,10 +151,10 @@ instance HasField "target" EffectAttrs Target where
 instance HasField "source" EffectAttrs Source where
   getField = effectSource
 
-instance HasField "metadata" EffectAttrs (Maybe (EffectMetadata Message)) where
+instance HasField "metadata" EffectAttrs (Maybe (EffectMetadata Window Message)) where
   getField = effectMetadata
 
-instance HasField "meta" EffectAttrs (Maybe (EffectMetadata Message)) where
+instance HasField "meta" EffectAttrs (Maybe (EffectMetadata Window Message)) where
   getField = effectMetadata
 
 instance HasField "metaTarget" EffectAttrs (Maybe Target) where
@@ -200,7 +201,7 @@ baseAttrs cardCode eid EffectBuilder {..} =
 targetL :: Lens' EffectAttrs Target
 targetL = lens effectTarget $ \m x -> m {effectTarget = x}
 
-metadataL :: Lens' EffectAttrs (Maybe (EffectMetadata Message))
+metadataL :: Lens' EffectAttrs (Maybe (EffectMetadata Window Message))
 metadataL = lens effectMetadata $ \m x -> m {effectMetadata = x}
 
 instance HasAbilities EffectAttrs
@@ -284,7 +285,7 @@ setEffectMeta a = extraL .~ toJSON a
 makeEffectBuilder
   :: (Sourceable source, Targetable target, HasGame m)
   => CardCode
-  -> Maybe (EffectMetadata Message)
+  -> Maybe (EffectMetadata Window Message)
   -> source
   -> target
   -> m EffectBuilder

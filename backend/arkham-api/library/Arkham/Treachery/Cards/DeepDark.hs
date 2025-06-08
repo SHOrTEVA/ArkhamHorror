@@ -1,4 +1,4 @@
-module Arkham.Treachery.Cards.DeepDark (deepDark) where
+module Arkham.Treachery.Cards.DeepDark (deepDark, DeepDark (..)) where
 
 import Arkham.Ability
 import {-# SOURCE #-} Arkham.GameEnv

@@ -3,28 +3,38 @@ module Arkham.Location.Cards.RiverCanyon (riverCanyon) where
 import Arkham.Ability
 import Arkham.Campaigns.TheForgottenAge.Helpers
 import Arkham.Campaigns.TheForgottenAge.Supply
+import Arkham.Classes
+import Arkham.Damage
 import Arkham.GameValue
 import Arkham.Location.Cards qualified as Cards
-import Arkham.Location.Import.Lifted
+import Arkham.Location.Runner
 import Arkham.Matcher
+import Arkham.Prelude
 
 newtype RiverCanyon = RiverCanyon LocationAttrs
   deriving anyclass (IsLocation, HasModifiersFor)
   deriving newtype (Show, Eq, ToJSON, FromJSON, Entity)
 
 riverCanyon :: LocationCard RiverCanyon
-riverCanyon = symbolLabel $ location RiverCanyon Cards.riverCanyon 4 (PerPlayer 1)
+riverCanyon = location RiverCanyon Cards.riverCanyon 4 (PerPlayer 1)
 
 instance HasAbilities RiverCanyon where
-  getAbilities (RiverCanyon a) =
-    extendRevealed1 a
-      $ playerLimit PerGame
-      $ restricted a 1 (Here <> exists (HealableInvestigator (a.ability 1) #damage You)) actionAbility
+  getAbilities (RiverCanyon attrs) =
+    withBaseAbilities
+      attrs
+      [ limitedAbility (PlayerLimit PerGame 1)
+          $ restrictedAbility
+            attrs
+            1
+            (Here <> InvestigatorExists (HealableInvestigator (toSource attrs) DamageType You))
+          $ ActionAbility []
+          $ ActionCost 1
+      ]
 
 instance RunMessage RiverCanyon where
-  runMessage msg l@(RiverCanyon attrs) = runQueueT $ case msg of
-    UseThisAbility iid (isSource attrs -> True) 1 -> do
+  runMessage msg l@(RiverCanyon attrs) = case msg of
+    UseCardAbility iid source 1 _ _ | isSource attrs source -> do
       hasCanteen <- getHasSupply iid Canteen
-      healDamage iid (attrs.ability 1) (if hasCanteen then 3 else 1)
+      push $ HealDamage (InvestigatorTarget iid) (toSource attrs) (if hasCanteen then 3 else 1)
       pure l
-    _ -> RiverCanyon <$> liftRunMessage msg attrs
+    _ -> RiverCanyon <$> runMessage msg attrs

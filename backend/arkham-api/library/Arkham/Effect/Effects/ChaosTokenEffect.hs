@@ -9,6 +9,7 @@ import Arkham.Prelude
 import Arkham.ChaosToken
 import Arkham.Classes
 import Arkham.Effect.Runner
+import Arkham.Window (Window)
 import Control.Monad.Writer.Class
 import Data.Map.Monoidal.Strict (MonoidalMap (..))
 
@@ -20,7 +21,7 @@ chaosTokenEffect :: EffectArgs -> ChaosTokenEffect
 chaosTokenEffect = ChaosTokenEffect . uncurry (baseAttrs "tokef")
 
 chaosTokenEffect'
-  :: EffectId -> EffectMetadata Message -> Source -> ChaosToken -> ChaosTokenEffect
+  :: EffectId -> EffectMetadata Window Message -> Source -> ChaosToken -> ChaosTokenEffect
 chaosTokenEffect' eid metadata source chaosToken =
   ChaosTokenEffect
     $ EffectAttrs

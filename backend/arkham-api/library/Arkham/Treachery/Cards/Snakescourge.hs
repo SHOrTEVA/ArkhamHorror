@@ -2,11 +2,13 @@ module Arkham.Treachery.Cards.Snakescourge (snakescourge) where
 
 import Arkham.Ability
 import Arkham.Campaigns.TheForgottenAge.Helpers
+import Arkham.Classes
 import Arkham.Helpers.Modifiers
 import Arkham.Matcher
 import Arkham.Placement
+import Arkham.Prelude
 import Arkham.Treachery.Cards qualified as Cards
-import Arkham.Treachery.Import.Lifted
+import Arkham.Treachery.Runner
 
 newtype Snakescourge = Snakescourge TreacheryAttrs
   deriving anyclass IsTreachery
@@ -16,20 +18,22 @@ snakescourge :: TreacheryCard Snakescourge
 snakescourge = treachery Snakescourge Cards.snakescourge
 
 instance HasModifiersFor Snakescourge where
-  getModifiersFor (Snakescourge a) = case a.placement of
-    InThreatArea iid -> modifySelect a (assetControlledBy iid <> NonWeaknessAsset <> #item) [Blank]
-    _ -> pure ()
+  getModifiersFor (Snakescourge a) =
+    case a.placement of
+      InThreatArea iid -> modifySelect a (assetControlledBy iid <> NonWeaknessAsset <> #item) [Blank]
+      _ -> pure mempty
 
 instance HasAbilities Snakescourge where
-  getAbilities (Snakescourge a) = [restricted a 1 (InThreatAreaOf You) $ forced $ RoundEnds #when]
+  getAbilities (Snakescourge a) =
+    [restrictedAbility a 1 (InThreatAreaOf You) $ forced $ RoundEnds #when]
 
 instance RunMessage Snakescourge where
-  runMessage msg t@(Snakescourge attrs) = runQueueT $ case msg of
-    Revelation iid (isSource attrs -> True) -> do
-      placeInThreatArea attrs iid
-      whenM (getIsPoisoned iid) (gainSurge attrs)
+  runMessage msg t@(Snakescourge attrs) = case msg of
+    Revelation iid source | isSource attrs source -> do
+      isPoisoned <- getIsPoisoned iid
+      pushAll $ placeInThreatArea attrs iid : [gainSurge attrs | isPoisoned]
       pure t
     UseCardAbility iid source 1 _ _ | isSource attrs source -> do
-      toDiscardBy iid (toAbilitySource attrs 1) attrs
+      push $ toDiscardBy iid (toAbilitySource attrs 1) attrs
       pure t
-    _ -> Snakescourge <$> liftRunMessage msg attrs
+    _ -> Snakescourge <$> runMessage msg attrs

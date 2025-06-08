@@ -38,9 +38,7 @@ instance RunMessage Nasht where
       push $ Flip iid (attrs.ability 1) (toTarget attrs)
       pure e
     FailedThisSkillTest iid (isAbilitySource attrs 1 -> True) -> do
-      iids <- select $ InvestigatorAt $ locationWithEnemy attrs.id
-      chooseOneAtATimeM iid do
-        targets iids $ initiateEnemyAttack attrs (attrs.ability 1)
+      initiateEnemyAttack attrs (attrs.ability 1) iid
       pure e
     UseThisAbility iid (isSource attrs -> True) 2 -> do
       push $ Flip iid (attrs.ability 2) (toTarget attrs)

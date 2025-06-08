@@ -48,8 +48,7 @@ instance RunMessage CharlieKane where
       allies <-
         select
           $ AssetExhausted
-          <> #ally
-          <> at_ (locationWithInvestigator iid)
+          <> AssetAt (locationWithInvestigator iid)
           <> oneOf [AssetControlledBy (affectsOthers Anyone), not_ (AssetControlledBy Anyone)]
       when (notNull allies) do
         chooseOne iid [targetLabel ally [Ready (toTarget ally)] | ally <- allies]

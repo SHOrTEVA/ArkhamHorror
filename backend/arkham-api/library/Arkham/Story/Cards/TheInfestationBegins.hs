@@ -70,12 +70,7 @@ instance RunMessage TheInfestationBegins where
       (tokens, rest) <- splitAt 1 <$> shuffleM (infestationTokens bag)
       let token = fromJustNote "invalid infestation token" $ headMay tokens
       let bag' = bag {infestationTokens = rest, infestationCurrentToken = Just token}
-      revealWindow <-
-        checkWindows
-          [ mkWhen $ Window.RevealChaosToken lead $ asChaosToken token
-          , mkWhen
-              $ Window.ScenarioEvent ("revealInfestationToken:" <> tshow token.face) (Just lead) (toJSON $ asChaosToken token)
-          ]
+      revealWindow <- checkWindows [mkWhen (Window.RevealChaosToken lead $ asChaosToken token)]
       pushAll
         [ FocusChaosTokens [asChaosToken token]
         , revealWindow
@@ -130,9 +125,9 @@ instance RunMessage TheInfestationBegins where
             push
               $ chooseOne lead
               $ [ targetLabel
-                    location
-                    [ PlaceTokens (toSource attrs) (toTarget location) #damage 1
-                    ]
+                  location
+                  [ PlaceTokens (toSource attrs) (toTarget location) #damage 1
+                  ]
                 | location <- adjacentLocations
                 ]
         _ -> error "Invalid infestation token"

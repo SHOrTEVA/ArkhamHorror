@@ -1,12 +1,15 @@
 module Arkham.Act.Cards.TheGuardedRuins (theGuardedRuins) where
 
 import Arkham.Act.Cards qualified as Cards
-import Arkham.Act.Import.Lifted
+import Arkham.Act.Runner
 import Arkham.Card
+import Arkham.Classes
 import {-# SOURCE #-} Arkham.GameEnv
 import Arkham.Helpers.Modifiers
 import Arkham.Keyword qualified as Keyword
 import Arkham.Matcher
+import Arkham.Prelude
+import Arkham.Resolution
 import Arkham.Treachery.Cards qualified as Treacheries
 
 newtype TheGuardedRuins = TheGuardedRuins ActAttrs
@@ -23,13 +26,14 @@ theGuardedRuins =
 
 instance HasModifiersFor TheGuardedRuins where
   getModifiersFor (TheGuardedRuins a) = do
-    modifySelect a (EnemyWithTitle "Eztli Guardian") [EnemyFight 1, EnemyEvade 1]
+    guardian <- modifySelect a (EnemyWithTitle "Eztli Guardian") [EnemyFight 1, EnemyEvade 1]
     validCards <- findAllCards (`isCard` Treacheries.arrowsFromTheTrees)
-    modifyEach a validCards [AddKeyword Keyword.Surge]
+    cards <- modifyEach a validCards [AddKeyword Keyword.Surge]
+    pure $ guardian <> cards
 
 instance RunMessage TheGuardedRuins where
-  runMessage msg a@(TheGuardedRuins attrs) = runQueueT $ case msg of
-    AdvanceAct (isSide B attrs -> True) _ _ -> do
-      push R2
+  runMessage msg a@(TheGuardedRuins attrs) = case msg of
+    AdvanceAct aid _ _ | aid == toId attrs && onSide B attrs -> do
+      push $ ScenarioResolution $ Resolution 2
       pure a
-    _ -> TheGuardedRuins <$> liftRunMessage msg attrs
+    _ -> TheGuardedRuins <$> runMessage msg attrs

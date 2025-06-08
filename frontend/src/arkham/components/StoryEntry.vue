@@ -25,14 +25,7 @@ const maybeFormat = function(body: string) {
 
 const tformat = (t:string) => t.startsWith("$") ? t.slice(1) : t
 
-const readCards = computed(() => props.question.readCards ?? [])
-
-const pickCards = computed(() => props.question.readChoices.contents.reduce((acc, v, i) => {
-  if ("cardCode" in v) {
-    return [...acc, { cardCode: v.cardCode, index: i }]
-  }
-  return acc
-}, [] as { cardCode: string, index: number }[]))
+const readCards = computed(() => props.question.readCards || [])
 
 const readChoices = computed(() => {
   switch (props.question.readChoices.tag) {
@@ -64,9 +57,6 @@ const focusedChaosTokens = computed(() => props.game.focusedChaosTokens)
       <div class="entry-body">
         <img :src="imgsrc(`cards/${cardCode.replace('c', '')}.avif`)" v-for="cardCode in readCards" class="card no-overlay" />
         <FormattedEntry v-for="(paragraph, index) in question.flavorText.body" :key="index" :entry="paragraph" />
-      </div>
-      <div class="pick-cards" v-if="pickCards.length > 0">
-        <img :src="imgsrc(`cards/${card.cardCode.replace('c', '')}.avif`)" v-for="card in pickCards" class="card no-overlay pick" :key="card.index" @click="choose(card.index)" />
       </div>
     </div>
     <div class="options">
@@ -267,29 +257,6 @@ a.button {
       font-family: "Wolgast";
     }
   }
-  :deep(div.anke) {
-    font-family: "Anke";
-    text-align: center;
-    margin-block: 30px;
-    p {
-      margin-block: -20px;
-      font-family: "Anke";
-    }
-  }
-  :deep(p.anke) {
-    font-family: "Anke";
-  }
-}
-
-.pick-cards {
-  display: flex;
-  margin-block: 20px;
-  justify-content: center;
-}
-
-.pick {
-  cursor: pointer;
-  flex-basis: 20%;
 }
 
 </style>

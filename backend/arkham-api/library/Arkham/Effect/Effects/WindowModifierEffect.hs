@@ -11,6 +11,7 @@ import Arkham.Effect.Runner
 import {-# SOURCE #-} Arkham.GameEnv (getPhase)
 import Arkham.Matcher
 import Arkham.Modifier
+import Arkham.Window (Window)
 import Control.Monad.Writer.Class
 import Data.Map.Monoidal.Strict (MonoidalMap (..))
 
@@ -23,7 +24,7 @@ windowModifierEffect = WindowModifierEffect . uncurry (baseAttrs "wmode")
 
 windowModifierEffect'
   :: EffectId
-  -> EffectMetadata Message
+  -> EffectMetadata Window Message
   -> EffectWindow
   -> Source
   -> Target

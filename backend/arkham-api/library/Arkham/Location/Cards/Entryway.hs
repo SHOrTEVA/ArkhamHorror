@@ -1,44 +1,73 @@
-module Arkham.Location.Cards.Entryway (entryway) where
+module Arkham.Location.Cards.Entryway (
+  entryway,
+  Entryway (..),
+) where
+
+import Arkham.Prelude
 
 import Arkham.Ability
 import Arkham.Campaigns.TheForgottenAge.Helpers
 import Arkham.Campaigns.TheForgottenAge.Supply
 import Arkham.Card
+import Arkham.Classes
+import Arkham.Deck qualified as Deck
 import Arkham.Direction
 import Arkham.GameValue
+import Arkham.Id
 import Arkham.Location.Cards qualified as Cards
-import Arkham.Location.Import.Lifted
+import Arkham.Location.Runner
 import Arkham.Matcher
-import Arkham.Message.Lifted.Choose
 import Arkham.Scenario.Deck
-import Arkham.Scenarios.TheDoomOfEztli.Helpers
 
 newtype Entryway = Entryway LocationAttrs
   deriving anyclass (IsLocation, HasModifiersFor)
   deriving newtype (Show, Eq, ToJSON, FromJSON, Entity)
 
 entryway :: LocationCard Entryway
-entryway = location Entryway Cards.entryway 2 (PerPlayer 1) & setConnectsTo (singleton LeftOf)
+entryway =
+  locationWith
+    Entryway
+    Cards.entryway
+    2
+    (PerPlayer 1)
+    (connectsToL .~ singleton LeftOf)
 
 instance HasAbilities Entryway where
-  getAbilities (Entryway a) =
-    extendRevealed
-      a
-      [ scenarioI18n $ withI18nTooltip "entryway.resign" $ locationResignAction a
-      , restricted a 1 (Here <> HasSupply Torches) actionAbility
+  getAbilities (Entryway attrs) =
+    withResignAction
+      attrs
+      [ restrictedAbility
+        attrs
+        1
+        (Here <> HasSupply Torches)
+        (ActionAbility [] $ ActionCost 1)
+      | locationRevealed attrs
       ]
 
+handleTreacheries :: PlayerId -> [EncounterCard] -> Message
+handleTreacheries pid [] = chooseOne pid [Label "No Treacheries Found" []]
+handleTreacheries pid treacheries =
+  chooseOneAtATime
+    pid
+    [ TargetLabel (CardIdTarget $ toCardId c) [AddToEncounterDiscard c]
+    | c <- treacheries
+    ]
+
 instance RunMessage Entryway where
-  runMessage msg l@(Entryway attrs) = runQueueT $ case msg of
-    UseThisAbility iid (isSource attrs -> True) 1 -> do
+  runMessage msg l@(Entryway attrs) = case msg of
+    UseCardAbility iid source 1 _ _ | isSource attrs source -> do
       explorationDeck <- getExplorationDeck
-      let (viewing, rest) = splitAt 2 explorationDeck
-      let (treacheries, other) = partition (`cardMatch` CardWithType TreacheryType) viewing
-      focusCards viewing do
-        setScenarioDeck ExplorationDeck $ other <> rest
-        chooseOneAtATimeM iid do
-          targets (onlyEncounterCards treacheries) (addToEncounterDiscard . only)
-      for_ other $ putCardOnBottomOfDeck iid ExplorationDeck
-      shuffleDeck ExplorationDeck
+      let
+        deckKey = Deck.ScenarioDeckByKey ExplorationDeck
+        (viewing, rest) = splitAt 2 explorationDeck
+        (treacheries, other) = partition (`cardMatch` CardWithType TreacheryType) viewing
+      player <- getPlayer iid
+      pushAll
+        $ [ FocusCards viewing
+          , SetScenarioDeck ExplorationDeck $ other <> rest
+          , handleTreacheries player (mapMaybe (preview _EncounterCard) treacheries)
+          ]
+        <> [PutCardOnBottomOfDeck iid deckKey c | c <- other]
+        <> [UnfocusCards, ShuffleDeck deckKey]
       pure l
-    _ -> Entryway <$> liftRunMessage msg attrs
+    _ -> Entryway <$> runMessage msg attrs

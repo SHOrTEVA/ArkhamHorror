@@ -153,7 +153,6 @@ button.cancel-new-game-button {
   font-weight: bolder;
   width: fit-content;
   background-color: var(--survivor);
-  margin-block: 10px;
   &:hover {
     background-color: var(--survivor-extra-dark);
   }

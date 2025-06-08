@@ -153,12 +153,10 @@ instance RunMessage TheLairOfDagon where
 
       if aDecisionToStickTogether
         then do
+          lead <- getLead
           investigators <- getInvestigators
           thomasDawson <- createAsset =<< genCard Assets.thomasDawsonSoldierInANewWar
-          leadChooseOneM do
-            questionLabeled "Choose investigator to take control of Thomas Dawson"
-            questionLabeledCard Assets.thomasDawsonSoldierInANewWar
-            portraits investigators (`takeControlOfAsset` thomasDawson)
+          chooseTargetM lead investigators (`takeControlOfAsset` thomasDawson)
         else setAside [Assets.thomasDawsonSoldierInANewWar]
     ResolveChaosToken _ Cultist iid -> do
       withSkillTest \sid -> onRevealChaosTokenEffect sid #curse Cultist sid failSkillTest

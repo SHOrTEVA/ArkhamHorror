@@ -1,11 +1,12 @@
-module Arkham.Enemy.Cards.BrotherhoodCultist (brotherhoodCultist) where
+module Arkham.Enemy.Cards.BrotherhoodCultist (brotherhoodCultist, BrotherhoodCultist (..)) where
 
 import Arkham.Ability
+import Arkham.Classes
 import Arkham.Enemy.Cards qualified as Cards
-import Arkham.Enemy.Import.Lifted
-import Arkham.Enemy.Types qualified as Field
+import Arkham.Enemy.Runner hiding (EnemyEvade, EnemyFight)
 import Arkham.Helpers.Modifiers
 import Arkham.Matcher
+import Arkham.Prelude
 import Arkham.Projection
 
 newtype BrotherhoodCultist = BrotherhoodCultist EnemyAttrs
@@ -17,16 +18,16 @@ brotherhoodCultist = enemy BrotherhoodCultist Cards.brotherhoodCultist (2, Stati
 
 instance HasModifiersFor BrotherhoodCultist where
   getModifiersFor (BrotherhoodCultist a) = do
-    doom <- field Field.EnemyDoom (toId a)
+    doom <- field EnemyDoom (toId a)
     modifySelfWhen a (doom > 0) [EnemyFight doom, EnemyEvade doom]
 
 instance HasAbilities BrotherhoodCultist where
   getAbilities (BrotherhoodCultist a) =
-    extend1 a $ mkAbility a 1 $ forced $ EnemyAttacked #when You AnySource $ be a
+    extend a [mkAbility a 1 $ forced $ EnemyAttacked #when You AnySource $ be a]
 
 instance RunMessage BrotherhoodCultist where
-  runMessage msg e@(BrotherhoodCultist attrs) = runQueueT $ case msg of
+  runMessage msg e@(BrotherhoodCultist attrs) = case msg of
     UseThisAbility _ (isSource attrs -> True) 1 -> do
-      placeDoom attrs attrs 1
+      push $ placeDoom attrs attrs 1
       pure e
-    _ -> BrotherhoodCultist <$> liftRunMessage msg attrs
+    _ -> BrotherhoodCultist <$> runMessage msg attrs

@@ -3,7 +3,6 @@ module Arkham.Asset.Assets.DrShivaniMaheswaran (drShivaniMaheswaran) where
 import Arkham.Ability
 import Arkham.Asset.Cards qualified as Cards
 import Arkham.Asset.Runner
-import Arkham.ChaosToken.Types
 import Arkham.Enemy.Cards qualified as Enemies
 import Arkham.Helpers.Window
 import Arkham.Matcher hiding (EnemyEvaded)
@@ -25,11 +24,7 @@ instance HasAbilities DrShivaniMaheswaran where
     [ controlled a 1 (exists suspiciousOrderlyMatcher) $ FastAbility (exhaust a)
     , controlled a 2 (exists $ storyIs Stories.theInfestationBegins)
         $ triggered
-          ( oneOf
-              [ ScenarioEvent #when Nothing ("revealInfestationToken:" <> tshow face)
-              | face <- [Skull, Cultist]
-              ]
-          )
+          (RevealChaosToken #when Anyone $ IsInfestationToken $ oneOf [#skull, #cultist])
           (removeCost a)
     ]
 

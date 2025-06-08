@@ -421,9 +421,6 @@ getChaosToken = \case
   [] -> error "No chaos token drawn"
   ((windowType -> Window.RevealChaosToken _ token) : _) -> token
   ((windowType -> Window.ResolvesChaosToken _ token) : _) -> token
-  ((windowType -> Window.ScenarioEvent _ _ val) : rest) -> case maybeResult val of
-    Just token -> token
-    Nothing -> getChaosToken rest
   (_ : rest) -> getChaosToken rest
 
 getThatEnemy :: [Window] -> Maybe EnemyId
@@ -1842,11 +1839,10 @@ windowMatches iid rawSource window'@(windowTiming &&& windowType -> (timing', wT
     Matcher.LastClueRemovedFromAsset timing assetMatcher -> guardTiming timing $ \case
       Window.LastClueRemovedFromAsset aid -> elem aid <$> select assetMatcher
       _ -> noMatch
-    Matcher.DrawsCards timing whoMatcher cardListMatcher valueMatcher -> guardTiming timing $ \case
+    Matcher.DrawsCards timing whoMatcher valueMatcher -> guardTiming timing $ \case
       Window.DrawCards who cards ->
         andM
           [ matchWho iid who whoMatcher
-          , cardListMatches cards cardListMatcher
           , gameValueMatches (length cards) valueMatcher
           ]
       _ -> noMatch
@@ -1933,8 +1929,8 @@ windowMatches iid rawSource window'@(windowTiming &&& windowType -> (timing', wT
     Matcher.EnemyLeavesPlay timing enemyMatcher -> guardTiming timing $ \case
       Window.LeavePlay (EnemyTarget eid) -> elem eid <$> select enemyMatcher
       _ -> noMatch
-    Matcher.Explored timing whoMatcher fromLocationMatcher resultMatcher -> guardTiming timing $ \case
-      Window.Explored who mwhere result ->
+    Matcher.Explored timing whoMatcher resultMatcher -> guardTiming timing $ \case
+      Window.Explored who result ->
         andM
           [ matchWho iid who whoMatcher
           , case resultMatcher of
@@ -1944,10 +1940,6 @@ windowMatches iid rawSource window'@(windowTiming &&& windowType -> (timing', wT
               Matcher.FailedExplore cardMatcher -> case result of
                 Window.Success _ -> noMatch
                 Window.Failure card -> pure $ cardMatch card cardMatcher
-              Matcher.AnyExplore -> pure True
-          , case fromLocationMatcher of
-              Matcher.Anywhere -> pure True
-              other -> maybe (pure False) (<=~> other) mwhere
           ]
       _ -> noMatch
     Matcher.AttemptExplore timing whoMatcher -> guardTiming timing $ \case

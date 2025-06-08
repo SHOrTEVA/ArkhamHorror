@@ -117,7 +117,6 @@ allLocationCards =
       , alchemyLabs
       , altarToDagon
       , ancientHall
-      , ancientHallRearrangedByTime
       , ancientPlanetarium
       , anotherDimension
       , arkhamPoliceStation
@@ -199,7 +198,6 @@ allLocationCards =
       , celephais
       , cellar
       , chamberOfTime
-      , chamberOfTimeRearrangedByTime
       , chapelOfStAubertThePathIsOpen
       , chapelOfStAubertWatersForbidden
       , chapelAtticSpectral_175
@@ -226,7 +224,6 @@ allLocationCards =
       , cliffsideRoad_a
       , cliffsideRoad_b
       , cloister
-      , cloudForest
       , cloverClubBar
       , cloverClubCardroom
       , cloverClubLounge
@@ -322,7 +319,6 @@ allLocationCards =
       , entryHallAtDeathsDoorstep
       , entryHallSpectral
       , entryway
-      , entrywayRearrangedByTime
       , esotericOrderOfDagon
       , esotericOrderOfDagonInTooDeep
       , exhibitHallAthabaskanExhibit
@@ -388,7 +384,6 @@ allLocationCards =
       , glacialGrotto
       , gondola
       , grandChamber
-      , grandChamberRearrangedByTime
       , grandEntryway
       , grandGuignol
       , grandRue
@@ -531,7 +526,6 @@ allLocationCards =
       , moonBeastGalley
       , moonForest
       , morgue
-      , mosaicChamber
       , moundOfBones
       , mouthOfKnYanTheCavernsMaw
       , mouthOfKnYanTheDepthsBeneath
@@ -637,7 +631,6 @@ allLocationCards =
       , ritualGrounds
       , ritualSite
       , riverCanyon
-      , riversideTemple
       , rivertown
       , rivertownAbandonedWarehouse
       , rivertown_292
@@ -678,7 +671,6 @@ allLocationCards =
       , seaOfPitch_265
       , seaOfSkulls
       , sealedExit
-      , sealedPassage
       , secondFloorHall
       , secretPassage
       , securityOffice_128
@@ -700,7 +692,6 @@ allLocationCards =
       , skaiRiver
       , slaughteredWoods
       , sleepingCar
-      , snakePit
       , snowCoveredCrag
       , snowGraves
       , southChurch_298
@@ -783,7 +774,6 @@ allLocationCards =
       , theWhiteShip
       , theatre
       , theatreLounge
-      , throneRoom
       , tidalPool
       , tightTurn_a
       , tightTurn_b
@@ -794,12 +784,10 @@ allLocationCards =
       , titanicRamp_184
       , titanicRamp_185
       , tombOfShadows
-      , tombOfTheAncients
       , towerOfKoth
       , toweringLuminosity
       , towersOfPnakotus
       , townHall
-      , trailOfTheDead
       , trainTracks
       , trapRoom
       , trappersCabin
@@ -847,7 +835,6 @@ allLocationCards =
       , waitingRoom
       , walterGilmansRoom
       , warrenObservatory
-      , waterfall
       , wavewornIsland
       , wellOfSouls
       , whateleyRuins_250
@@ -8777,15 +8764,7 @@ returnToKnightsHall :: CardDef
 returnToKnightsHall = location "52056" "Knight's Hall" [] Hourglass [Square, Heart] ReturnToBlackStarsRise
 
 returnToPalaceOfTheKing :: CardDef
-returnToPalaceOfTheKing =
-  storyOnBack
-    $ location
-      "52060"
-      ("Palace of the King" <:> "Hastur's Domain")
-      [Otherworld]
-      Star
-      [Triangle, Diamond, Heart, Droplet, Hourglass]
-      ReturnToDimCarcosa
+returnToPalaceOfTheKing = storyOnBack $ location "52060" ("Palace of the King" <:> "Hastur's Domain") [Otherworld] Star [Triangle, Diamond, Heart, Droplet, Hourglass] ReturnToDimCarcosa
 
 recessesOfYourOwnMind :: CardDef
 recessesOfYourOwnMind = storyOnBack $ location "52061" "Recesses of Your Own Mind" [] Heart [Star] ReturnToDimCarcosa
@@ -8795,155 +8774,6 @@ theThroneRoom = storyOnBack $ location "52062" "The Throne Room" [] Droplet [Sta
 
 stageOfTheWardTheatre :: CardDef
 stageOfTheWardTheatre = storyOnBack $ location "52063" "Stage of the Ward Theatre" [] Hourglass [Star] ReturnToDimCarcosa
-
-entrywayRearrangedByTime :: CardDef
-entrywayRearrangedByTime =
-  location
-    "53019"
-    ("Entryway" <:> "Rearranged by Time")
-    [Ancient, Ruins]
-    Circle
-    [Square, Diamond, Star]
-    ReturnToTheDoomOfEztli
-
-sealedPassage :: CardDef
-sealedPassage =
-  singleSided
-    $ location
-      "53020"
-      "Sealed Passage"
-      [Ancient, Ruins]
-      Diamond
-      [Circle, Square, Star]
-      ReturnToTheDoomOfEztli
-
-mosaicChamber :: CardDef
-mosaicChamber =
-  singleSided
-    $ location
-      "53021"
-      "Mosaic Chamber"
-      [Ancient, Ruins]
-      Heart
-      [Square, Plus, T, Triangle]
-      ReturnToTheDoomOfEztli
-
-tombOfTheAncients :: CardDef
-tombOfTheAncients =
-  singleSided
-    $ location
-      "53022"
-      "Tomb of the Ancients"
-      [Ancient, Ruins]
-      Triangle
-      [Heart, Plus, T, Hourglass]
-      ReturnToTheDoomOfEztli
-
-throneRoom :: CardDef
-throneRoom =
-  victory 1
-    $ vengeance 1
-    $ singleSided
-    $ location
-      "53023"
-      "Throne Room"
-      [Ancient, Ruins]
-      Plus
-      [Star, Heart, T, Triangle]
-      ReturnToTheDoomOfEztli
-
-snakePit :: CardDef
-snakePit =
-  singleSided
-    $ location
-      "53024"
-      "Snake Pit"
-      [Ancient, Ruins]
-      T
-      [Heart, Plus, Triangle, Hourglass]
-      ReturnToTheDoomOfEztli
-
-ancientHallRearrangedByTime :: CardDef
-ancientHallRearrangedByTime =
-  singleSided
-    $ location
-      "53025"
-      ("Ancient Hall" <:> "Rearranged by Time")
-      [Ancient, Ruins]
-      Square
-      [Circle, Diamond, Heart]
-      ReturnToTheDoomOfEztli
-
-grandChamberRearrangedByTime :: CardDef
-grandChamberRearrangedByTime =
-  vengeance 1
-    $ singleSided
-    $ location
-      "53026"
-      ("Grand Chamber" <:> "Rearranged by Time")
-      [Ancient, Ruins]
-      Star
-      [Circle, Diamond, Plus]
-      ReturnToTheDoomOfEztli
-
-chamberOfTimeRearrangedByTime :: CardDef
-chamberOfTimeRearrangedByTime =
-  victory 2
-    $ vengeance 2
-    $ singleSided
-    $ location
-      "53027"
-      ("Chamber of Time" <:> "Rearranged by Time")
-      [Forgotten, Ruins]
-      Hourglass
-      [Squiggle, Triangle, T]
-      ReturnToTheDoomOfEztli
-
-riversideTemple :: CardDef
-riversideTemple =
-  singleSided
-    $ location
-      "53067"
-      "Riverside Temple"
-      [Ancient, Jungle]
-      Square
-      [Circle, Diamond, Triangle, Squiggle]
-      ReturnToRainforest
-
-waterfall :: CardDef
-waterfall =
-  singleSided
-    $ location
-      "53068"
-      "Waterfall"
-      [Jungle]
-      Moon
-      [Circle, Diamond, Heart, T]
-      ReturnToRainforest
-
-trailOfTheDead :: CardDef
-trailOfTheDead =
-  victory 1
-    $ singleSided
-    $ location
-      "53069"
-      "Trail of the Dead"
-      [Jungle]
-      Triangle
-      [Squiggle, Square, Diamond, Hourglass]
-      ReturnToRainforest
-
-cloudForest :: CardDef
-cloudForest =
-  victory 1
-    $ singleSided
-    $ location
-      "53070"
-      "Cloud Forest"
-      [Jungle]
-      Heart
-      [Hourglass, Diamond, Moon, T]
-      ReturnToRainforest
 
 cursedShores :: CardDef
 cursedShores =

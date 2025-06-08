@@ -3,43 +3,73 @@ module Arkham.Location.Cards.ExpeditionCamp (expeditionCamp) where
 import Arkham.Ability
 import Arkham.Campaigns.TheForgottenAge.Helpers
 import Arkham.Campaigns.TheForgottenAge.Supply
+import Arkham.Card
+import Arkham.Classes
+import Arkham.Deck qualified as Deck
 import Arkham.GameValue
 import Arkham.Location.Cards qualified as Cards
-import Arkham.Location.Import.Lifted
-import Arkham.Message.Lifted.Choose
+import Arkham.Location.Runner
+import Arkham.Prelude
 import Arkham.Scenario.Deck
-import Arkham.Scenarios.TheUntamedWilds.Helpers
 
 newtype ExpeditionCamp = ExpeditionCamp LocationAttrs
   deriving anyclass (IsLocation, HasModifiersFor)
   deriving newtype (Show, Eq, ToJSON, FromJSON, Entity)
 
 expeditionCamp :: LocationCard ExpeditionCamp
-expeditionCamp = symbolLabel $ location ExpeditionCamp Cards.expeditionCamp 1 (Static 0)
+expeditionCamp = location ExpeditionCamp Cards.expeditionCamp 1 (Static 0)
 
 instance HasAbilities ExpeditionCamp where
-  getAbilities (ExpeditionCamp a) =
-    extendRevealed
-      a
-      [ scenarioI18n $ withI18nTooltip "expeditionCamp.resign" $ locationResignAction a
-      , restricted a 2 (AnyCriterion [Here, IsReturnTo] <> HasSupply Map) actionAbility
-      ]
+  getAbilities (ExpeditionCamp attrs) =
+    withBaseAbilities attrs
+      $ if locationRevealed attrs
+        then
+          [ withTooltip
+              "The wilds are too dangerous!"
+              (locationResignAction attrs)
+          , restrictedAbility
+              attrs
+              2
+              (Here <> HasSupply Map)
+              (ActionAbility [] $ ActionCost 1)
+          ]
+        else []
 
 instance RunMessage ExpeditionCamp where
-  runMessage msg l@(ExpeditionCamp attrs) = runQueueT $ case msg of
-    UseThisAbility iid (isSource attrs -> True) 2 -> do
+  runMessage msg l@(ExpeditionCamp attrs) = case msg of
+    UseCardAbility iid source 2 _ _ | isSource attrs source -> do
       explorationDeck <- getExplorationDeck
-      let (viewing, rest) = splitAt 3 explorationDeck
-      let cardPairs = map (toSnd (`deleteFirst` viewing)) viewing
-      focusCards viewing do
-        setScenarioDeck ExplorationDeck rest
-        chooseOneM iid $ scenarioI18n do
-          questionLabeled' "expeditionCamp.bottom"
-          for_ cardPairs \(c, remaining) -> targeting c do
-            putCardOnBottomOfDeck iid ExplorationDeck c
-            focusCards remaining do
-              chooseOneAtATimeM iid do
-                questionLabeled' "expeditionCamp.top"
-                targets remaining (putCardOnTopOfDeck iid ExplorationDeck)
+      let
+        (viewing, rest) = splitAt 3 explorationDeck
+        cardPairs = map (toSnd (`deleteFirst` viewing)) viewing
+      player <- getPlayer iid
+      pushAll
+        [ FocusCards viewing
+        , SetScenarioDeck ExplorationDeck rest
+        , questionLabel "Place one card on bottom of exploration deck" player
+            $ ChooseOne
+              [ targetLabel
+                  (toCardId c)
+                  [ PutCardOnBottomOfDeck
+                      iid
+                      (Deck.ScenarioDeckByKey ExplorationDeck)
+                      c
+                  , FocusCards remaining
+                  , questionLabel "Place card on top of exploration deck" player
+                      $ ChooseOneAtATime
+                        [ targetLabel
+                            (toCardId r)
+                            [ PutCardOnTopOfDeck
+                                iid
+                                (Deck.ScenarioDeckByKey ExplorationDeck)
+                                r
+                            ]
+                        | r <- remaining
+                        ]
+                  ]
+              | (c, remaining) <- cardPairs
+              ]
+        , UnfocusCards
+        ]
       pure l
-    _ -> ExpeditionCamp <$> liftRunMessage msg attrs
+    _ -> ExpeditionCamp <$> runMessage msg attrs

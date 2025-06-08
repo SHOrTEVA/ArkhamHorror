@@ -36,7 +36,6 @@ import Arkham.Enemy.Runner as X (
   spawnAtL,
   surgeIfUnableToSpawnL,
   tokensL,
-  pattern R2,
   pattern R3,
  )
 import Arkham.GameValue as X

@@ -17,4 +17,4 @@ spec = describe "Silver Twilight Acolyte" $ do
       run EnemiesAttack
       applyAllDamage
       useForcedAbility
-      agenda.updated.doom `shouldReturn` 1
+      agenda.doom `shouldReturn` 1

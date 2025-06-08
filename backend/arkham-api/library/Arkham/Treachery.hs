@@ -620,6 +620,8 @@ allTreacheries =
       SomeTreacheryCard violentCommands
     , SomeTreacheryCard idleHands
     , SomeTreacheryCard needForKnowledge
+    , -- Yog Sothoth's Emissaries
+      SomeTreacheryCard eldritchAccord
     , -- Return to the Path to Carcosa
       SomeTreacheryCard unspeakableOathBloodthirst
     , SomeTreacheryCard unspeakableOathCuriosity
@@ -651,19 +653,10 @@ allTreacheries =
       SomeTreacheryCard voiceOfTrunembra
     , SomeTreacheryCard melancholy
     , SomeTreacheryCard painfulReflection
-    , --- Yog Sothoth's Emissaries
-      SomeTreacheryCard eldritchAccord
     , -- Return to the Forgotten Age
       SomeTreacheryCard offerYouCannotRefuse
     , SomeTreacheryCard finePrint
     , SomeTreacheryCard sellYourSoul
-    , --- Doom Expedition
-      SomeTreacheryCard resentfulWilds
-    , SomeTreacheryCard bestLaidPlans
-    , --- Temporal Hunters
-      SomeTreacheryCard mergingTimelines
-    , --- Venoumous Hate
-      SomeTreacheryCard wrathOfYig
     , -- Return to the Circle Undone
       SomeTreacheryCard damned
     , -- Nathaniel Cho

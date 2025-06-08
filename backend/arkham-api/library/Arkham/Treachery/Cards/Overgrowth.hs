@@ -1,13 +1,13 @@
 module Arkham.Treachery.Cards.Overgrowth (overgrowth) where
 
 import Arkham.Ability
-import Arkham.Helpers.Location
-import Arkham.Helpers.Modifiers (ModifierType (..), modifySelect)
+import Arkham.Classes
+import Arkham.Helpers.Investigator
+import Arkham.Helpers.Modifiers (modifySelect, ModifierType(..))
 import Arkham.Matcher
-import Arkham.Message.Lifted.Choose
-import Arkham.Placement
+import Arkham.Prelude
 import Arkham.Treachery.Cards qualified as Cards
-import Arkham.Treachery.Import.Lifted
+import Arkham.Treachery.Runner
 
 newtype Overgrowth = Overgrowth TreacheryAttrs
   deriving anyclass IsTreachery
@@ -22,21 +22,23 @@ instance HasModifiersFor Overgrowth where
     _ -> pure mempty
 
 instance HasAbilities Overgrowth where
-  getAbilities (Overgrowth a) = [skillTestAbility $ restricted a 1 OnSameLocation actionAbility]
+  getAbilities (Overgrowth a) = [skillTestAbility $ restrictedAbility a 1 OnSameLocation actionAbility]
 
 instance RunMessage Overgrowth where
-  runMessage msg t@(Overgrowth attrs) = runQueueT $ case msg of
+  runMessage msg t@(Overgrowth attrs) = case msg of
     Revelation iid (isSource attrs -> True) -> do
-      withLocationOf iid \lid -> do
-        whenMatch lid (LocationWithoutTreachery $ treacheryIs Cards.overgrowth) $ attachTreachery attrs lid
+      mlid <- getMaybeLocation iid
+      for_ mlid \lid -> do
+        withoutOvergrowth <- lid <=~> LocationWithoutTreachery (treacheryIs Cards.overgrowth)
+        pushWhen withoutOvergrowth $ attachTreachery attrs lid
       pure t
     UseThisAbility iid (isSource attrs -> True) 1 -> do
       sid <- getRandom
-      chooseOneM iid do
-        for_ [#combat, #intellect] \sType ->
-          skillLabeled sType $ beginSkillTest sid iid (attrs.ability 1) attrs sType (Fixed 4)
+      let chooseSkillTest sType = SkillLabel sType [beginSkillTest sid iid (attrs.ability 1) attrs sType (Fixed 4)]
+      player <- getPlayer iid
+      push $ chooseOne player $ map chooseSkillTest [#combat, #intellect]
       pure t
     PassedThisSkillTest iid (isAbilitySource attrs 1 -> True) -> do
-      toDiscardBy iid (attrs.ability 1) attrs
+      push $ toDiscardBy iid (attrs.ability 1) attrs
       pure t
-    _ -> Overgrowth <$> liftRunMessage msg attrs
+    _ -> Overgrowth <$> runMessage msg attrs

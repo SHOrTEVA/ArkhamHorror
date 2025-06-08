@@ -22,6 +22,7 @@ import Arkham.Message
 import Arkham.Modifier
 import Arkham.Source
 import Arkham.Target
+import Arkham.Window (Window)
 
 -- start importing directly
 
@@ -92,6 +93,7 @@ import Arkham.Asset.Assets (
 import Arkham.Campaigns.TheInnsmouthConspiracy.Effects.NoAir (noAirEffect)
 import Arkham.Enemy.Enemies (
   alejandroVelaEffect,
+  boaConstrictorEffect,
   corruptedOrderlyEffect,
   ichtacaScionOfYigEffect,
   tommyMalloyEffect,
@@ -214,7 +216,7 @@ createChaosTokenValueEffect sid n source target = do
 createWindowModifierEffect
   :: MonadRandom m
   => EffectWindow
-  -> EffectMetadata Message
+  -> EffectMetadata Window Message
   -> Source
   -> Target
   -> m (EffectId, Effect)
@@ -227,7 +229,7 @@ createWindowModifierEffect effectWindow effectMetadata source target = do
 
 createChaosTokenEffect
   :: MonadRandom m
-  => EffectMetadata Message
+  => EffectMetadata Window Message
   -> Source
   -> ChaosToken
   -> m (EffectId, Effect)
@@ -343,7 +345,7 @@ buildChaosTokenValueEffect sid eid n source target = do
 
 buildWindowModifierEffect
   :: EffectId
-  -> EffectMetadata Message
+  -> EffectMetadata Window Message
   -> EffectWindow
   -> Source
   -> Target
@@ -351,7 +353,8 @@ buildWindowModifierEffect
 buildWindowModifierEffect eid metadata effectWindow source target =
   Effect $ windowModifierEffect' eid metadata effectWindow source target
 
-buildChaosTokenEffect :: EffectId -> EffectMetadata Message -> Source -> ChaosToken -> Effect
+buildChaosTokenEffect
+  :: EffectId -> EffectMetadata Window Message -> Source -> ChaosToken -> Effect
 buildChaosTokenEffect eid metadata source token =
   Effect $ chaosTokenEffect' eid metadata source token
 
@@ -445,7 +448,7 @@ allEffects =
     , ("04004", SomeEffect $ noop "04004")
     , ("04029", SomeEffect mistsOfRlyehEffect)
     , ("04035", SomeEffect yaotl1Effect)
-    , ("04079", SomeEffect $ noop "04079")
+    , ("04079", SomeEffect boaConstrictorEffect)
     , ("04104", SomeEffect marksmanship1Effect)
     , ("04108", SomeEffect $ noop "04108")
     , ("04155", SomeEffect hatchetManEffect)
@@ -596,7 +599,6 @@ allEffects =
     , ("eoref", SomeEffect endOfRoundEffect)
     , ("surge", SomeEffect surgeEffect)
     , ("maxef", SomeEffect maxEffect)
-    , ("abief", SomeEffect abilityEffect)
     , ("noair", SomeEffect noAirEffect)
     , ("genef", SomeEffect genericEffect)
     ]

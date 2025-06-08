@@ -1,11 +1,15 @@
-module Arkham.Treachery.Cards.LowOnSupplies (lowOnSupplies) where
+module Arkham.Treachery.Cards.LowOnSupplies (
+  lowOnSupplies,
+  LowOnSupplies (..),
+) where
 
-import Arkham.Campaigns.TheForgottenAge.Helpers
+import Arkham.Prelude
+
+import Arkham.Classes
 import Arkham.Helpers.Query
 import Arkham.Matcher
-import Arkham.Message.Lifted.Choose
 import Arkham.Treachery.Cards qualified as Cards
-import Arkham.Treachery.Import.Lifted
+import Arkham.Treachery.Runner
 
 newtype LowOnSupplies = LowOnSupplies TreacheryAttrs
   deriving anyclass (IsTreachery, HasModifiersFor, HasAbilities)
@@ -15,16 +19,37 @@ lowOnSupplies :: TreacheryCard LowOnSupplies
 lowOnSupplies = treachery LowOnSupplies Cards.lowOnSupplies
 
 instance RunMessage LowOnSupplies where
-  runMessage msg t@(LowOnSupplies attrs) = runQueueT $ case msg of
-    Revelation iid (isSource attrs -> True) -> do
+  runMessage msg t@(LowOnSupplies attrs) = case msg of
+    Revelation iid source | isSource attrs source -> do
       anyWithResources <- selectAny InvestigatorWithAnyResources
       hasAssets <- selectAny (HasMatchingAsset AnyAsset)
-      investigators <- getInvestigators
-      chooseOrRunOneM iid $ campaignI18n do
-        when anyWithResources do
-          labeled' "lowOnSupplies.resources" $ for_ investigators (loseResourcesOf attrs 2)
-        labeled' "lowOnSupplies.damage" $ for_ investigators (assignDamageTo attrs 1)
-        when hasAssets do
-          labeled' "lowOnSupplies.discardAsset" $ for_ investigators (`chooseAndDiscardAsset` attrs)
+      investigatorIds <- getInvestigators
+      player <- getPlayer iid
+      push
+        $ chooseOrRunOne player
+        $ ( if anyWithResources
+              then
+                [ Label
+                    "Each investigator loses 2 resources."
+                    [LoseResources iid' (toSource attrs) 2 | iid' <- investigatorIds]
+                ]
+              else []
+          )
+        <> [ Label
+              "Each investigator takes 1 damage."
+              [ InvestigatorAssignDamage iid' source DamageAny 1 0
+              | iid' <- investigatorIds
+              ]
+           ]
+        <> ( if hasAssets
+              then
+                [ Label
+                    "Each investigator chooses and discards an asset he or she controls."
+                    [ ChooseAndDiscardAsset iid' (toSource attrs) AnyAsset
+                    | iid' <- investigatorIds
+                    ]
+                ]
+              else []
+           )
       pure t
-    _ -> LowOnSupplies <$> liftRunMessage msg attrs
+    _ -> LowOnSupplies <$> runMessage msg attrs

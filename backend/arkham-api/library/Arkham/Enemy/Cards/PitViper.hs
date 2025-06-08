@@ -1,10 +1,17 @@
-module Arkham.Enemy.Cards.PitViper (pitViper) where
+module Arkham.Enemy.Cards.PitViper (
+  pitViper,
+  PitViper (..),
+) where
+
+import Arkham.Prelude
 
 import Arkham.Ability
 import Arkham.Campaigns.TheForgottenAge.Helpers
+import Arkham.Classes
 import Arkham.Enemy.Cards qualified as Cards
-import Arkham.Enemy.Import.Lifted
+import Arkham.Enemy.Runner
 import Arkham.Matcher
+import Arkham.Timing qualified as Timing
 import Arkham.Treachery.Cards qualified as Treacheries
 
 newtype PitViper = PitViper EnemyAttrs
@@ -16,15 +23,27 @@ pitViper = enemy PitViper Cards.pitViper (3, Static 1, 3) (1, 0)
 
 instance HasAbilities PitViper where
   getAbilities (PitViper a) =
-    extend1 a
-      $ restricted a 1 (youExist $ not_ (HasMatchingTreachery $ treacheryIs Treacheries.poisoned))
-      $ forced
-      $ DealtDamage #after (SourceIsEnemyAttack $ be a) You
+    withBaseAbilities
+      a
+      [ restrictedAbility
+          a
+          1
+          ( InvestigatorExists
+              $ You
+              <> NotInvestigator
+                (HasMatchingTreachery $ treacheryIs Treacheries.poisoned)
+          )
+          $ ForcedAbility
+          $ DealtDamage
+            Timing.After
+            (SourceIsEnemyAttack $ EnemyWithId $ toId a)
+            You
+      ]
 
 instance RunMessage PitViper where
-  runMessage msg e@(PitViper attrs) = runQueueT $ case msg of
-    UseThisAbility iid (isSource attrs -> True) 1 -> do
+  runMessage msg e@(PitViper attrs) = case msg of
+    UseCardAbility iid source 1 _ _ | isSource attrs source -> do
       poisoned <- getSetAsidePoisoned
-      createWeaknessInThreatArea poisoned iid
+      push $ CreateWeaknessInThreatArea poisoned iid
       pure e
-    _ -> PitViper <$> liftRunMessage msg attrs
+    _ -> PitViper <$> runMessage msg attrs

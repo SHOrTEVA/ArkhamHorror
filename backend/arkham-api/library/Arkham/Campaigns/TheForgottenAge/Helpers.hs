@@ -10,9 +10,7 @@ import Arkham.Classes.Query
 import Arkham.Deck
 import Arkham.Draw.Types
 import Arkham.Helpers.Card
-import Arkham.Helpers.Location (getLocationOf, toConnections)
 import Arkham.Helpers.Message ()
-import Arkham.Helpers.Modifiers (getModifiers)
 import Arkham.Helpers.Query (getInvestigators)
 import Arkham.Helpers.Scenario (getVictoryDisplay, scenarioField, scenarioFieldMap)
 import Arkham.History
@@ -78,7 +76,7 @@ getVengeanceInVictoryDisplay = do
 getExplorationDeck :: HasGame m => m [Card]
 getExplorationDeck = scenarioFieldMap ScenarioDecks (findWithDefault [] ExplorationDeck)
 
-setExplorationDeck :: ReverseQueue m => [Card] -> m ()
+setExplorationDeck :: (ReverseQueue m) => [Card] -> m ()
 setExplorationDeck = setScenarioDeck ExplorationDeck
 
 getSetAsidePoisonedCount :: HasGame m => m Int
@@ -99,11 +97,6 @@ whenPoisoned iid body = do
   ok <- getIsPoisoned iid
   when ok body
 
-eachUnpoisoned :: HasGame m => (InvestigatorId -> m ()) -> m ()
-eachUnpoisoned body = do
-  unpoisoned <- getUnpoisoned
-  for_ unpoisoned body
-
 getUnpoisoned :: HasGame m => m [InvestigatorId]
 getUnpoisoned = select $ NotInvestigator $ HasMatchingTreachery $ treacheryIs $ Treacheries.poisoned
 
@@ -116,25 +109,14 @@ getSetAsidePoisoned =
 data ExploreRule = PlaceExplored | ReplaceExplored
   deriving stock Eq
 
-runExplore
-  :: (ReverseQueue m, Sourceable source, AsId investigator, IdOf investigator ~ InvestigatorId)
-  => investigator -> source -> m ()
-runExplore (asId -> iid) (toSource -> source) = do
-  matcher <-
-    getLocationOf iid >>= \case
-      Just lid -> mapOneOf CardWithPrintedLocationSymbol <$> toConnections lid
-      Nothing -> pure $ NotCard AnyCard
-  push $ Explore iid source matcher
-
 -- ReplaceExplored should actually place the location on "top"
 
 explore :: ReverseQueue m => InvestigatorId -> Source -> CardMatcher -> ExploreRule -> Int -> m ()
 explore iid source cardMatcher exploreRule matchCount = do
   explorationDeck <- getExplorationDeck
   canMove <- iid <=~> InvestigatorCanMove
-  mlid <- getLocationOf iid
   let
-    cardMatcher' = CardWithOneOf [CardWithType EnemyType, CardWithType TreacheryType, cardMatcher]
+    cardMatcher' = CardWithOneOf [CardWithType TreacheryType, cardMatcher]
     splitAtMatch d = case break (`cardMatch` cardMatcher') d of
       (l, []) -> (l, [])
       (l, x : xs) -> (l <> [x], xs)
@@ -177,10 +159,9 @@ explore iid source cardMatcher exploreRule matchCount = do
           replacedIsRevealed <- field LocationRevealed lid
           replacedIsWithoutClues <- lid <=~> LocationWithoutClues
 
-          checkAfter $ Window.PutLocationIntoPlay iid lid
           when (canMove && exploreRule == PlaceExplored) $ moveTo source iid lid
           updateHistory iid $ HistoryItem HistorySuccessfulExplore True
-          checkAfter $ Window.Explored iid mlid (Success lid)
+          checkAfter $ Window.Explored iid (Success lid)
           when (exploreRule == ReplaceExplored) do
             setGlobal lid "replacedIsRevealed" replacedIsRevealed
             setGlobal lid "replacedIsWithoutClues" replacedIsWithoutClues
@@ -195,7 +176,7 @@ explore iid source cardMatcher exploreRule matchCount = do
               , cardDrewRules = mempty
               , cardDrewTarget = Nothing
               }
-          checkAfter $ Window.Explored iid mlid (Failure x)
+          checkAfter $ Window.Explored iid (Failure x)
     xs -> do
       deck' <- if null notMatched then pure rest else shuffle $ rest <> notMatched
       focusCards drawn do
@@ -210,17 +191,12 @@ explore iid source cardMatcher exploreRule matchCount = do
         updateHistory iid $ HistoryItem HistorySuccessfulExplore True
 
         checkWindows
-          [ mkAfter $ Window.Explored iid mlid (Success lid)
+          [ mkAfter $ Window.Explored iid (Success lid)
           | lid <- locations
           ]
 
 getVengeancePoints :: (HasCallStack, ConvertToCard c, HasGame m) => c -> m (Maybe Int)
-getVengeancePoints c = do
-  card <- convertToCard c
-  mods <- getModifiers card
-  if ScenarioModifier "noVengeance" `elem` mods
-    then pure Nothing
-    else getCardField cdVengeancePoints card
+getVengeancePoints = getCardField cdVengeancePoints
 
 getHasVengeancePoints :: (ConvertToCard c, HasGame m) => c -> m Bool
 getHasVengeancePoints c = isJust <$> getVengeancePoints c
@@ -297,8 +273,6 @@ supplyLabel s = case s of
       "(2 supply point): Too small to be used as a reliable weapon, but easily concealed."
   Pickaxe ->
     go "Pickaxe" "(2 supply point): For breaking apart rocky surfaces."
-  KeyOfEztli -> go "Key of Eztli" "can not purchase"
-  MysteriousScepter -> go "Mysterious Scepter" "can not purchase"
  where
   go label tooltip = TooltipLabel label (Tooltip tooltip)
 

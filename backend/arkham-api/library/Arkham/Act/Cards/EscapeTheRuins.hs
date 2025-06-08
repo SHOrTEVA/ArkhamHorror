@@ -2,12 +2,14 @@ module Arkham.Act.Cards.EscapeTheRuins (escapeTheRuins) where
 
 import Arkham.Ability
 import Arkham.Act.Cards qualified as Cards
-import Arkham.Act.Import.Lifted
+import Arkham.Act.Runner
 import Arkham.Asset.Cards qualified as Assets
 import Arkham.Campaigns.TheForgottenAge.Helpers
+import Arkham.Classes
 import Arkham.Helpers.Modifiers
 import Arkham.Helpers.Scenario
 import Arkham.Matcher
+import Arkham.Prelude
 import Arkham.Trait
 
 newtype EscapeTheRuins = EscapeTheRuins ActAttrs
@@ -23,16 +25,24 @@ instance HasModifiersFor EscapeTheRuins where
     modifySelectWhen a (n >= 3) (EnemyWithTrait Serpent) [EnemyEvade 1]
 
 instance HasAbilities EscapeTheRuins where
-  getAbilities = actAbilities \x ->
-    [restricted x 1 AllUndefeatedInvestigatorsResigned $ Objective $ forced AnyWindow]
+  getAbilities (EscapeTheRuins x) =
+    withBaseAbilities
+      x
+      [ restrictedAbility x 1 AllUndefeatedInvestigatorsResigned
+          $ Objective
+          $ ForcedAbility AnyWindow
+      | onSide A x
+      ]
 
 instance RunMessage EscapeTheRuins where
-  runMessage msg a@(EscapeTheRuins attrs) = runQueueT $ case msg of
-    AdvanceAct (isSide B attrs -> True) _ _ -> do
-      resignedWithRelicOfAges <- resignedWith Assets.relicOfAgesADeviceOfSomeSort
-      push $ if resignedWithRelicOfAges then R1 else R3
+  runMessage msg a@(EscapeTheRuins attrs) = case msg of
+    AdvanceAct aid _ _ | aid == actId attrs && onSide B attrs -> do
+      resignedWithRelicOfAges <-
+        resignedWith
+          Assets.relicOfAgesADeviceOfSomeSort
+      push $ scenarioResolution $ if resignedWithRelicOfAges then 1 else 3
       pure a
-    UseThisAbility _ (isSource attrs -> True) 1 -> do
-      advancedWithOther attrs
+    UseCardAbility _ source 1 _ _ | isSource attrs source -> do
+      push $ AdvanceAct (toId attrs) (toSource attrs) AdvancedWithOther
       pure a
-    _ -> EscapeTheRuins <$> liftRunMessage msg attrs
+    _ -> EscapeTheRuins <$> runMessage msg attrs

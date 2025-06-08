@@ -1,13 +1,12 @@
-module Arkham.Location.Cards.BurialPit (burialPit) where
+module Arkham.Location.Cards.BurialPit (burialPit, BurialPit (..)) where
 
 import Arkham.Ability
 import Arkham.Direction
 import Arkham.GameValue
 import Arkham.Location.Cards qualified as Cards
-import Arkham.Location.Import.Lifted
+import Arkham.Location.Runner
 import Arkham.Matcher
-import Arkham.Message.Lifted.Choose
-import Arkham.Scenarios.TheDoomOfEztli.Helpers
+import Arkham.Prelude
 
 newtype BurialPit = BurialPit LocationAttrs
   deriving anyclass (IsLocation, HasModifiersFor)
@@ -15,19 +14,30 @@ newtype BurialPit = BurialPit LocationAttrs
 
 burialPit :: LocationCard BurialPit
 burialPit =
-  location BurialPit Cards.burialPit 3 (PerPlayer 1)
-    & setConnectsTo (setFromList [LeftOf, RightOf])
+  locationWith
+    BurialPit
+    Cards.burialPit
+    3
+    (PerPlayer 1)
+    (connectsToL .~ setFromList [LeftOf, RightOf])
 
 instance HasAbilities BurialPit where
-  getAbilities (BurialPit a) =
-    extendRevealed1 a $ mkAbility a 1 $ forced $ Explored #after You Anywhere (SuccessfulExplore $ be a)
+  getAbilities (BurialPit attrs) =
+    withBaseAbilities
+      attrs
+      [mkAbility attrs 1 $ forced $ Explored #after You (SuccessfulExplore $ be attrs)]
 
 instance RunMessage BurialPit where
-  runMessage msg l@(BurialPit attrs) = runQueueT $ case msg of
+  runMessage msg l@(BurialPit attrs) = case msg of
     UseThisAbility iid (isSource attrs -> True) 1 -> do
-      repeated 2 do
-        chooseOneM iid $ scenarioI18n do
-          labeled "burialPit.draw" $ drawEncounterCard iid attrs
-          labeled "burialPit.doom" $ placeDoom (attrs.ability 1) attrs 1
+      player <- getPlayer iid
+      let
+        choose =
+          chooseOne
+            player
+            [ Label "Draw a card from the top of the encounter deck" [drawEncounterCard iid attrs]
+            , Label "Place 1 doom on burial pit" [PlaceDoom (attrs.ability 1) (toTarget attrs) 1]
+            ]
+      pushAll [choose, choose]
       pure l
-    _ -> BurialPit <$> liftRunMessage msg attrs
+    _ -> BurialPit <$> runMessage msg attrs

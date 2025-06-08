@@ -20,7 +20,7 @@ instance HasAbilities HallOfIdolatry where
     extendRevealed1 attrs
       $ mkAbility attrs 1
       $ forced
-      $ Explored #after You Anywhere
+      $ Explored #after You
       $ SuccessfulExplore (be attrs)
 
 instance RunMessage HallOfIdolatry where

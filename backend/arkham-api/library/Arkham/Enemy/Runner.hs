@@ -89,7 +89,7 @@ import Data.Function (on)
 import Data.List (nubBy)
 import Data.List qualified as List
 import Data.List.Extra (firstJust)
-import Data.Monoid (Any (..), First (..))
+import Data.Monoid (First (..))
 
 {- | Handle when enemy no longer exists
 When an enemy is defeated we need to remove related messages from choices
@@ -893,14 +893,12 @@ instance RunMessage EnemyAttrs where
         ]
       pure a
     InitiateEnemyAttack details | details.enemy == enemyId -> do
-      mods <- getModifiers a
-      if CannotAttack `elem` mods
-        then pure a
-        else do
-          let canBeCancelled = details.canBeCanceled && AttacksCannotBeCancelled `notElem` mods
-          let strategy = fromMaybe details.strategy $ listToMaybe [s | SetAttackDamageStrategy s <- mods]
-          push $ EnemyAttack $ details {attackCanBeCanceled = canBeCancelled, attackDamageStrategy = strategy}
-          pure $ a & wantsToAttackL .~ True
+      whenWithoutModifier a CannotAttack do
+        mods <- getModifiers a
+        let canBeCancelled = details.canBeCanceled && AttacksCannotBeCancelled `notElem` mods
+        let strategy = fromMaybe details.strategy $ listToMaybe [s | SetAttackDamageStrategy s <- mods]
+        push $ EnemyAttack $ details {attackCanBeCanceled = canBeCancelled, attackDamageStrategy = strategy}
+      pure a
     ChangeEnemyAttackTarget eid target | eid == enemyId -> do
       let details = fromJustNote "missing attack details" enemyAttacking
           details' = details {attackTarget = SingleAttackTarget target}
@@ -933,7 +931,7 @@ instance RunMessage EnemyAttrs where
                   push $ chooseOne player [Label "Ignore attack of opportunity" [], Label "Do not ignore" [Do msg]]
               else push $ Do msg
           _ -> push $ Do msg
-      pure $ a & wantsToAttackL .~ False
+      pure a
     Do (EnemyAttack details) | attackEnemy details == enemyId -> do
       mods <- getModifiers a
       let canBeCancelled = AttacksCannotBeCancelled `notElem` mods
@@ -985,13 +983,6 @@ instance RunMessage EnemyAttrs where
           else pure 0
       sanityDamage <- field EnemySanityDamage (toId a)
 
-      let
-        swarmMatcher =
-          case enemyPlacement of
-            AsSwarm host _ -> oneOf [EnemyWithId host, SwarmOf host]
-            _ -> oneOf [EnemyWithId enemyId, SwarmOf enemyId]
-      swarmExhaust <- not . getAny <$> selectAgg Any EnemyWantsToAttack swarmMatcher
-
       case attackTarget details of
         SingleAttackTarget (InvestigatorTarget iid) -> do
           player <- getPlayer iid
@@ -1032,7 +1023,6 @@ instance RunMessage EnemyAttrs where
             $ [attackMessage | allowAttack]
             <> [ Exhaust (toTarget a)
                | allowAttack
-               , swarmExhaust
                , attackExhaustsEnemy details
                , DoNotExhaust `notElem` mods
                ]
@@ -1051,7 +1041,6 @@ instance RunMessage EnemyAttrs where
               ]
             <> [ Exhaust (toTarget a)
                | allowAttack
-               , swarmExhaust
                , attackExhaustsEnemy details
                , DoNotExhaust `notElem` mods
                ]
@@ -1148,7 +1137,7 @@ instance RunMessage EnemyAttrs where
                   defeatMsgs =
                     if ExhaustIfDefeated `elem` modifiers'
                       then [Exhaust (toTarget a) | not enemyExhausted]
-                      else [Arkham.Message.EnemyDefeated eid (toCardId a) source (setToList $ toTraits a)]
+                      else [EnemyDefeated eid (toCardId a) source (setToList $ toTraits a)]
 
                 pushAll $ [whenMsg, afterMsg] <> defeatMsgs
           pure a
@@ -1199,7 +1188,7 @@ instance RunMessage EnemyAttrs where
                     if ExhaustIfDefeated `elem` modifiers'
                       then [Exhaust (toTarget a) | not enemyExhausted]
                       else
-                        [Arkham.Message.EnemyDefeated eid (toCardId a) source (setToList $ toTraits a)]
+                        [EnemyDefeated eid (toCardId a) source (setToList $ toTraits a)]
                           <> ( guard (notNull excessDamageTargets && excess > 0)
                                  *> [ ExcessDamage
                                         eid
@@ -1241,9 +1230,9 @@ instance RunMessage EnemyAttrs where
         )
           <$> maybe (pure True) (sourceMatches source) mOnlyBeDefeatedByModifier
       when validDefeat do
-        push $ Arkham.Message.EnemyDefeated eid (toCardId a) source (setToList $ toTraits a)
+        push $ EnemyDefeated eid (toCardId a) source (setToList $ toTraits a)
       pure a
-    Arkham.Message.EnemyDefeated eid _ source _ | eid == toId a -> do
+    EnemyDefeated eid _ source _ | eid == toId a -> do
       modifiedHealth <- fieldJust EnemyHealth (toId a)
       let
         defeatedByDamage = enemyDamage a >= modifiedHealth
@@ -1268,7 +1257,7 @@ instance RunMessage EnemyAttrs where
         $ a
         & (keysL .~ mempty)
         & (lastKnownLocationL .~ mloc)
-    Do (Arkham.Message.EnemyDefeated eid _ source _) | eid == toId a -> do
+    Do (EnemyDefeated eid _ source _) | eid == toId a -> do
       miid <- getSourceController source
       victory <- getVictoryPoints eid
       vengeance <- getVengeancePoints eid
@@ -1288,7 +1277,7 @@ instance RunMessage EnemyAttrs where
       pure
         $ a
         & (if placeInVictory then placementL .~ OutOfPlay VictoryDisplayZone else id)
-    After (Arkham.Message.EnemyDefeated eid _ source _) | eid == toId a -> do
+    After (EnemyDefeated eid _ source _) | eid == toId a -> do
       case a.placement of
         AsSwarm eid' _ -> push $ CheckDefeated source (toTarget eid')
         _ -> pure ()
@@ -1354,8 +1343,7 @@ instance RunMessage EnemyAttrs where
               massive <- eid <=~> MassiveEnemy
               mlid <- getMaybeLocation iid
               enemyLocation <- field EnemyLocation eid
-              canEnter <-
-                maybe (pure False) (\loc -> (enemyLocation == Just loc ||) <$> canEnterLocation enemyId loc) mlid
+              canEnter <-  maybe (pure False) (canEnterLocation enemyId) mlid
               when (not massive && canEnter) do
                 pushAll
                   $ [before, PlaceEnemy eid (InThreatArea iid)]

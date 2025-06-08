@@ -1,12 +1,12 @@
-module Arkham.Treachery.Cards.LostInTime (lostInTime) where
+module Arkham.Treachery.Cards.LostInTime (lostInTime, LostInTime (..)) where
 
 import Arkham.Asset.Types (Field (..))
-import Arkham.Helpers.Message.Discard.Lifted
+import Arkham.Classes
 import Arkham.Matcher
-import Arkham.Message.Lifted.Choose
+import Arkham.Prelude
 import Arkham.Projection
 import Arkham.Treachery.Cards qualified as Cards
-import Arkham.Treachery.Import.Lifted
+import Arkham.Treachery.Runner
 
 newtype LostInTime = LostInTime TreacheryAttrs
   deriving anyclass (IsTreachery, HasModifiersFor, HasAbilities)
@@ -16,17 +16,24 @@ lostInTime :: TreacheryCard LostInTime
 lostInTime = treachery LostInTime Cards.lostInTime
 
 instance RunMessage LostInTime where
-  runMessage msg t@(LostInTime attrs) = runQueueT $ case msg of
-    Revelation iid (isSource attrs -> True) -> do
+  runMessage msg t@(LostInTime attrs) = case msg of
+    Revelation iid source | isSource attrs source -> do
       assets <- select $ assetControlledBy iid <> AssetNonStory <> AssetCanLeavePlayByNormalMeans
-      if notNull assets
-        then chooseOneM iid do
-          targets assets \aid -> do
-            dmg <- field AssetDamage aid
-            when (dmg > 0) $ moveTokens attrs aid iid #damage dmg
-            hrr <- field AssetHorror aid
-            when (hrr > 0) $ moveTokens attrs aid iid #horror hrr
-            shuffleIntoDeck iid aid
-        else repeated 3 $ chooseAndDiscardCard iid attrs
+      assetsWithDamageAndHorror <- for assets $ \asset -> do
+        damage <- field AssetDamage asset
+        horror <- field AssetHorror asset
+        pure (asset, damage, horror)
+      player <- getPlayer iid
+      if notNull assetsWithDamageAndHorror
+        then do
+          push
+            $ chooseOne player
+            $ [ targetLabel aid
+                $ [MovedDamage (toSource attrs) (toSource aid) (toTarget iid) dmg | dmg > 0]
+                <> [MovedHorror (toSource attrs) (toSource aid) (toTarget iid) hrr | hrr > 0]
+                <> [shuffleIntoDeck iid aid]
+              | (aid, dmg, hrr) <- assetsWithDamageAndHorror
+              ]
+        else pushAll $ replicate 3 $ toMessage $ chooseAndDiscardCard iid attrs
       pure t
-    _ -> LostInTime <$> liftRunMessage msg attrs
+    _ -> LostInTime <$> runMessage msg attrs
