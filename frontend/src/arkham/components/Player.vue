@@ -459,38 +459,7 @@ function resetHandAreaMarginBottom(event: Event) {
             @click="realityAcid = realityAcid === '89005' ? '89005b' : '89005'"
             :src="imgsrc(`cards/${realityAcid}.avif`)"
           />
-          <Enemy
-            v-if = "isMobile"
-            v-for="enemy in engagedEnemies"
-            :key="enemy.id"
-            :enemy="enemy"
-            :game="game"
-            :data-index="enemy.cardId"
-            :playerId="playerId"
-            @choose="$emit('choose', $event)"
-          />
-          <Treachery
-            v-if = "isMobile"
-            v-for="treacheryId in investigator.treacheries"
-            :key="treacheryId"
-            :treachery="game.treacheries[treacheryId]"
-            :game="game"
-            :data-index="game.treacheries[treacheryId].cardId"
-            :playerId="playerId"
-            @choose="$emit('choose', $event)"
-          />
-          <Location
-            v-if = "isMobile"
-            v-for="(location, key) in locations"
-            class="location"
-            :key="key"
-            :game="game"
-            :playerId="playerId"
-            :location="location"
-            :data-index="location.cardId"
-            :style="{ 'grid-area': location.label, 'justify-self': 'center' }"
-            @choose="$emit('choose', $event)"
-          />
+
           <Treachery
             v-for="treachery in currentTreacheries"
             :key="treachery.id"
@@ -547,6 +516,124 @@ function resetHandAreaMarginBottom(event: Event) {
             <img :src="slotImg(slot)" />
           </div>
 
+        <img
+          v-if="investigatorId === 'c89001'"
+          class="card"
+          @click="realityAcid = realityAcid === '89005' ? '89005b' : '89005'"
+          :src="imgsrc(`cards/${realityAcid}.avif`)"
+        />
+        <Enemy
+          v-if = "isMobile"
+          v-for="enemy in engagedEnemies"
+          :key="enemy.id"
+          :enemy="enemy"
+          :game="game"
+          :data-index="enemy.cardId"
+          :playerId="playerId"
+          @choose="$emit('choose', $event)"
+        />
+        <Treachery
+          v-if = "isMobile"
+          v-for="treacheryId in investigator.treacheries"
+          :key="treacheryId"
+          :treachery="game.treacheries[treacheryId]"
+          :game="game"
+          :data-index="game.treacheries[treacheryId].cardId"
+          :playerId="playerId"
+          @choose="$emit('choose', $event)"
+        />
+
+        <Location
+          v-if = "isMobile"
+          v-for="(location, key) in locations"
+          class="location"
+          :key="key"
+          :game="game"
+          :playerId="playerId"
+          :location="location"
+          :data-index="location.cardId"
+          :style="{ 'grid-area': location.label, 'justify-self': 'center' }"
+          @choose="$emit('choose', $event)"
+        />
+        <Treachery
+          v-for="treachery in currentTreacheries"
+          :key="treachery.id"
+          :treachery="treachery"
+          :game="game"
+          :data-index="treachery.cardId"
+          :playerId="playerId"
+          @choose="$emit('choose', $event)"
+        />
+
+          <Treachery
+            v-for="treacheryId in investigator.treacheries"
+            :key="treacheryId"
+            :treachery="game.treacheries[treacheryId]"
+            :game="game"
+            :data-index="game.treacheries[treacheryId].cardId"
+            :playerId="playerId"
+            @choose="$emit('choose', $event)"
+          />
+
+          <Location
+            v-for="(location, key) in locations"
+            class="location"
+            :key="key"
+            :game="game"
+            :playerId="playerId"
+            :location="location"
+            :data-index="location.cardId"
+            :style="{ 'grid-area': location.label, 'justify-self': 'center' }"
+            @choose="$emit('choose', $event)"
+          />
+        </transition-group>
+      </section>
+        <Skill
+          v-for="skill in skills"
+          :skill="skill"
+          :game="game"
+          :playerId="playerId"
+          :key="skill.id"
+          :data-index="skill.cardId"
+          @choose="$emit('choose', $event)"
+          @showCards="doShowCards"
+        />
+        <Event
+          v-for="event in events"
+          :event="event"
+          :game="game"
+          :playerId="playerId"
+          :key="event.id"
+          :data-index="event.cardId"
+          @choose="$emit('choose', $event)"
+          @showCards="doShowCards"
+        />
+        <Asset
+          v-for="asset in assets"
+          :asset="asset"
+          :game="game"
+          :playerId="playerId"
+          :key="asset.id"
+          :data-index="asset.cardId"
+          @choose="$emit('choose', $event)"
+          @showCards="doShowCards"
+        />
+
+        <Story
+          v-for="story in stories"
+          :key="story.id"
+          :story="story"
+          :game="game"
+          :data-index="story.cardId"
+          :playerId="playerId"
+          @choose="$emit('choose', $event)"
+        />
+
+
+        <div v-for="(slot, idx) in emptySlots" :key="idx" class="slot" :data-index="`${slot}${idx}`">
+          <img :src="slotImg(slot,idx)" />
+        </div>
+
         <Enemy
           v-if = "!isMobile"
           v-for="enemy in engagedEnemies"
@@ -581,10 +668,9 @@ function resetHandAreaMarginBottom(event: Event) {
           :style="{ 'grid-area': location.label, 'justify-self': 'center' }"
           @choose="$emit('choose', $event)"
         />
-        </transition-group>
-      </section>
+      </transition-group>
     </transition>
-       
+
     <ChoiceModal
       v-if="playerId === investigator.playerId"
       :game="game"
