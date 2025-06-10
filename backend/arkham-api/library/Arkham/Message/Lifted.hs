@@ -103,6 +103,7 @@ import Control.Monad.State.Strict (MonadState, StateT, execStateT, get, put)
 import Control.Monad.Trans.Class
 import Data.Aeson.Key qualified as Aeson
 import Data.Map.Strict qualified as Map
+import Data.Monoid (First (..))
 
 setChaosTokens :: ReverseQueue m => [ChaosTokenFace] -> m ()
 setChaosTokens = push . SetChaosTokens
@@ -295,6 +296,18 @@ storyWithChooseOne flavor choices = do
   lead <- getLeadPlayer
   push $ Msg.storyWithChooseOne lead players flavor choices
 
+storyWithChooseN :: ReverseQueue m => Int -> FlavorText -> [UI Message] -> m ()
+storyWithChooseN n flavor choices = do
+  players <- allPlayers
+  lead <- getLeadPlayer
+  push $ Msg.storyWithChooseN lead players n flavor choices
+
+storyWithChooseUpToN :: ReverseQueue m => Int -> FlavorText -> [UI Message] -> m ()
+storyWithChooseUpToN n flavor choices = do
+  players <- allPlayers
+  lead <- getLeadPlayer
+  push $ Msg.storyWithChooseUpToN lead players n flavor choices
+
 sufferTrauma :: ReverseQueue m => InvestigatorId -> Int -> Int -> m ()
 sufferTrauma iid physical mental = push $ SufferTrauma iid physical mental
 
@@ -373,7 +386,9 @@ endOfScenario = push $ EndOfGame Nothing
 endOfScenarioThen :: ReverseQueue m => CampaignStep -> m ()
 endOfScenarioThen = push . EndOfGame . Just
 
-dealAssetDirectDamageAndHorror :: (ReverseQueue m, Sourceable source, AsId asset, IdOf asset ~ AssetId) => asset -> source -> Int -> Int -> m ()
+dealAssetDirectDamageAndHorror
+  :: (ReverseQueue m, Sourceable source, AsId asset, IdOf asset ~ AssetId)
+  => asset -> source -> Int -> Int -> m ()
 dealAssetDirectDamageAndHorror asset source damage horror =
   push $ DealAssetDirectDamage (asId asset) (toSource source) damage horror
 
@@ -386,6 +401,10 @@ dealAssetHorror aid source horror = push $ Msg.DealAssetDamageWithCheck aid (toS
 assignDamage
   :: (ReverseQueue m, Sourceable source) => InvestigatorId -> source -> Int -> m ()
 assignDamage iid (toSource -> source) damage = push $ Msg.assignDamage iid source damage
+
+assignDamageTo
+  :: (ReverseQueue m, Sourceable source) => source -> Int -> InvestigatorId -> m ()
+assignDamageTo source damage iid = assignDamage iid source damage
 
 assignHorror
   :: (ReverseQueue m, Sourceable source) => InvestigatorId -> source -> Int -> m ()
@@ -481,43 +500,54 @@ newtype UniqueFetchCard = UniqueFetchCard CardDef
   deriving newtype (Show, Eq, ToJSON, FromJSON)
 
 class FetchCard a where
-  fetchCard :: (HasCallStack, ReverseQueue m) => a -> m Card
+  fetchCardMaybe :: (HasCallStack, ReverseQueue m) => a -> m (Maybe Card)
+
+fetchCard :: (HasCallStack, ReverseQueue m, FetchCard a) => a -> m Card
+fetchCard a = fromJustNote "Card not found" <$> fetchCardMaybe a
 
 instance FetchCard UniqueFetchCard where
-  fetchCard (UniqueFetchCard def) = do
+  fetchCardMaybe (UniqueFetchCard def) = do
     findCard ((== def.cardCode) . toCardCode) >>= \case
-      Nothing -> genCard def
-      Just card -> pure $ if cardCodeExactEq def.cardCode card.cardCode then card else flipCard card
+      Nothing -> Just <$> genCard def
+      Just card -> pure $ Just $ if cardCodeExactEq def.cardCode card.cardCode then card else flipCard card
 
 instance FetchCard CardDef where
-  fetchCard def =
+  fetchCardMaybe def =
     if def.unique
-      then fetchCard (UniqueFetchCard def)
-      else maybe (genCard def) pure =<< maybeGetSetAsideCard def
+      then fetchCardMaybe (UniqueFetchCard def)
+      else maybe (Just <$> genCard def) (pure . Just) =<< maybeGetSetAsideCard def
+
+newtype SetAsideCard = SetAsideCard CardDef
+
+instance FetchCard SetAsideCard where
+  fetchCardMaybe (SetAsideCard def) = maybeGetSetAsideCard def
+
+instance FetchCard a => FetchCard [a] where
+  fetchCardMaybe defs = getFirst . foldMap First <$> traverse fetchCardMaybe defs
 
 instance FetchCard ExtendedCardMatcher where
-  fetchCard = selectJust
+  fetchCardMaybe = selectOne
 
 instance FetchCard Card where
-  fetchCard = pure
+  fetchCardMaybe = pure . Just
 
 instance FetchCard EncounterCard where
-  fetchCard = pure . toCard
+  fetchCardMaybe = pure . Just . toCard
 
 instance FetchCard PlayerCard where
-  fetchCard = pure . toCard
+  fetchCardMaybe = pure . Just . toCard
 
 instance FetchCard AssetId where
-  fetchCard = field Field.AssetCard
+  fetchCardMaybe = fieldMap Field.AssetCard Just
 
 instance FetchCard EventId where
-  fetchCard = field Field.EventCard
+  fetchCardMaybe = fieldMap Field.EventCard Just
 
 instance FetchCard TreacheryId where
-  fetchCard = field Field.TreacheryCard
+  fetchCardMaybe = fieldMap Field.TreacheryCard Just
 
 instance FetchCard Field.TreacheryAttrs where
-  fetchCard = field Field.TreacheryCard . asId
+  fetchCardMaybe = fieldMap Field.TreacheryCard Just . asId
 
 addCampaignCardToDeck
   :: (AsId investigator, IdOf investigator ~ InvestigatorId, ReverseQueue m, FetchCard card)
@@ -1210,10 +1240,13 @@ returnToHand iid = push . ReturnToHand iid . toTarget
 addToVictory :: (ReverseQueue m, Targetable target) => target -> m ()
 addToVictory = push . AddToVictory . toTarget
 
+createAbilityEffect :: ReverseQueue m => Msg.EffectWindow -> Ability -> m ()
+createAbilityEffect ew ab = push =<< Msg.createAbilityEffect ew ab
+
 createCardEffect
   :: (ReverseQueue m, Sourceable source, Targetable target)
   => CardDef
-  -> Maybe (EffectMetadata Window Message)
+  -> Maybe (EffectMetadata Message)
   -> source
   -> target
   -> m ()
@@ -1222,7 +1255,7 @@ createCardEffect def mMeta source target = push =<< Msg.createCardEffect def mMe
 createCardEffectCapture
   :: (ReverseQueue m, Sourceable source, Targetable target)
   => CardDef
-  -> Maybe (EffectMetadata Window Message)
+  -> Maybe (EffectMetadata Message)
   -> source
   -> target
   -> m EffectId
@@ -1243,6 +1276,10 @@ phaseModifiers source target modifiers = Msg.pushM $ Msg.phaseModifiers source t
 resolutionModifier
   :: (ReverseQueue m, Sourceable source, Targetable target) => source -> target -> ModifierType -> m ()
 resolutionModifier source target modifier = Msg.pushM $ Msg.resolutionModifier source target modifier
+
+actModifier
+  :: (ReverseQueue m, Sourceable source, Targetable target) => source -> target -> ModifierType -> m ()
+actModifier source target modifier = Msg.pushM $ Msg.actModifier source target modifier
 
 gameModifier
   :: (ReverseQueue m, Sourceable source, Targetable target) => source -> target -> ModifierType -> m ()
@@ -1627,6 +1664,9 @@ takeResources a source n = push $ Msg.takeResources (asId a) source n
 loseResources :: (ReverseQueue m, Sourceable source) => InvestigatorId -> source -> Int -> m ()
 loseResources iid source n = push $ Msg.LoseResources iid (toSource source) n
 
+loseResourcesOf :: (ReverseQueue m, Sourceable source) => source -> Int -> InvestigatorId -> m ()
+loseResourcesOf source n iid = loseResources iid source n
+
 loseAllResources :: (ReverseQueue m, Sourceable source) => InvestigatorId -> source -> m ()
 loseAllResources iid source = loseResources iid source =<< field InvestigatorResources iid
 
@@ -1954,7 +1994,10 @@ insteadOfMatchingWith
 insteadOfMatchingWith pred f = lift $ replaceMessageMatchingM pred f
 
 don't :: (MonadTrans t, HasQueue Message m) => Message -> t m ()
-don't msg = lift $ popMessageMatching_ (== msg)
+don't msg = don'tMatching (== msg)
+
+don'tMatching :: (MonadTrans t, HasQueue Message m) => (Message -> Bool) -> t m ()
+don'tMatching f = lift $ popMessageMatching_ f
 
 don'tAddToVictory :: (MonadTrans t, HasQueue Message m) => EnemyId -> t m ()
 don'tAddToVictory eid = don't $ DefeatedAddToVictory (toTarget eid)
@@ -2325,6 +2368,21 @@ cancelEnemyDefeat
   -> t m ()
 cancelEnemyDefeat enemy = lift $ Msg.cancelEnemyDefeat (asId enemy)
 
+cancelEnemyDefeatWithWindows
+  :: (MonadTrans t, HasGame m, HasQueue Message m, AsId enemy, IdOf enemy ~ EnemyId)
+  => enemy
+  -> t m ()
+cancelEnemyDefeatWithWindows enemy = lift $ Msg.cancelEnemyDefeatWithWindows (asId enemy)
+
+cancelEnemyDamage
+  :: (MonadTrans t, HasQueue Message m, AsId enemy, IdOf enemy ~ EnemyId)
+  => enemy
+  -> t m ()
+cancelEnemyDamage enemy =
+  don'tMatching \case
+    EnemyDamaged eid _ -> eid == asId enemy
+    _ -> False
+
 moveWithSkillTest :: (MonadTrans t, HasQueue Message m) => (Message -> Bool) -> t m ()
 moveWithSkillTest f = lift $ Arkham.Classes.HasQueue.mapQueue \msg -> if f msg then MoveWithSkillTest msg else msg
 
@@ -2567,6 +2625,13 @@ spendResources
   -> m ()
 spendResources investigator n = push $ SpendResources (asId investigator) n
 
+spendResourcesOf
+  :: (ReverseQueue m, AsId investigator, IdOf investigator ~ InvestigatorId)
+  => Int
+  -> investigator
+  -> m ()
+spendResourcesOf = flip spendResources
+
 discardCard
   :: ( ReverseQueue m
      , Sourceable source
@@ -2679,6 +2744,9 @@ placeKey target key = push $ Msg.PlaceKey (toTarget target) key
 
 investigatorDefeated :: (ReverseQueue m, Sourceable source) => source -> InvestigatorId -> m ()
 investigatorDefeated source iid = push $ Msg.InvestigatorDefeated (toSource source) iid
+
+shuffleSetAsideEncounterSetIntoEncounterDeck :: ReverseQueue m => EncounterSet -> m ()
+shuffleSetAsideEncounterSetIntoEncounterDeck = getSetAsideEncounterSet >=> shuffleCardsIntoDeck Deck.EncounterDeck
 
 shuffleSetAsideIntoEncounterDeck :: (ReverseQueue m, IsCardMatcher matcher) => matcher -> m ()
 shuffleSetAsideIntoEncounterDeck matcher = do
@@ -2985,3 +3053,10 @@ changeSpawnAt enemyId locationId = lift $ replaceAllMessagesMatching ((== Just E
   EnemySpawnAtLocationMatching miid _ eid | eid == enemyId -> [EnemySpawnAtLocationMatching miid (LocationWithId locationId) eid]
   After (EnemySpawnAtLocationMatching miid _ eid) | eid == enemyId -> [After (EnemySpawnAtLocationMatching miid (LocationWithId locationId) eid)]
   other -> [other]
+
+createWeaknessInThreatArea
+  :: (FetchCard card, AsId investigator, IdOf investigator ~ InvestigatorId, ReverseQueue m)
+  => card -> investigator -> m ()
+createWeaknessInThreatArea card iid = do
+  c <- fetchCard card
+  push $ CreateWeaknessInThreatArea c (asId iid)

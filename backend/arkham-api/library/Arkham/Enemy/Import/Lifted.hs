@@ -59,6 +59,7 @@ import Arkham.Source as X
 import Arkham.Spawn as X
 import Arkham.Target as X
 
+import Arkham.Classes.HasGame
 import Arkham.Classes.HasQueue (
   HasQueue,
   evalQueueT,
@@ -103,6 +104,14 @@ insteadOfDefeat
   :: HasQueue Message m => EnemyAttrs -> QueueT Message (QueueT Message m) () -> QueueT Message m ()
 insteadOfDefeat attrs body = whenM (beingDefeated attrs) do
   cancelEnemyDefeat attrs
+  pushAll =<< evalQueueT body
+
+-- See: The Spectral Watcher
+insteadOfDefeatWithWindows
+  :: (HasQueue Message m, HasGame m)
+  => EnemyAttrs -> QueueT Message (QueueT Message m) () -> QueueT Message m ()
+insteadOfDefeatWithWindows attrs body = whenM (beingDefeated attrs) do
+  cancelEnemyDefeatWithWindows attrs
   pushAll =<< evalQueueT body
 
 insteadOfEvading

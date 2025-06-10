@@ -25,7 +25,14 @@ const maybeFormat = function(body: string) {
 
 const tformat = (t:string) => t.startsWith("$") ? t.slice(1) : t
 
-const readCards = computed(() => props.question.readCards || [])
+const readCards = computed(() => props.question.readCards ?? [])
+
+const pickCards = computed(() => props.question.readChoices.contents.reduce((acc, v, i) => {
+  if ("cardCode" in v) {
+    return [...acc, { cardCode: v.cardCode, index: i }]
+  }
+  return acc
+}, [] as { cardCode: string, index: number }[]))
 
 const readChoices = computed(() => {
   switch (props.question.readChoices.tag) {
@@ -58,6 +65,9 @@ const focusedChaosTokens = computed(() => props.game.focusedChaosTokens)
         <img :src="imgsrc(`cards/${cardCode.replace('c', '')}.avif`)" v-for="cardCode in readCards" class="card no-overlay" />
         <FormattedEntry v-for="(paragraph, index) in question.flavorText.body" :key="index" :entry="paragraph" />
       </div>
+      <div class="pick-cards" v-if="pickCards.length > 0">
+        <img :src="imgsrc(`cards/${card.cardCode.replace('c', '')}.avif`)" v-for="card in pickCards" class="card no-overlay pick" :key="card.index" @click="choose(card.index)" />
+      </div>
     </div>
     <div class="options">
       <button
@@ -71,6 +81,7 @@ const focusedChaosTokens = computed(() => props.game.focusedChaosTokens)
 
 <style lang="scss" scoped>
 .entry {
+  border-radius: 5px;
   background: #DCD6D0;
   padding: 20px;
   box-shadow: inset 0 0 170px rgba(0,0,0,0.5), 1px 1px 3px rgba(0,0,0,0.6);
@@ -257,6 +268,39 @@ a.button {
       font-family: "Wolgast";
     }
   }
+  :deep(div.anke) {
+    font-family: "Anke";
+    text-align: center;
+    margin-block: 30px;
+    p {
+      margin-block: -20px;
+      font-family: "Anke";
+    }
+  }
+  :deep(p.anke) {
+    font-family: "Anke";
+  }
+}
+
+.pick-cards {
+  display: flex;
+  margin-block: 20px;
+  gap: 10px;
+  justify-content: center;
+
+  img {
+    transition: box-shadow 0.1s ease-in-out, transform 0.1s ease-in-out;
+  }
+
+  img:hover {
+    box-shadow: 0 0 10px rgba(0,0,0,0.9);
+    transform: scale(1.05);
+  }
+}
+
+.pick {
+  cursor: pointer;
+  flex-basis: 20%;
 }
 
 </style>
