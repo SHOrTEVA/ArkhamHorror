@@ -384,54 +384,32 @@ function handleSwipe() {
   }
 }
 const handCardHeight = Math.min(7 * window.innerWidth / 50 + 114, 340);
-const handCardExposedHeightS = `${-0.85 * handCardHeight}`;
-const handCardExposedHeightH = `${-0.35 * handCardHeight}`;
-const handAreaMarginBottom = ref(handCardExposedHeightS);
+const handCardExposedHeight_MIN = `${-0.85 * handCardHeight}`;
+const handCardExposedHeight_MAX = `${-0.35 * handCardHeight}`;
+const handAreaMarginBottom = ref(handCardExposedHeight_MIN);
 const handAreaPointerEvents = ref('none');
-const handAreaRef = ref<HTMLElement | null>(null);
-
-if (isMobile) {
-    document.addEventListener('touchstart', )
-    document.addEventListener('touchmove', )
-    document.addEventListener('touchend', )
-    document.addEventListener('mouseup', )
-  }
 
 onMounted(() => {
-  const handleHand = (event:Event) => {
-    const target = event.target as HTMLElement
-    if (target.classList.contains('hand-area-IsMobile')) {
-      toggleHandAreaMarginBottom()
-    }
-  }
-  handAreaRef.value = document.querySelector('.hand-area-IsMobile');
-  if (handAreaRef.value) {
-    ['click', 'touchstart', 'touchend'].forEach(event =>
-      document.addEventListener(event, resetHandAreaMarginBottom));
+  if (isMobile) {
+      document.addEventListener('click',toggleHandAreaMarginBottom)
   }
 });
 
 onBeforeUnmount(() => {
-  if (handAreaRef.value) {
-    ['click', 'touchstart', 'touchend'].forEach(event =>
-      document.removeEventListener(event, resetHandAreaMarginBottom));
+  if (isMobile) {
+      document.removeEventListener('click', toggleHandAreaMarginBottom)
   }
 });
 
-function toggleHandAreaMarginBottom() {
-  if (handAreaMarginBottom.value === handCardExposedHeightS) {
-    handAreaMarginBottom.value = handCardExposedHeightH;
-    handAreaPointerEvents.value = 'auto';
+function toggleHandAreaMarginBottom(event: Event) {
+  const target = event.target as HTMLElement
+  if (target.classList.contains('hand-area-IsMobile')) {
+    handAreaMarginBottom.value = handCardExposedHeight_MAX;
+    handAreaPointerEvents.value = 'auto'
   }
-}
-
-function resetHandAreaMarginBottom(event: Event) {
-  const target = typeof TouchEvent !== 'undefined' && event instanceof TouchEvent && event.targetTouches.length > 0 
-    ? event.targetTouches[0].target 
-    : event.target;
-  if (handAreaRef.value && target instanceof Node && !handAreaRef.value.contains(target)) {
-    handAreaMarginBottom.value = handCardExposedHeightS;
-    handAreaPointerEvents.value = 'none';
+  else if(!target.classList.contains('in-hand')){
+    handAreaMarginBottom.value = handCardExposedHeight_MIN;
+    handAreaPointerEvents.value = 'none'
   }
 }
 
