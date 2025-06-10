@@ -390,7 +390,20 @@ const handAreaMarginBottom = ref(handCardExposedHeightS);
 const handAreaPointerEvents = ref('none');
 const handAreaRef = ref<HTMLElement | null>(null);
 
+if (isMobile) {
+    document.addEventListener('touchstart', )
+    document.addEventListener('touchmove', )
+    document.addEventListener('touchend', )
+    document.addEventListener('mouseup', )
+  }
+
 onMounted(() => {
+  const handleHand = (event:Event) => {
+    const target = event.target as HTMLElement
+    if (target.classList.contains('hand-area-IsMobile')) {
+      toggleHandAreaMarginBottom()
+    }
+  }
   handAreaRef.value = document.querySelector('.hand-area-IsMobile');
   if (handAreaRef.value) {
     ['click', 'touchstart', 'touchend'].forEach(event =>
