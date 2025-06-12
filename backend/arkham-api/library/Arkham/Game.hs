@@ -1743,6 +1743,9 @@ getLocationsMatching lmatcher = do
     LocationWithMostInvestigators locationMatcher -> do
       matches' <- go ls locationMatcher
       maxes <$> forToSnd matches' (selectCount . investigatorAt . toId)
+    LocationWithMostEnemies locationMatcher enemyMatcher -> do
+      matches' <- go ls locationMatcher
+      maxes <$> forToSnd matches' (selectCount . (enemyMatcher <>) . enemyAt . toId)
     LocationWithMostClues locationMatcher -> do
       matches' <- go ls locationMatcher
       maxes <$> forToSnd matches' (pure . attr locationClues)

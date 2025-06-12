@@ -126,6 +126,7 @@ allEncounterEnemyCards =
       , broodOfYogSothothChargingBeast
       , broodOfYogSothothSwellingDevourer
       , broodOfYogSothothThrashingSpawn
+      , brotherhoodAcolyte
       , brotherhoodCultist
       , brownJenkin
       , carlSanfordDeathlessFanatic
@@ -201,6 +202,7 @@ allEncounterEnemyCards =
       , gugSentinel
       , handOfTheBrotherhood
       , harbingerOfValusia
+      , harbingerOfValusiaTheSleeperReturns
       , harlanEarnstoneCrazedByTheCurse
       , hasturLordOfCarcosa
       , hasturTheKingInYellow
@@ -345,6 +347,7 @@ allEncounterEnemyCards =
       , seekerOfCarcosa
       , seepingNightmare
       , serpentFromYoth
+      , serpentGuardian
       , serpentOfTenochtitlan
       , servantOfManyMouths
       , servantOfTheLurker
@@ -362,6 +365,7 @@ allEncounterEnemyCards =
       , stalkingManticore
       , stealthyByakhee
       , stealthyZoog
+      , stolenMind
       , summonedBeast
       , suspiciousOrderly
       , swampLeech
@@ -391,10 +395,12 @@ allEncounterEnemyCards =
       , theWingedSerpent
       , thrall
       , tidalTerror
+      , tindalosAlpha
       , umordhoth
       , unsealedPhantasm
       , valentinoRivas
       , vassalOfTheLurker
+      , vengefulSerpent
       , vengefulSpecter
       , vengefulWitch
       , victoriaDevereux
@@ -2947,6 +2953,56 @@ preyingByakhee =
   (enemy "52069" "Preying Byakhee" HastursEnvoys 2)
     { cdCardTraits = setFromList [Monster, Byakhee]
     , cdKeywords = setFromList [Keyword.Hunter]
+    }
+
+harbingerOfValusiaTheSleeperReturns :: CardDef
+harbingerOfValusiaTheSleeperReturns =
+  unique
+    $ ( enemy
+          "53018"
+          ("Harbinger of Valusia" <:> "The Sleeper Returns")
+          ReturnToTheDoomOfEztli
+          1
+      )
+      { cdCardTraits = setFromList [Humanoid, Serpent, Monster, Elite]
+      , cdKeywords = setFromList [Keyword.Alert, Keyword.Hunter, Keyword.Retaliate]
+      , cdVengeancePoints = Just 5
+      }
+
+brotherhoodAcolyte :: CardDef
+brotherhoodAcolyte =
+  (enemy "53071" "Brotherhood Acolyte" CultOfPnakotus 3)
+    { cdCardTraits = setFromList [Humanoid, Cultist]
+    , cdKeywords = setFromList [Keyword.Aloof]
+    }
+
+stolenMind :: CardDef
+stolenMind =
+  (enemy "53072" "Stolen Mind" CultOfPnakotus 1)
+    { cdCardTraits = setFromList [Humanoid, Cultist]
+    , cdKeywords = setFromList [Keyword.Retaliate]
+    }
+
+tindalosAlpha :: CardDef
+tindalosAlpha =
+  (enemy "53077" "Tindalos Alpha" TemporalHunters 2)
+    { cdCardTraits = setFromList [Monster, Extradimensional, Tindalos]
+    , cdKeywords = setFromList [Keyword.Alert, Keyword.Retaliate]
+    }
+
+vengefulSerpent :: CardDef
+vengefulSerpent =
+  (enemy "53078" "Vengeful Serpent" VenomousHate 3)
+    { cdCardTraits = setFromList [Humanoid, Monster, Serpent]
+    , cdKeywords = setFromList [Keyword.Hunter]
+    , cdVengeancePoints = Just 0
+    }
+
+serpentGuardian :: CardDef
+serpentGuardian =
+  (enemy "53079" "Serpent Guardian" VenomousHate 1)
+    { cdCardTraits = setFromList [Construct, Serpent]
+    , cdKeywords = setFromList [Keyword.Aloof]
     }
 
 tommyMalloy :: CardDef
