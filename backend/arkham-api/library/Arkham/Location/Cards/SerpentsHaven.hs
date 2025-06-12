@@ -14,7 +14,7 @@ newtype SerpentsHaven = SerpentsHaven LocationAttrs
   deriving newtype (Show, Eq, ToJSON, FromJSON, Entity)
 
 serpentsHaven :: LocationCard SerpentsHaven
-serpentsHaven = location SerpentsHaven Cards.serpentsHaven 2 (PerPlayer 2)
+serpentsHaven = symbolLabel $ location SerpentsHaven Cards.serpentsHaven 2 (PerPlayer 2)
 
 instance HasModifiersFor SerpentsHaven where
   getModifiersFor (SerpentsHaven a) = do
@@ -28,8 +28,8 @@ instance HasAbilities SerpentsHaven where
   getAbilities (SerpentsHaven attrs) =
     extendRevealed
       attrs
-      [ restrictedAbility attrs 0 activeCriteria $ silent (trigger #when)
-      , restrictedAbility attrs 1 criteria $ forced (trigger #after)
+      [ restricted attrs 0 activeCriteria $ silent (trigger #when)
+      , restricted attrs 1 criteria $ forced (trigger #after)
       ]
    where
     trigger timing = PerformAction timing You (oneOf [#investigate, #explore])

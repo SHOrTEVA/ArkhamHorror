@@ -9,7 +9,7 @@ import Arkham.Card
 import Arkham.EncounterSet qualified as Set
 import Arkham.Enemy.Types (Field (..))
 import {-# SOURCE #-} Arkham.GameEnv
-import Arkham.Helpers.Card hiding (addCampaignCardToDeckChoice)
+import Arkham.Helpers.Card hiding (addCampaignCardToDeckChoice, forceAddCampaignCardToDeckChoice)
 import Arkham.Helpers.Doom
 import Arkham.Helpers.FlavorText
 import Arkham.Helpers.Log
@@ -316,7 +316,7 @@ instance RunMessage ThreadsOfFate where
 
       relicOwned <- getIsAlreadyOwned Assets.relicOfAgesADeviceOfSomeSort
       when (act3bCompleted && not relicOwned) do
-        addCampaignCardToDeckChoice iids DoNotShuffleIn Assets.relicOfAgesADeviceOfSomeSort
+        forceAddCampaignCardToDeckChoice iids DoNotShuffleIn Assets.relicOfAgesADeviceOfSomeSort
 
       when (act3dCompleted && not alejandroOwned && not forgingYourOwnPath) do
         addCampaignCardToDeckChoice iids DoNotShuffleIn Assets.alejandroVela

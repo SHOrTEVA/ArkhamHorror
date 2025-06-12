@@ -21,7 +21,7 @@ import {-# SOURCE #-} Arkham.GameEnv
 import Arkham.Matcher.Scenario
 import Arkham.Modifier
 
-intFromMetadata :: EffectMetadata window a -> Int
+intFromMetadata :: EffectMetadata a -> Int
 intFromMetadata = \case
   EffectInt n -> n
   _ -> 0
@@ -63,6 +63,10 @@ instance RunMessage EffectAttrs where
     FinishedEvent _ | isEndOfWindow a EffectEventWindow -> do
       a <$ push (DisableEffect effectId)
     BeginAction | isEndOfWindow a EffectNextActionWindow -> do
+      a <$ push (DisableEffect effectId)
+    ReplaceAct {} | isEndOfWindow a EffectActWindow -> do
+      a <$ push (DisableEffect effectId)
+    Discard _ _ (ActTarget _) | isEndOfWindow a EffectActWindow -> do
       a <$ push (DisableEffect effectId)
     SkillTestEnded sid -> do
       mInvestigator <- getSkillTestInvestigator

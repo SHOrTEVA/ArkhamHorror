@@ -1200,6 +1200,36 @@ getAgendasMatching matcher = do
       modifiers' <- getModifiers (toTarget a)
       pure $ modifierType `elem` modifiers'
     AgendaCanWheelOfFortuneX -> pure . not . attr agendaUsedWheelOfFortuneX
+    AgendaWantsToAdvance -> \a -> do
+      cannotBeAdvanced <- hasModifier a CannotBeAdvancedByDoomThreshold
+      if cannotBeAdvanced
+        then pure False
+        else do
+          case attr agendaDoomThreshold a of
+            Nothing -> pure False
+            Just threshold -> do
+              perPlayerDoomThreshold <- getPlayerCountValue threshold
+              modifiers' <- getModifiers (toTarget a)
+              let
+                modifyDoomThreshold acc = \case
+                  DoomThresholdModifier n -> max 0 (acc + n)
+                  _ -> acc
+                modifiedPerPlayerDoomThreshold =
+                  foldl' modifyDoomThreshold perPlayerDoomThreshold modifiers'
+                otherDoomSubtracts = OtherDoomSubtracts `elem` modifiers'
+              -- handle multiple agendas, this might need to be specific to the
+              -- scenario, but for now given there is only once scenario and the rules
+              -- are likely to be the same in the future
+              otherAgendaDoom <-
+                getSum
+                  <$> selectAgg Sum AgendaDoom (NotAgenda $ AgendaWithId $ toId a)
+              doomCount <- if otherDoomSubtracts then getSubtractDoomCount else getDoomCount
+              let
+                totalDoom =
+                  if otherDoomSubtracts
+                    then a.doom - (doomCount - a.doom)
+                    else subtract otherAgendaDoom doomCount
+              pure $ totalDoom >= modifiedPerPlayerDoomThreshold
     FinalAgenda -> \a -> do
       card <- field AgendaCard (toId a)
       let agendas =
@@ -3736,6 +3766,7 @@ getEnemyField :: HasGame m => Field Enemy typ -> Enemy -> m typ
 getEnemyField f e = do
   let attrs@EnemyAttrs {..} = toAttrs e
   case f of
+    Arkham.Enemy.Types.EnemyDefeated -> pure enemyDefeated
     EnemyEngagedInvestigators -> case enemyPlacement of
       InThreatArea iid -> pure $ singleton iid
       _ -> do
@@ -5073,6 +5104,7 @@ runMessages mLogger = do
               -- Read might have only one player being prompted so we need to find the active player
               let current = g ^. activePlayerIdL
               let whenBeingQuestioned (pid, Read _ (BasicReadChoices choices) _) = guard (notNull choices) $> pid
+                  whenBeingQuestioned (pid, Read _ (BasicReadChoicesN _ choices) _) = guard (notNull choices) $> pid
                   whenBeingQuestioned (pid, Read _ (LeadInvestigatorMustDecide choices) _) = guard (notNull choices) $> pid
                   whenBeingQuestioned (pid, _) = Just pid
               let activePids = mapMaybe whenBeingQuestioned $ mapToList askMap
@@ -5196,9 +5228,7 @@ getTurnInvestigator :: HasGame m => m (Maybe Investigator)
 getTurnInvestigator = getGame >>= maybe (pure Nothing) getInvestigatorMaybe . gameTurnPlayerInvestigatorId
 
 asIfTurn :: HasGame m => InvestigatorId -> (forall n. HasGame n => n a) -> m a
-asIfTurn iid body = do
-  g <- getGame
-  runReaderT body (g {gameTurnPlayerInvestigatorId = Just iid})
+asIfTurn = asActive
 
 asActive :: HasGame m => InvestigatorId -> (forall n. HasGame n => n a) -> m a
 asActive iid body = do

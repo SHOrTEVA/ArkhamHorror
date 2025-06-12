@@ -1,4 +1,4 @@
-module Arkham.Location.Cards.RopeBridge (ropeBridge, RopeBridge (..)) where
+module Arkham.Location.Cards.RopeBridge (ropeBridge) where
 
 import Arkham.Ability
 import Arkham.Campaigns.TheForgottenAge.Helpers
@@ -14,7 +14,7 @@ newtype RopeBridge = RopeBridge LocationAttrs
   deriving newtype (Show, Eq, ToJSON, FromJSON, Entity)
 
 ropeBridge :: LocationCard RopeBridge
-ropeBridge = location RopeBridge Cards.ropeBridge 2 (PerPlayer 1)
+ropeBridge = symbolLabel $ location RopeBridge Cards.ropeBridge 2 (PerPlayer 1)
 
 instance HasAbilities RopeBridge where
   getAbilities (RopeBridge attrs) =
