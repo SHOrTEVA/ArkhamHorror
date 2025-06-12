@@ -486,8 +486,7 @@ function toggleZoom(e: MouseEvent) {
   let locationImg = null;
   if (target && target.classList.contains('card--locations')){
     locationImg = target;
-  }
-  else{
+  } else {
     const investigator = Object.values(props.game.investigators).find(i => i.playerId === props.playerId);
     if (investigator) {
       locationImg = document.querySelector(`img[data-id="${investigator.location}"]`);      
@@ -1010,8 +1009,6 @@ const showVictoryDisplay = () => doShowCards(victoryDisplay, t('scenario.victory
 }
 
 .location-cards {
-  //display: flex;
-  //flex: 0 0 150%;
   width: 100%;
   height: 100%;
   margin: auto;
