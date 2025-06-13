@@ -136,6 +136,12 @@ h3 {
   font-size: 1.3em;
 }
 
+span {
+  overflow-wrap: break-word;
+  word-break: break-all;
+  white-space: normal;
+}
+
 .breakdown-header {
   display: flex;
   gap: 10px;

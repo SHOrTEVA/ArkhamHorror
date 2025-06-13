@@ -34,6 +34,7 @@ import { useCardStore } from '@/stores/cards'
 import { onBeforeRouteLeave } from 'vue-router'
 import { useDebug } from '@/arkham/debug'
 import useEmitter from '@/composeable/useEmitter'
+import { IsMobile } from '@/arkham/isMobile';
 
 // Types
 interface GameCard {
@@ -73,6 +74,7 @@ const userStore = useUserStore()
 const { copy } = useClipboard({ source })
 const { addEntry, menuItems } = useMenu()
 const router = useRouter()
+const { isMobile } = IsMobile();
 
 store.fetchCards()
 
@@ -614,6 +616,9 @@ onUnmounted(() => {
                   <span v-if="item.shortcut" class="shortcut">{{item.shortcut}}</span>
                 </button>
               </MenuItem>
+              <MenuItem v-if="isMobile" v-slot="{ active }">
+              <button :class="{ active }" @click="undoScenario"><BackwardIcon aria-hidden="true" /> {{ $t('gameBar.restartScenario') }} <span class='shortcut'>U</span></button>
+              </MenuItem>
             </template>
           </template>
         </Menu>
@@ -633,7 +638,8 @@ onUnmounted(() => {
         </Menu>
       </div>
       <div>
-        <Menu>
+        <button v-if="isMobile" :class="{ active }" @click="undo"><BackwardIcon aria-hidden="true" /> {{ $t('gameBar.undo') }}</button>
+        <Menu v-else>
           <BackwardIcon aria-hidden="true" />
           {{ $t('gameBar.undo') }}
           <template #items>
