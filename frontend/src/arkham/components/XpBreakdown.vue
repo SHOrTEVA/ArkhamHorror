@@ -138,8 +138,9 @@ h3 {
 
 span {
   overflow-wrap: break-word;
-  word-break: break-all;
+  word-break: break-word;
   white-space: normal;
+  hyphens:auto;
 }
 
 .breakdown-header {
@@ -195,7 +196,6 @@ span {
   .amount {
     margin-left: auto;
     min-width: 1.5em;
-    padding: 0 5px;
     height: 1.5em;
     display: flex;
     justify-content: center;
