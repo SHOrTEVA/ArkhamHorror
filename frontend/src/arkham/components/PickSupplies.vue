@@ -68,6 +68,9 @@ const portrait = (investigatorId: string) => {
   display: grid;
   grid-template-columns: repeat(4, minmax(150px, 1fr));
   row-gap: 20px;
+  @media (max-width: 800px) and (orientation: portrait){
+    grid-template-columns: repeat(3, minmax(50px, 1fr));
+  }
 }
 
 button {
