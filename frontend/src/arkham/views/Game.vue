@@ -603,6 +603,9 @@ onUnmounted(() => {
           <EyeIcon aria-hidden="true" />
           {{ $t('gameBar.view') }}
           <template #items>
+            <MenuItem v-if="isMobile" v-slot="{ active }">
+            <button :class="{ active }" @click="undoScenario"><BackwardIcon aria-hidden="true" /> {{ $t('gameBar.restartScenario') }} <span class='shortcut'>U</span></button>
+          </MenuItem>
             <MenuItem v-slot="{ active }">
               <button :class="{ active }" @click="showShortcuts = !showShortcuts">
                 <BoltIcon aria-hidden="true" /> {{ $t('gameBar.shortcuts') }} <span class="shortcut">?</span>
@@ -615,9 +618,6 @@ onUnmounted(() => {
                   {{item.content}}
                   <span v-if="item.shortcut" class="shortcut">{{item.shortcut}}</span>
                 </button>
-              </MenuItem>
-              <MenuItem v-if="isMobile" v-slot="{ active }">
-              <button :class="{ active }" @click="undoScenario"><BackwardIcon aria-hidden="true" /> {{ $t('gameBar.restartScenario') }} <span class='shortcut'>U</span></button>
               </MenuItem>
             </template>
           </template>
