@@ -1018,7 +1018,7 @@ const showVictoryDisplay = () => doShowCards(victoryDisplay, t('scenario.victory
   place-content: safe center;
   display: grid;
   /*Non-mobile with the columns being stretched out extensively*/
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  //grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   flex-shrink: 0;
 }
 
