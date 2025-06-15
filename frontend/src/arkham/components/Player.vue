@@ -433,7 +433,7 @@ function toggleHandAreaMarginBottom(event: Event) {
           :src="imgsrc(`cards/${realityAcid}.avif`)"
         />
         <Enemy
-          v-if = "isMobile"
+          v-if="isMobile"
           v-for="enemy in engagedEnemies"
           :key="enemy.id"
           :enemy="enemy"
@@ -443,7 +443,7 @@ function toggleHandAreaMarginBottom(event: Event) {
           @choose="$emit('choose', $event)"
         />
         <Treachery
-          v-if = "isMobile"
+          v-if="isMobile"
           v-for="treacheryId in investigator.treacheries"
           :key="treacheryId"
           :treachery="game.treacheries[treacheryId]"
@@ -454,7 +454,7 @@ function toggleHandAreaMarginBottom(event: Event) {
         />
 
         <Location
-          v-if = "isMobile"
+          v-if="isMobile"
           v-for="(location, key) in locations"
           class="location"
           :key="key"
@@ -522,7 +522,7 @@ function toggleHandAreaMarginBottom(event: Event) {
         </div>
 
         <Enemy
-          v-if = "!isMobile"
+          v-if="!isMobile"
           v-for="enemy in engagedEnemies"
           :key="enemy.id"
           :enemy="enemy"
@@ -533,7 +533,7 @@ function toggleHandAreaMarginBottom(event: Event) {
         />
 
         <Treachery
-          v-if = "!isMobile"
+          v-if="!isMobile"
           v-for="treacheryId in investigator.treacheries"
           :key="treacheryId"
           :treachery="game.treacheries[treacheryId]"
@@ -544,7 +544,7 @@ function toggleHandAreaMarginBottom(event: Event) {
         />
 
         <Location
-          v-if = "!isMobile"
+          v-if="!isMobile"
           v-for="(location, key) in locations"
           class="location"
           :key="key"
