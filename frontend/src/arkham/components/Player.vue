@@ -6,6 +6,7 @@ import { computed, inject, Ref, ref, ComputedRef, reactive, watch, onMounted, on
 import { useDebug } from '@/arkham/debug';
 import { Game } from '@/arkham/types/Game';
 import { toCardContents } from '@/arkham/types/Card';
+import CardRow from '@/arkham/components/CardRow.vue';
 import { imgsrc, pluralize } from '@/arkham/helpers';
 import * as ArkhamCard from '@/arkham/types/Card';
 import * as ArkhamGame from '@/arkham/types/Game';
@@ -210,6 +211,11 @@ const skills = computed(() => props.investigator.skills.map((e) => props.game.sk
 const emptySlots = computed(() => props.investigator.slots.filter((s) => s.empty))
 const { isMobile } = IsMobile();
 
+const hideCards = () => {
+  showCards.ref = noCards
+  viewingDiscard.value = false
+}
+
 const slotImg = (slot: Arkham.Slot, idx: number) => {
   switch (slot.tag) {
     case 'HandSlot':
@@ -364,7 +370,7 @@ function startHandDrag(event: DragEvent, card: (CardContents | CardT.Card)) {
 
 const touchStartX = ref(0)
 const touchEndX = ref(0)
-const emit = defineEmits(['swipe-right', 'swipe-left'])
+const emit = defineEmits(['swipe-right', 'swipe-left', 'choose'])
 
 function onTouchStart(event: TouchEvent) {
   touchStartX.value = event.changedTouches[0].screenX
@@ -697,9 +703,18 @@ function toggleHandAreaMarginBottom(event: Event) {
               <img class="card" :src="encounterBack" />
             </div>
           </template>
-
         </transition-group>
     </div>
+    <CardRow
+      v-if="showCards.ref.length > 0"
+      :game="game"
+      :playerId="playerId"
+      :cards="showCards.ref"
+      :isDiscards="viewingDiscard"
+      :title="cardRowTitle"
+      @choose="$emit('choose', $event)"
+      @close="hideCards"
+    />
   </div>
 </template>
 
