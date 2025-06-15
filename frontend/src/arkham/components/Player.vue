@@ -601,7 +601,7 @@ function toggleHandAreaMarginBottom(event: Event) {
           @choose="$emit('choose', $event)"
         />
       </div>
-      <div class="hand hand-area">
+      <div v-if="!isMobile" class="hand hand-area">
         <transition-group tag="section" class="hand" @enter="onEnter" @leave="onLeave" @before-enter="onBeforeEnter"
           @drop="onDropHand($event)"
           @dragover.prevent="dragover($event)"
@@ -651,7 +651,7 @@ function toggleHandAreaMarginBottom(event: Event) {
         <div v-if="investigator.handSize" class="hand-size" :class="handSizeClasses" :current-length="totalHandSize">Hand Size: {{totalHandSize}}/{{investigator.handSize}}</div>
       </div>
     </div>
-    <div class="hand hand-area-IsMobile" :style="{ marginBottom: `${handAreaMarginBottom}px` }" @click="toggleHandAreaMarginBottom">
+    <div v-if="isMobile" class="hand hand-area-IsMobile" :style="{ marginBottom: `${handAreaMarginBottom}px` }" @click="toggleHandAreaMarginBottom">
         <transition-group tag="section" class="hand" @enter="onEnter" @leave="onLeave" @before-enter="onBeforeEnter"
           @drop="onDropHand($event)"
           @dragover.prevent="dragover($event)"
@@ -917,10 +917,6 @@ function toggleHandAreaMarginBottom(event: Event) {
   align-items: flex-start;
   flex: 1;
   max-width: 100%;
-
-  @media (max-width: 800px) and (orientation: portrait) {
-    display: none;
-  }
 }
 
 .hand-area-IsMobile {
@@ -933,9 +929,6 @@ function toggleHandAreaMarginBottom(event: Event) {
   :deep(.card){
     width: calc(var(--card-width) * 4);
     min-width: calc(var(--card-width) * 4);
-  }
-  @media (min-width: 801px) {
-    display: none;
   }
 }
 
