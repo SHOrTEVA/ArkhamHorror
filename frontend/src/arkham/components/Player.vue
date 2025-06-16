@@ -23,8 +23,6 @@ import ChoiceModal from '@/arkham/components/ChoiceModal.vue';
 import { TarotCard, tarotCardImage } from '@/arkham/types/TarotCard';
 import * as Arkham from '@/arkham/types/Investigator';
 import { useI18n } from 'vue-i18n';
-import Draw from '@/arkham/components/Draw.vue'
-import { IsMobile } from '@/arkham/isMobile';
 const { t } = useI18n();
 
 interface RefWrapper<T> {
@@ -209,12 +207,6 @@ const debug = useDebug()
 const events = computed(() => props.investigator.events.map((e) => props.game.events[e]).filter(e => e))
 const skills = computed(() => props.investigator.skills.map((e) => props.game.skills[e]).filter(e => e))
 const emptySlots = computed(() => props.investigator.slots.filter((s) => s.empty))
-const { isMobile } = IsMobile();
-
-const hideCards = () => {
-  showCards.ref = noCards
-  viewingDiscard.value = false
-}
 
 const slotImg = (slot: Arkham.Slot, idx: number) => {
   switch (slot.tag) {
@@ -418,7 +410,6 @@ function toggleHandAreaMarginBottom(event: Event) {
     handAreaPointerEvents.value = 'none'
   }
 }
-
 </script>
 
 <template>
@@ -652,12 +643,9 @@ function toggleHandAreaMarginBottom(event: Event) {
               <img class="card" :src="encounterBack" />
             </div>
           </template>
-
-        </transition-group>
-        <div v-if="investigator.handSize" class="hand-size" :class="handSizeClasses" :current-length="totalHandSize">Hand Size: {{totalHandSize}}/{{investigator.handSize}}</div>
+        </div>
       </div>
-    </div>
-    <div v-if="isMobile" class="hand hand-area-IsMobile" :style="{ marginBottom: `${handAreaMarginBottom}px` }" @click="toggleHandAreaMarginBottom">
+      <div class="hand hand-area">
         <transition-group tag="section" class="hand" @enter="onEnter" @leave="onLeave" @before-enter="onBeforeEnter"
           @drop="onDropHand($event)"
           @dragover.prevent="dragover($event)"
@@ -704,7 +692,10 @@ function toggleHandAreaMarginBottom(event: Event) {
             </div>
           </template>
         </transition-group>
+        <div v-if="investigator.handSize" class="hand-size" :class="handSizeClasses" :current-length="totalHandSize">Hand Size: {{totalHandSize}}/{{investigator.handSize}}</div>
+      </div>
     </div>
+
     <CardRow
       v-if="showCards.ref.length > 0"
       :game="game"
