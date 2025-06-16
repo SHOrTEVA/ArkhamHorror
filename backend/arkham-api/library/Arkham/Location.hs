@@ -892,11 +892,6 @@ allLocations =
     , SomeLocationCard returnToZocalo
     , SomeLocationCard returnToXochimilco
     , SomeLocationCard returnToCoyoacan
-    , --- Return to K'n-Yan
-      SomeLocationCard ruinsOfKnYan
-    , SomeLocationCard subterraneanSwamp
-    , SomeLocationCard chthonianDepths
-    , SomeLocationCard treacherousDescent
     , --- Return to Rainforest
       SomeLocationCard riversideTemple
     , SomeLocationCard waterfall

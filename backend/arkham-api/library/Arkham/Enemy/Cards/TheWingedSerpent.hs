@@ -1,4 +1,4 @@
-module Arkham.Enemy.Cards.TheWingedSerpent (theWingedSerpent) where
+module Arkham.Enemy.Cards.TheWingedSerpent (theWingedSerpent, TheWingedSerpent (..)) where
 
 import Arkham.Ability
 import Arkham.Enemy.Cards qualified as Cards

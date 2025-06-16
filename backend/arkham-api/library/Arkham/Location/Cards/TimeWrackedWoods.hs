@@ -25,7 +25,8 @@ instance HasAbilities TimeWrackedWoods where
         attrs
         1
         (Here <> InVictoryDisplay (CardWithVengeance <> not_ (CardWithTrait Elite)) (atLeast 1))
-      doubleActionAbility
+      $ ActionAbility []
+      $ ActionCost 2
 
 instance RunMessage TimeWrackedWoods where
   runMessage msg l@(TimeWrackedWoods attrs) = runQueueT $ case msg of

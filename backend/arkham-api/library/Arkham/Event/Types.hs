@@ -104,7 +104,7 @@ data EventAttrs = EventAttrs
   deriving stock (Show, Eq)
 
 allEventCards :: Map CardCode CardDef
-allEventCards = allPlayerEventCards <> allEncounterEventCards
+allEventCards = allPlayerEventCards
 
 instance Be EventAttrs EventMatcher where
   be = EventWithId . eventId

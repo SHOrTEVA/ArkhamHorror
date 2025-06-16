@@ -3,8 +3,9 @@ module Arkham.Location.Cards.CrystalPillars (crystalPillars) where
 import Arkham.Ability
 import Arkham.GameValue
 import Arkham.Location.Cards qualified as Cards
-import Arkham.Location.Import.Lifted
+import Arkham.Location.Runner
 import Arkham.Matcher
+import Arkham.Prelude
 
 newtype CrystalPillars = CrystalPillars LocationAttrs
   deriving anyclass (IsLocation, HasModifiersFor)
@@ -14,17 +15,20 @@ crystalPillars :: LocationCard CrystalPillars
 crystalPillars = symbolLabel $ location CrystalPillars Cards.crystalPillars 1 (PerPlayer 2)
 
 instance HasAbilities CrystalPillars where
-  getAbilities (CrystalPillars a) =
-    extendRevealed1 a $ skillTestAbility $ mkAbility a 1 $ forced $ Enters #after You (be a)
+  getAbilities (CrystalPillars attrs) =
+    withBaseAbilities
+      attrs
+      [skillTestAbility $ mkAbility attrs 1 $ forced $ Enters #after You (be attrs)]
 
 instance RunMessage CrystalPillars where
-  runMessage msg l@(CrystalPillars attrs) = runQueueT $ case msg of
-    UseThisAbility iid (isSource attrs -> True) 1 -> do
+  runMessage msg l@(CrystalPillars attrs) = case msg of
+    UseCardAbility iid (isSource attrs -> True) 1 _ _ -> do
       sid <- getRandom
-      beginSkillTest sid iid (attrs.ability 1) iid #willpower
+      push
+        $ beginSkillTest sid iid (attrs.ability 1) iid #willpower
         $ SumCalculation [Fixed 1, VengeanceCalculation]
       pure l
     FailedSkillTest iid _ (isAbilitySource attrs 1 -> True) SkillTestInitiatorTarget {} _ _ -> do
-      assignDamageAndHorror iid (attrs.ability 1) 1 1
+      push $ InvestigatorAssignDamage iid (toSource attrs) DamageAny 1 1
       pure l
-    _ -> CrystalPillars <$> liftRunMessage msg attrs
+    _ -> CrystalPillars <$> runMessage msg attrs

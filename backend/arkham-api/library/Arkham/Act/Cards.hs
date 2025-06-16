@@ -24,7 +24,6 @@ allActCards =
     $ map
       (toCardCode &&& id)
       [ aCircleUnbroken
-      , aFamiliarPattern
       , afterHours
       , alejandrosPlight
       , alejandrosPrison
@@ -946,9 +945,6 @@ discoverTheTruth = act "53035" "Discover the Truth" 3 ReturnToThreadsOfFate
 
 impossiblePursuit :: CardDef
 impossiblePursuit = act "53036" "Impossible Pursuit" 3 ReturnToThreadsOfFate
-
-aFamiliarPattern :: CardDef
-aFamiliarPattern = act "53046" "A Familiar Pattern" 1 ReturnToPillarsOfJudgement
 
 findingLadyEsprit :: CardDef
 findingLadyEsprit = act "81005" "Finding Lady Esprit" 1 TheBayou

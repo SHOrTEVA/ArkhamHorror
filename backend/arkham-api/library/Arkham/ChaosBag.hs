@@ -606,7 +606,7 @@ instance RunMessage ChaosBag where
       frostTokens <- replicateM (8 - count (== #frost) tokens') $ createChaosToken #frost
       pure
         $ c
-        & (chaosTokensL .~ sort tokens'')
+        & (chaosTokensL .~ tokens'')
         & (setAsideChaosTokensL .~ mempty)
         & (tokenPoolL .~ blessTokens <> curseTokens <> frostTokens)
     ReturnChaosTokensToPool tokensToPool -> do
@@ -679,10 +679,7 @@ instance RunMessage ChaosBag where
       pure
         $ c
         & ( chaosTokensL
-              %~ sort
-              . ( <>
-                    map (\token -> token {chaosTokenRevealedBy = Nothing, chaosTokenCancelled = False}) tokensToReturn
-                )
+              <>~ map (\token -> token {chaosTokenRevealedBy = Nothing, chaosTokenCancelled = False}) tokensToReturn
           )
         & (setAsideChaosTokensL .~ mempty)
         & (revealedChaosTokensL .~ mempty)
@@ -807,8 +804,7 @@ instance RunMessage ChaosBag where
       Just choice' -> case choice' of
         Resolved tokens -> do
           tokens' <- for tokens \token -> do
-            (token', msgs) <-
-              execQueueT $ cancelTokenIfShould $ token {chaosTokenRevealedBy = miid, chaosTokenCancelled = False}
+            (token', msgs) <- execQueueT $ cancelTokenIfShould $ token {chaosTokenRevealedBy = miid, chaosTokenCancelled = False}
             pushAll msgs
             pure token'
           -- let tokens' = filter (not . chaosTokenCancelled) tokens''
@@ -860,9 +856,9 @@ instance RunMessage ChaosBag where
           pushAll
             ( FocusChaosTokens tokens'
                 : willRevealF tokens'
-                  <> checkWindowMsgs
-                  <> revealF tokens'
-                  <> [RequestedChaosTokens source miid tokens', UnfocusChaosTokens]
+                <> checkWindowMsgs
+                <> revealF tokens'
+                <> [RequestedChaosTokens source miid tokens', UnfocusChaosTokens]
             )
           pure $ c & choiceL .~ Nothing & totalRevealedChaosTokensL %~ (nub . (<> tokens'))
         _ -> do
@@ -906,8 +902,7 @@ instance RunMessage ChaosBag where
       pure
         $ c
         & ( chaosTokensL
-              %~ sort
-              . map (\t -> t {chaosTokenCancelled = False})
+              %~ map (\t -> t {chaosTokenCancelled = False})
               . (<> tokens')
               . filter (`notElem` tokens')
           )
@@ -920,7 +915,7 @@ instance RunMessage ChaosBag where
         CurseToken -> pure $ fromMaybe (error "no more curse tokens") $ find ((== #curse) . (.face)) chaosBagTokenPool
         FrostToken -> pure $ fromMaybe (error "no more frost tokens") $ find ((== #frost) . (.face)) chaosBagTokenPool
         _ -> createChaosToken chaosTokenFace
-      pure $ c & chaosTokensL %~ sort . (token :) & tokenPoolL %~ delete token
+      pure $ c & chaosTokensL %~ (token :) & tokenPoolL %~ delete token
     SwapChaosToken originalFace newFace -> do
       let
         replaceToken _needle _new [] = []
@@ -943,7 +938,7 @@ instance RunMessage ChaosBag where
     UnsealChaosToken token -> do
       pure
         $ c
-        & (chaosTokensL %~ sort . (token {chaosTokenCancelled = False, chaosTokenSealed = False} :))
+        & (chaosTokensL %~ (token {chaosTokenCancelled = False, chaosTokenSealed = False} :))
         & (setAsideChaosTokensL %~ filter (/= token))
         & (revealedChaosTokensL %~ filter (/= token))
     RemoveChaosToken face ->

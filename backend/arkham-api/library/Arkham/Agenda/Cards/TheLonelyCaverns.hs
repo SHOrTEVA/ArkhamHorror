@@ -9,8 +9,7 @@ import Arkham.Enemy.Cards qualified as Enemies
 import Arkham.Helpers.Investigator
 import Arkham.Helpers.Location
 import Arkham.Helpers.Log (getRecordCount, whenHasRecord)
-import Arkham.Helpers.Query (getLead, getSetAsideCard)
-import Arkham.Helpers.Scenario (getIsReturnTo)
+import Arkham.Helpers.Query (getLead)
 import Arkham.Matcher
 import Arkham.Message.Lifted.Choose
 
@@ -52,11 +51,7 @@ instance RunMessage TheLonelyCaverns where
             $ if yigsFury >= 8
               then locationWithInvestigator lead
               else FarthestLocationFromAll Anywhere
-        isReturnTo <- getIsReturnTo
-        harbinger <-
-          if isReturnTo
-            then getSetAsideCard Enemies.harbingerOfValusiaTheSleeperReturns
-            else genCard Enemies.harbingerOfValusia
+        harbinger <- genCard Enemies.harbingerOfValusia
         chooseOrRunOneM lead do
           targets locations \location ->
             createEnemyWithAfter_ harbinger location \harbingerId -> do

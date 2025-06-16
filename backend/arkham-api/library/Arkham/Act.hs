@@ -1,8 +1,12 @@
 {-# OPTIONS_GHC -Wno-orphans #-}
 
-module Arkham.Act ( Act (..), lookupAct,) where
+module Arkham.Act (
+  Act (..),
+  lookupAct,
+) where
 
 import Arkham.Prelude hiding (fold)
+
 import Arkham.Act.Acts
 import Arkham.Act.Types
 import Arkham.Card
@@ -51,7 +55,7 @@ allActs =
       SomeActCard afterHours
     , SomeActCard ricesWhereabouts
     , SomeActCard campusSafety
-    , -- The House Always Wins
+    , -- The House Always WIns
       SomeActCard beginnersLuck
     , SomeActCard skinGame
     , SomeActCard allIn
@@ -339,8 +343,6 @@ allActs =
     , SomeActCard seekingTroubleLoadingDocks
     , SomeActCard discoverTheTruth
     , SomeActCard impossiblePursuit
-    , --- Return to Heart of the Elders
-      SomeActCard aFamiliarPattern
     , -- Curse of the Rougarou
       SomeActCard findingLadyEsprit
     , SomeActCard huntingTheRougarou

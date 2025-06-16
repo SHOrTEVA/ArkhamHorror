@@ -1,8 +1,15 @@
-module Arkham.Agenda.Cards.EyesInTheDark (eyesInTheDark) where
+module Arkham.Agenda.Cards.EyesInTheDark (
+  EyesInTheDark (..),
+  eyesInTheDark,
+) where
+
+import Arkham.Prelude
 
 import Arkham.Ability
 import Arkham.Agenda.Cards qualified as Cards
-import Arkham.Agenda.Import.Lifted
+import Arkham.Agenda.Runner
+import Arkham.Classes
+import Arkham.GameValue
 import Arkham.Helpers.Investigator
 import Arkham.Helpers.Location
 import Arkham.Matcher hiding (InvestigatorDefeated)
@@ -12,14 +19,21 @@ newtype EyesInTheDark = EyesInTheDark AgendaAttrs
   deriving newtype (Show, Eq, ToJSON, FromJSON, Entity)
 
 eyesInTheDark :: AgendaCard EyesInTheDark
-eyesInTheDark = agenda (2, A) EyesInTheDark Cards.eyesInTheDark (StaticWithPerPlayer 12 1)
+eyesInTheDark =
+  agenda (2, A) EyesInTheDark Cards.eyesInTheDark (StaticWithPerPlayer 12 1)
 
 instance HasAbilities EyesInTheDark where
   getAbilities (EyesInTheDark a) =
-    [restricted a 1 (exists $ YourLocation <> LocationWithoutClues) actionAbility]
+    [ restrictedAbility
+        a
+        1
+        (LocationExists $ YourLocation <> LocationWithoutClues)
+        $ ActionAbility []
+        $ ActionCost 1
+    ]
 
 instance RunMessage EyesInTheDark where
-  runMessage msg a@(EyesInTheDark attrs) = runQueueT $ case msg of
+  runMessage msg a@(EyesInTheDark attrs) = case msg of
     UseCardAbility iid (isSource attrs -> True) 1 _ _ -> do
       locationSymbols <- toConnections =<< getJustLocation iid
       push
@@ -28,9 +42,13 @@ instance RunMessage EyesInTheDark where
           (toSource attrs)
           (CardWithOneOf $ map CardWithPrintedLocationSymbol locationSymbols)
       pure a
-    AdvanceAgenda (isSide B attrs -> True) -> do
-      eachInvestigator \iid -> do
-        sufferPhysicalTrauma iid 1
-        investigatorDefeated attrs iid
+    AdvanceAgenda aid | aid == toId attrs && onSide B attrs -> do
+      iids <- select UneliminatedInvestigator
+      pushAll
+        $ concatMap
+          ( \iid ->
+              [SufferTrauma iid 1 0, InvestigatorDefeated (toSource attrs) iid]
+          )
+          iids
       pure a
-    _ -> EyesInTheDark <$> liftRunMessage msg attrs
+    _ -> EyesInTheDark <$> runMessage msg attrs

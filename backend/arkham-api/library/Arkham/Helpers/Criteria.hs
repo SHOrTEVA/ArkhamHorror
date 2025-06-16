@@ -448,9 +448,6 @@ passesCriteria iid mcard source' requestor windows' = \case
   Criteria.ResourcesOnLocation locationMatcher valueMatcher -> do
     total <- getSum <$> selectAgg Sum LocationResources locationMatcher
     gameValueMatches total valueMatcher
-  Criteria.TokensOnLocation locationMatcher token valueMatcher -> do
-    total <- getSum <$> selectAgg (Sum . Token.countTokens token) LocationTokens locationMatcher
-    gameValueMatches total valueMatcher
   Criteria.CluesOnThis valueMatcher -> case source of
     LocationSource lid ->
       (`gameValueMatches` valueMatcher) =<< field LocationClues lid

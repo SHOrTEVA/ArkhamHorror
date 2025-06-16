@@ -8,7 +8,6 @@ import Arkham.Location.Cards qualified as Cards
 import Arkham.Location.Import.Lifted
 import Arkham.Message.Lifted.Choose
 import Arkham.Scenario.Deck
-import Arkham.Scenarios.TheBoundaryBeyond.Helpers
 
 newtype MouthOfKnYanTheCavernsMaw = MouthOfKnYanTheCavernsMaw LocationAttrs
   deriving anyclass (IsLocation, HasModifiersFor)
@@ -22,8 +21,8 @@ instance HasAbilities MouthOfKnYanTheCavernsMaw where
   getAbilities (MouthOfKnYanTheCavernsMaw a) =
     extendRevealed
       a
-      [ scenarioI18n $ withI18nTooltip "mouthOnKnYanTheCavernsMaw.resign" (locationResignAction a)
-      , restricted a 2 (AnyCriterion [Here, IsReturnTo] <> HasSupply Compass) actionAbility
+      [ withTooltip "Let's make camp and solve this puzzle tomorrow" (locationResignAction a)
+      , restricted a 2 (Here <> HasSupply Compass) actionAbility
       ]
 
 instance RunMessage MouthOfKnYanTheCavernsMaw where
@@ -34,14 +33,14 @@ instance RunMessage MouthOfKnYanTheCavernsMaw where
       let cardPairs = map (toSnd (`deleteFirst` viewing)) viewing
       focusCards viewing do
         setExplorationDeck rest
-        chooseOneM iid $ campaignI18n do
-          questionLabeled' "explorationDeck.placeOnBottom"
+        chooseOneM iid do
+          questionLabeled "Place one card on bottom of exploration deck"
           for_ cardPairs \(c, remaining) -> targeting c do
             putCardOnBottomOfDeck iid ExplorationDeck c
             unfocusCards
             focusCards remaining do
               chooseOneAtATimeM iid do
-                questionLabeled' "explorationDeck.placeOnTop"
+                questionLabeled "Place card on top of exploration deck"
                 targets remaining $ putCardOnTopOfDeck iid ExplorationDeck
       pure l
     _ -> MouthOfKnYanTheCavernsMaw <$> liftRunMessage msg attrs

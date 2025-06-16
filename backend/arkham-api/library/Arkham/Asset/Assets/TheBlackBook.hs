@@ -18,21 +18,22 @@ theBlackBook :: AssetCard TheBlackBook
 theBlackBook = asset TheBlackBook Cards.theBlackBook
 
 instance HasModifiersFor TheBlackBook where
-  getModifiersFor (TheBlackBook a) = for_ a.controller \iid -> do
-    sanity <- field InvestigatorRemainingSanity iid
-    modifiedWhen_
-      a
-      a.ready
-      iid
-      [ SkillModifier #willpower 1
-      , SkillModifier #intellect 1
-      , CanReduceCostOf AnyCard sanity
-      ]
+  getModifiersFor (TheBlackBook a) = case a.controller of
+    Nothing -> pure mempty
+    Just iid -> do
+      sanity <- field InvestigatorRemainingSanity iid
+      modified_
+        a
+        iid
+        [ SkillModifier #willpower 1
+        , SkillModifier #intellect 1
+        , CanReduceCostOf AnyCard sanity
+        ]
 
 instance HasAbilities TheBlackBook where
   getAbilities (TheBlackBook a) =
     [ restricted a 1 ControlsThis
-        $ triggered (PlayCard #when You #any) (exhaust a <> HorrorCostX (toSource a))
+        $ ReactionAbility (PlayCard #when You #any) (exhaust a <> HorrorCostX (toSource a))
     ]
 
 toHorror :: Payment -> Int
