@@ -1252,6 +1252,9 @@ const showVictoryDisplay = () => doShowCards(victoryDisplay, t('scenario.victory
 
 .scenario-decks {
   gap: 5px;
+  @media (max-width: 800px) and (orientation: portrait) {
+    display:flex !important;
+  }
 }
 
 .scenario-encounter-decks {
