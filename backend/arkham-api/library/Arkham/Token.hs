@@ -10,6 +10,8 @@ data Token
   = Aether
   | AlarmLevel
   | Ammo
+  | Antiquity
+  | Portent
   | Bounty
   | Charge
   | Clue
@@ -39,6 +41,7 @@ data Token
   | Warning
   | Wish
   | Whistle
+  | Truth
   deriving stock (Show, Eq, Ord, Generic, Data)
   deriving anyclass (ToJSON, FromJSON, ToJSONKey, FromJSONKey)
 
@@ -77,8 +80,17 @@ instance IsLabel "clue" Token where
 instance IsLabel "doom" Token where
   fromLabel = Doom
 
+instance IsLabel "antiquity" Token where
+  fromLabel = Antiquity
+
+instance IsLabel "portent" Token where
+  fromLabel = Portent
+
 instance IsLabel "warning" Token where
   fromLabel = Warning
+
+instance IsLabel "truth" Token where
+  fromLabel = Truth
 
 type Tokens = Map Token Int
 

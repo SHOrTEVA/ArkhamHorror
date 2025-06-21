@@ -1372,7 +1372,6 @@ button:hover .shortcut {
   background-color: rgba(0,0,0,0.8);
   position: absolute;
   width: 50%;
-  inset: 0;
   display: flex;
   z-index: 100;
   display: flex;
@@ -1380,6 +1379,7 @@ button:hover .shortcut {
   padding: 10px;
   border: 0;
   border-radius: 10px;
+  top: 50%;
 
   p {
     padding: 10px;
