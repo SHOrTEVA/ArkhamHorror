@@ -116,8 +116,8 @@ watch(showAbilities, (newValue) => {
   gap: 5px;
   z-index: 1000;
   button {
+    height: calc(var(--pool-token-width) * 1.2);
     @media (max-width: 800px) and (orientation: portrait) {
-      height: calc(var(--pool-token-width) * 1.2);
       &:before {
         font-size: 2.0em !important;
       }
