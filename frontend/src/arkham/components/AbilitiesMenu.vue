@@ -108,7 +108,7 @@ watch(showAbilities, (newValue) => {
 <style scoped>
 .abilities {
   position: absolute;
-  padding: min(10px, 1vw);
+  padding: min(3px, 1vw);
   background: rgba(0, 0, 0, 0.8);
   border-radius: 10px;
   display: flex;
@@ -118,17 +118,8 @@ watch(showAbilities, (newValue) => {
   button {
     @media (max-width: 800px) and (orientation: portrait) {
       height: calc(var(--pool-token-width) * 1.2);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-
       &:before {
-        font-size: 2.5em !important;
-        content: attr(data-before);
-        display: block;
-        width: 100%;
-        text-align: center;
+        font-size: 2.0em !important;
       }
     }
   }
@@ -136,25 +127,10 @@ watch(showAbilities, (newValue) => {
   :deep(span) {
     @media (max-width: 800px) and (orientation: portrait) {
       &:before {
-        font-size: 2.5em !important;
-        display: block;
-        text-align: center;
-      }
-      #text {
-        display: block;
-        text-align: center;
+        font-size: 2.0em !important;
       }
     }
   }
 
-  :deep(button::before) {
-    display: block;
-    text-align: center;
-  }
-
-  :deep(button span) {
-    display: block;
-    text-align: center;
-  }
 }
 </style>
