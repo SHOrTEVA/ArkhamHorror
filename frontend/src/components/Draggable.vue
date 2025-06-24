@@ -3,6 +3,7 @@ import { ref, onMounted, nextTick } from 'vue'
 import { IsMobile } from '@/arkham/isMobile';
 
 const draggable = ref<HTMLElement | null>(null)
+const emit = defineEmits(['minimize'])
 const isMinimized = ref(false)
 const initialMouseX = ref(0)
 const initialMouseY = ref(0)
@@ -91,6 +92,8 @@ async function minimize() {
   if (!el) return
 
   if (!isMinimized.value) {
+    emit('minimize')
+
     // Minimizing
     isMinimized.value = true
 

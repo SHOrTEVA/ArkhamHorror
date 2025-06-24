@@ -45,6 +45,7 @@ import * as ArkhamGame from '@/arkham/types/Game';
 import { useDebug } from '@/arkham/debug'
 import { storeToRefs } from 'pinia';
 import { useI18n } from 'vue-i18n';
+import { IsMobile } from '@/arkham/isMobile';
 const { t } = useI18n();
 
 // types
@@ -86,6 +87,8 @@ const previousRotation = ref(0)
 const legsSet = ref(["legs1", "legs2", "legs3", "legs4"])
 
 const locationsZoom = ref(1);
+
+const { isMobile } = IsMobile();
 
 // callbacks
 onMounted(() => {
@@ -530,6 +533,13 @@ const victoryDisplay = computed(() => props.scenario.victoryDisplay)
 
 const showVictoryDisplay = () => doShowCards(victoryDisplay, t('scenario.victoryDisplay'), true)
 
+function TestMinize(){
+  console.log("Minimize Test sfaji;jsaj;sj;sdaf")
+  if (isMobile) {
+    
+   
+  }
+}
 </script>
 
 <template>
@@ -761,6 +771,7 @@ const showVictoryDisplay = () => doShowCards(victoryDisplay, t('scenario.victory
             :skillTest="game.skillTest"
             :playerId="playerId"
             @choose="choose"
+            @minimize="TestMinize"
         >
         </SkillTest>
 

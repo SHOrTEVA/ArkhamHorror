@@ -397,7 +397,20 @@ const handAreaPointerEvents = ref('none');
 
 onMounted(() => {
   if (isMobile) {
-      document.addEventListener('click',toggleHandAreaMarginBottom)
+    document.addEventListener('click',toggleHandAreaMarginBottom)
+
+    watch(() => props.game.skillTest, (newSkillTest) => {
+      if (newSkillTest) {
+        handAreaMarginBottom.value = handCardExposedHeight_MAX;
+        handAreaPointerEvents.value = 'auto';
+        document.removeEventListener('click', toggleHandAreaMarginBottom)
+      }
+      else {
+        handAreaMarginBottom.value = handCardExposedHeight_MIN;
+        handAreaPointerEvents.value = 'none';
+        document.addEventListener('click',toggleHandAreaMarginBottom)
+      }
+    });
   }
 });
 
