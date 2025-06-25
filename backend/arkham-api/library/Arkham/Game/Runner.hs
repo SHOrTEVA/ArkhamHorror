@@ -1013,7 +1013,12 @@ runGameMessage msg g = case msg of
     -- not want to do this
     pushAll $ concatMap (resolve . Msg.InvestigatorIsDefeated (toSource lid)) investigators
     pure g
-  Do (RemovedLocation lid) -> pure $ g & entitiesL . locationsL %~ deleteMap lid
+  Do (RemovedLocation lid) -> do
+    location <- getLocation lid
+    pure
+      $ g
+      & (entitiesL . locationsL %~ deleteMap lid)
+      & (actionRemovedEntitiesL . locationsL %~ Map.insert lid location)
   SpendClues 0 _ -> pure g
   SpendClues n iids -> do
     investigatorsWithClues <-
@@ -1153,7 +1158,7 @@ runGameMessage msg g = case msg of
               , Just skillId
               )
           | LeaveCardWhereItIs `elem` mods ->
-              (Run [], Just skillId)
+              (Run [RemoveFromPlay (toSource skillId)], Just skillId)
           | otherwise -> case afterPlay of
               DiscardThis -> case toCard skill of
                 PlayerCard pc ->
@@ -1610,10 +1615,10 @@ runGameMessage msg g = case msg of
   DoBatch _ (Run msgs) -> do
     pushAll msgs
     pure g
-  CancelEachNext source msgTypes -> do
+  CancelEachNext mCard source msgTypes -> do
     push
       =<< checkWindows
-        [mkAfter (Window.CancelledOrIgnoredCardOrGameEffect source)]
+        [mkAfter (Window.CancelledOrIgnoredCardOrGameEffect source mCard)]
     for_ msgTypes $ \msgType -> do
       mRemovedMsg <- withQueue $ \queue ->
         let
@@ -2080,19 +2085,6 @@ runGameMessage msg g = case msg of
       . enemiesL
       . ix eid
       %~ overAttrs (\x -> x {enemyPlacement = OutOfPlay zone, enemyKeys = mempty})
-  DefeatedAddToVictory (EnemyTarget eid) -> do
-    mods <- getModifiers eid
-    card <- field EnemyCard eid
-    let zone = if StayInVictory `elem` mods then VictoryDisplayZone else RemovedZone
-    pushAll
-      $ windows [Window.LeavePlay (EnemyTarget eid), Window.AddedToVictory card]
-      <> [RemoveEnemy eid]
-    pure
-      $ g
-      & entitiesL
-      . enemiesL
-      . ix eid
-      %~ overAttrs (\x -> x {enemyPlacement = OutOfPlay zone})
   AddToVictory (SkillTarget sid) -> do
     card <- field SkillCard sid
     pushAll $ windows [Window.AddedToVictory card]
@@ -3133,12 +3125,13 @@ runGameMessage msg g = case msg of
     let ignoreRevelation = IgnoreRevelation `elem` modifiers'
     let revelation = Revelation iid (TreacherySource treacheryId)
     needsResolve <- isNothing <$> findFromQueue (== ResolvedCard iid (toCard treachery))
+    needsDiscard <- selectNone $ VictoryDisplayCardMatch (basic $ CardWithId $ toCardId treachery)
 
     pushAll
       $ if ignoreRevelation
         then
-          toDiscardBy iid GameSource (TreacheryTarget treacheryId)
-            : [ResolvedCard iid (toCard treachery) | needsResolve]
+          [toDiscardBy iid GameSource (TreacheryTarget treacheryId) | needsDiscard]
+            <> [ResolvedCard iid (toCard treachery) | needsResolve]
         else
           [ When revelation
           , revelation

@@ -775,14 +775,14 @@ onUnmounted(() => {
         </div>
       </div>
     </template>
+    <dialog id="undoScenarioDialog" ref="undoScenarioDialog">
+      <p>Are you sure you wish to undo to the beginning of the scenario?</p>
+      <div class="buttons">
+        <button @click="undoScenario()">Yes</button>
+        <button @click="undoScenarioDialog?.close()">No</button>
+      </div>
+    </dialog>
   </div>
-  <dialog id="undoScenarioDialog" ref="undoScenarioDialog">
-    <p>Are you sure you wish to undo to the beginning of the scenario?</p>
-    <div class="buttons">
-      <button @click="undoScenario()">Yes</button>
-      <button @click="undoScenarioDialog?.close()">No</button>
-    </div>
-  </dialog>
 </template>
 
 <style lang="scss" scoped>
@@ -1398,7 +1398,6 @@ button:hover .shortcut {
   background-color: rgba(0,0,0,0.8);
   position: absolute;
   width: 50%;
-  inset: 0;
   display: flex;
   z-index: 100;
   display: flex;
@@ -1406,6 +1405,7 @@ button:hover .shortcut {
   padding: 10px;
   border: 0;
   border-radius: 10px;
+  top: 50%;
 
   p {
     padding: 10px;
