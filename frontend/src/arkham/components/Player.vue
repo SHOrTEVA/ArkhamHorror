@@ -398,14 +398,13 @@ const handAreaPointerEvents = ref('none');
 onMounted(() => {
   if (isMobile) {
     document.addEventListener('click',toggleHandAreaMarginBottom)
-
-    watch(() => props.game.skillTest, (newSkillTest) => {
-      if (newSkillTest) {
+    const isMinimized_SkillTest = inject('isMinimized_SkillTest', ref(false))
+    watch([() => props.game.skillTest, isMinimized_SkillTest], ([newSkillTest,isMinimized]) => {
+      if (newSkillTest && !isMinimized) {
         handAreaMarginBottom.value = handCardExposedHeight_MAX;
         handAreaPointerEvents.value = 'auto';
         document.removeEventListener('click', toggleHandAreaMarginBottom)
-      }
-      else {
+      } else {
         handAreaMarginBottom.value = handCardExposedHeight_MIN;
         handAreaPointerEvents.value = 'none';
         document.addEventListener('click',toggleHandAreaMarginBottom)

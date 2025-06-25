@@ -9,6 +9,7 @@ import {
   ref,
   ComputedRef,
   reactive,
+  provide
 } from 'vue';
 import { type Game } from '@/arkham/types/Game';
 import { type Scenario } from '@/arkham/types/Scenario';
@@ -533,11 +534,11 @@ const victoryDisplay = computed(() => props.scenario.victoryDisplay)
 
 const showVictoryDisplay = () => doShowCards(victoryDisplay, t('scenario.victoryDisplay'), true)
 
-function TestMinize(){
-  console.log("Minimize Test sfaji;jsaj;sj;sdaf")
+const isMinimized_SkillTest = ref(false)
+provide('isMinimized_SkillTest', isMinimized_SkillTest)
+function minimize_SkillTest(isMinimized:boolean){
   if (isMobile) {
-    
-   
+    isMinimized_SkillTest.value = isMinimized
   }
 }
 </script>
@@ -771,7 +772,7 @@ function TestMinize(){
             :skillTest="game.skillTest"
             :playerId="playerId"
             @choose="choose"
-            @minimize="TestMinize"
+            @minimize="minimize_SkillTest"
         >
         </SkillTest>
 

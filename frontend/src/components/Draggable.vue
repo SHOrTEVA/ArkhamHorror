@@ -92,7 +92,7 @@ async function minimize() {
   if (!el) return
 
   if (!isMinimized.value) {
-    emit('minimize')
+    emit('minimize', true)
 
     // Minimizing
     isMinimized.value = true
@@ -127,6 +127,7 @@ async function minimize() {
   } else {
     // Restoring
     isMinimized.value = false
+    emit('minimize', false)
 
     // Restore original styles
     el.style.left = `${originalLeft.value}px`
