@@ -415,7 +415,7 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   if (isMobile) {
-      document.removeEventListener('click', toggleHandAreaMarginBottom)
+    document.removeEventListener('click', toggleHandAreaMarginBottom)
   }
 });
 
