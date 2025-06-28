@@ -116,10 +116,10 @@ localized_campaign_files = {
     "zh": "allCampaigns_zh-cn.json"
 }
 
-folder_path = r"\frontend\src\locales\generated"
+folder_path = r"\generated"
 campaign_data = read_all_campaigns(folder_path)
 
-locales_path = r"\frontend\src\locales"
+locales_path = r"\locales"
 locale_data = read_locale_data(locales_path)
 
 template_path = create_template_folder(locales_path)
