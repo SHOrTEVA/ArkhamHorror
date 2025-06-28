@@ -116,18 +116,19 @@ localized_campaign_files = {
     "zh": "allCampaigns_zh-cn.json"
 }
 
-folder_path = r"\generated"
+folder_path = "generated"
 campaign_data = read_all_campaigns(folder_path)
 
-locales_path = r"\locales"
+locales_path = "locales"
 locale_data = read_locale_data(locales_path)
 
-template_path = create_template_folder(locales_path)
+#template_path = create_template_folder(locales_path)
 
 #for key, sub_data in locale_data.items():
 #    for subkey, subkey_data in sub_data.items():
 #        if "prologue" not in subkey_data:
 #            print(f"{key}\\{subkey}")
 
-#create_template_folder(locales_path)
-sync_with_template(locales_path,create_template_folder(locales_path))
+#print(create_template_folder(locales_path))
+template_path = create_template_folder(locales_path)
+sync_with_template(locales_path)
