@@ -87,7 +87,7 @@ def update_locale_data(base_path, locale_data):
                     with open(base_json_path, 'w', encoding='utf-8') as f:
                         json.dump(sub_key_data, f, ensure_ascii=False, indent=4)
 
-def wrap_paragraphs(text):
+def wrap_paragraphs(text, title="Prologue"):
     lines = text.split('\n')
     wrapped_lines = []
     for line in lines:
@@ -98,14 +98,13 @@ def wrap_paragraphs(text):
     return ''.join(wrapped_lines)
 
 campaign_mapping = {
-    "core": "nightOfTheZealot",
-    "dwl": "theDunwichLegacy",
-    "ptc": "thePathToCarcosa",
-    "tfa": "theForgottenAge",
-    "tcu": "theCircleUndone",
-    "tdea": "theDreamEaters",
-    "tic": "theInnsmouthConspiracy",
-    "eoe": "edgeOfTheEarth"
+    "theDunwichLegacy": "dwl",
+    "thePathToCarcosa": "ptc",
+    "theForgottenAge": "tfa",
+    "theCircleUndone": "tcu",
+    "theDreamEaters": "tdea",
+    "theInnsmouthConspiracy": "tic",
+    "edgeOfTheEarth": "eoe"
 }
 
 localized_campaign_files = {
@@ -126,7 +125,17 @@ locale_data = read_locale_data(locales_path)
 
 for key, sub_data in locale_data.items():
     for subkey, subkey_data in sub_data.items():
-        if "prologue" not in subkey_data:
+        if key in localized_campaign_files and "prologue" not in subkey_data:
             campaign_data[localized_campaign_files[key]]
+            for campaign in campaign_data[localized_campaign_files[key]]:
+                if subkey in campaign_mapping and campaign["campaign"]["id"] == campaign_mapping[subkey]:
+                    for step in campaign["campaign"]["steps"]:
+                        if step["id"] == "prologue":
+                            if "title" in step:
+                                subkey_data["prologue"] = wrap_paragraphs(step["text"], step["title"])
+                            else:
+                                subkey_data["prologue"] = wrap_paragraphs(step["text"])
+            #text_prologue = ""
+
 
 
