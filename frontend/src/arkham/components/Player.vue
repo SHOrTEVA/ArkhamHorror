@@ -850,6 +850,10 @@ function toggleHandAreaMarginBottom(event: Event) {
   display: flex;
   justify-self: self-start;
   align-self: start;
+  img {
+    width: var(--card-width);
+    border-radius: 2px;
+  }
 }
 
 .committed-skills {
