@@ -164,7 +164,11 @@ async function clicked() {
   if(cardAction.value !== -1) {
     emits('choose', cardAction.value)
   } else if (abilities.value.length > 0) {
-    showAbilities.value = !showAbilities.value
+    if (abilities.value.length === 1 ) {
+      emits('choose', abilities.value[0].index)
+    } else {
+      showAbilities.value = !showAbilities.value
+    }
   }
 }
 

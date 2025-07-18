@@ -185,7 +185,11 @@ async function clicked() {
     emits('choose', cardAction.value)
     showAbilities.value = false
   } else if (abilities.value.length > 0) {
-    showAbilities.value = !showAbilities.value
+    if (abilities.value.length === 1 ) {
+      emits('choose', abilities.value[0].index)
+    } else {
+      showAbilities.value = !showAbilities.value
+    }
   } else {
     showAbilities.value = false
   }
@@ -383,13 +387,14 @@ function startDrag(event: DragEvent, enemy: Arkham.Enemy) {
 }
 
 .pool {
+  width: 150%;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
   position: absolute;
   top: 10%;
-  align-items: center;
   display: flex;
   flex-wrap: wrap;
-  align-self: flex-start;
-  align-items: flex-end;
   z-index: 15;
   :deep(img) {
     width: 20px;
