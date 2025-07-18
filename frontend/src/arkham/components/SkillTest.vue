@@ -908,6 +908,7 @@ i.iconSkillAgility {
 }
 
 .modifier {
+  flex-shrink: 0;
   align-items: center;
   background: #000;
   border-radius: 100px;
@@ -942,6 +943,7 @@ i.iconSkillAgility {
 .modifiers {
   align-self: flex-start;
   display: flex;
+  flex-wrap: wrap;
   background: rgba(0, 0, 0, 0.5);
   padding-inline: 10px;
   gap: 5px;
