@@ -6,6 +6,7 @@ import CardView from '@/arkham/components/Card.vue'
 import Enemy from '@/arkham/components/Enemy.vue';
 import { pluralize } from '@/arkham/helpers';
 import { useI18n } from 'vue-i18n';
+import { IsMobile } from '@/arkham/isMobile';
 const { t } = useI18n();
 
 export interface Props {
@@ -29,13 +30,14 @@ const topOfVictoryDisplay = computed(() => {
 
 const viewVictoryDisplayLabel = computed(() => pluralize(t('scenario.discardCard'), props.victoryDisplay.length))
 const showVictoryDisplay = () => emit('show')
+const { isMobile } = IsMobile();
 </script>
 i
 <template>
-  <div v-if="topOfVictoryDisplay || enemiesInVictoryDisplay.length > 0" class="victory-display">
+  <div v-if="topOfVictoryDisplay || enemiesInVictoryDisplay.length > 0" class="victory-display" @click="showVictoryDisplay">
     <div v-if="topOfVictoryDisplay" class="victory-display-card">
       <CardView :game="game" :card="topOfVictoryDisplay" :playerId="playerId" />
-
+      <span class="deck-size">{{props.victoryDisplay.length}}</span>
     </div>
 
     <Enemy
@@ -46,8 +48,7 @@ i
       @choose="choose"
     />
 
-
-    <button v-if="topOfVictoryDisplay" @click="showVictoryDisplay">{{viewVictoryDisplayLabel}}</button>
+    <button v-if="topOfVictoryDisplay && !isMobile" @click="showVictoryDisplay">{{viewVictoryDisplayLabel}}</button>
   </div>
 </template>
 
@@ -98,5 +99,17 @@ i
     opacity: .85;
     mix-blend-mode: saturation;
   }
+}
+
+.deck-size {
+  position: absolute;
+  font-weight: bold;
+  font-size: 1.2em;
+  color: rgba(255, 255, 255, 1);
+  left: 50%;
+  bottom: 55%;
+  transform: translateX(-50%) translateY(-50%);
+  pointer-events: none;
+  -webkit-text-stroke: 1px black;
 }
 </style>
