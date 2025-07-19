@@ -300,6 +300,9 @@ const sideways = computed<boolean>(() => {
   if (hoveredElement.value?.classList.contains('attached')) return false
   if (hoveredElement.value?.classList.contains('card--sideways')) return true
   if (hoveredElement.value?.classList.contains('sideways')) return true
+  // Default to sideways if the element is wider than it is tall (except for modifiers).
+  if (hoveredElement.value?.classList.contains('modifier')) return false // Ensure consistency with "SkillTest.vue" and verify potential cases in "Source.hs"
+  if (hoveredElement.value?.offsetWidth > hoveredElement.value.offsetHeight) return true
 
   return false
 })
