@@ -344,6 +344,9 @@ const assetStory = computed(() => {
   transition: transform 0.2s linear;
   transform: rotate(90deg);
   margin: 0 30px;
+  @media (max-width: 800px) and (orientation: portrait) {
+    margin: 0 8px;
+  }
 }
 
 .asset--can-interact {
