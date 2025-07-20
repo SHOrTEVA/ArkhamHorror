@@ -283,7 +283,7 @@ const tokenEffects = computed(() => {
 
 
   return ["Skull", "Cultist", "Tablet", "ElderThing"].filter((face) => faces.includes(face)).map((face) => 
-    `<img src='${chaosTokenImage(face)}' width=23 /><span>`
+    `<img src='${chaosTokenImage(face)}' width = 40 /><span>`
           + formatContent(t(`${scenarioToI18n(scenario)}.tokens.${difficulty}.${lowerFirst(face)}`)) + `</span>`
           )
 })
@@ -386,6 +386,24 @@ const createModifier = (target: {tag: string, contents: string}, modifier: {tag:
         :playerId="playerId"
         @choose="choose"
       />
+      <div v-if="tokenEffects.length > 0" class="token-effects">
+        <div class="token-effect" v-for="effect in tokenEffects" :key="effect" v-html="effect"></div>
+      </div>
+      <div v-if="debug.active && skillTest.result.tag == 'Unrun' && !['SkillTestFastWindow1', 'SkillTestFastWindow2'].includes(skillTest.step)">
+        <button @click="debug.send(game.id, {tag: 'PassSkillTest'})">Pass Skill Test</button>
+        <button @click="debug.send(game.id, {tag: 'FailSkillTest'})">Fail Skill Test</button>
+      </div>
+      <div v-if="committedCards.length > 0" class="committed-skills" key="committed-skills">
+        <h2>Committed Skills</h2>
+        <div class="skills-container">
+          <CommittedSkills
+            :game="game"
+            :cards="committedCards"
+            :playerId="playerId"
+            @choose="$emit('choose', $event)"
+          />
+        </div>
+      </div>
       <div v-if="modifiers.length > 0" class="modifiers">
         <div v-for="(modifier, idx) in modifiers" :key="idx" class="modifier" :class="{ 'sideways': modifier.source.tag === 'InvestigatorSource' }" :data-image-id="modifierSource(modifier)">
           <template v-if="modifier.type.tag === 'CannotCommitCards'">
@@ -457,25 +475,6 @@ const createModifier = (target: {tag: string, contents: string}, modifier: {tag:
           </template>
         </div>
       </div>
-      <div v-if="tokenEffects.length > 0" class="token-effects">
-        <div class="token-effect" v-for="effect in tokenEffects" :key="effect" v-html="effect"></div>
-      </div>
-      <div v-if="debug.active && skillTest.result.tag == 'Unrun' && !['SkillTestFastWindow1', 'SkillTestFastWindow2'].includes(skillTest.step)">
-        <button @click="debug.send(game.id, {tag: 'PassSkillTest'})">Pass Skill Test</button>
-        <button @click="debug.send(game.id, {tag: 'FailSkillTest'})">Fail Skill Test</button>
-      </div>
-      <div v-if="committedCards.length > 0" class="committed-skills" key="committed-skills">
-        <div class="skills-container">
-          <CommittedSkills
-            :game="game"
-            :cards="committedCards"
-            :playerId="playerId"
-            @choose="$emit('choose', $event)"
-          />
-        </div>
-        <h2>Committed Skills</h2>
-      </div>
-
       <AbilityButton
         v-for="ability in abilities"
         :key="ability.index"
@@ -944,7 +943,7 @@ i.iconSkillAgility {
   align-self: flex-start;
   display: flex;
   flex-wrap: wrap;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.6);
   padding-inline: 10px;
   gap: 5px;
   font-size: 1em;
@@ -962,6 +961,7 @@ i.iconSkillAgility {
   align-items: center;
   color: var(--title);
   justify-content: center;
+  text-align: left;
 }
 
 .test-source {
