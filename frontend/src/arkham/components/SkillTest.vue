@@ -622,7 +622,12 @@ const createModifier = (target: {tag: string, contents: string}, modifier: {tag:
 }
 
 .skills-container {
-  padding: 10px;
+  padding: 6px 10px;
+  :deep(.card) {
+    width: 10.71vw ;
+    height: 14.994vw;
+    max-width: 10.71vw;
+  }
 }
 
 .skill-test-results {
@@ -915,7 +920,6 @@ i.iconSkillAgility {
   color: var(--title);
   display: flex;
   gap: 4px;
-  margin-bottom: 10px;
   padding: 2px 10px;
   text-align: center;
   user-select: none;
@@ -944,7 +948,7 @@ i.iconSkillAgility {
   display: flex;
   flex-wrap: wrap;
   background: rgba(0, 0, 0, 0.6);
-  padding-inline: 10px;
+  padding: 6px 10px;
   gap: 5px;
   font-size: 1em;
 }
