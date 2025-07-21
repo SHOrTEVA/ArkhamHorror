@@ -34,7 +34,6 @@ import { useCardStore } from '@/stores/cards'
 import { onBeforeRouteLeave } from 'vue-router'
 import { useDebug } from '@/arkham/debug'
 import useEmitter from '@/composeable/useEmitter'
-import { IsMobile } from '@/arkham/isMobile';
 
 // Types
 interface GameCard {
@@ -74,7 +73,6 @@ const userStore = useUserStore()
 const { copy } = useClipboard({ source })
 const { addEntry, menuItems } = useMenu()
 const router = useRouter()
-const { isMobile } = IsMobile();
 
 store.fetchCards()
 
@@ -603,7 +601,7 @@ onUnmounted(() => {
           <EyeIcon aria-hidden="true" />
           {{ $t('gameBar.view') }}
           <template #items>
-            <MenuItem v-if="isMobile" v-slot="{ active }">
+            <MenuItem v-slot="{ active }">
             <button :class="{ active }" @click="undoScenario"><BackwardIcon aria-hidden="true" /> {{ $t('gameBar.restartScenario') }} <span class='shortcut'>U</span></button>
           </MenuItem>
             <MenuItem v-slot="{ active }">
@@ -638,19 +636,7 @@ onUnmounted(() => {
         </Menu>
       </div>
       <div>
-        <button v-if="isMobile" :class="{ active }" @click="undo"><BackwardIcon aria-hidden="true" /> {{ $t('gameBar.undo') }}</button>
-        <Menu v-else>
-          <BackwardIcon aria-hidden="true" />
-          {{ $t('gameBar.undo') }}
-          <template #items>
-            <MenuItem v-slot="{ active }">
-              <button :class="{ active }" @click="undo"><BackwardIcon aria-hidden="true" /> {{ $t('gameBar.undo') }} <span class='shortcut'>u</span></button>
-            </MenuItem>
-            <MenuItem v-slot="{ active }">
-              <button :class="{ active }" @click="undoScenario"><BackwardIcon aria-hidden="true" /> {{ $t('gameBar.restartScenario') }} <span class='shortcut'>U</span></button>
-            </MenuItem>
-          </template>
-        </Menu>
+        <button :class="{ active }" @click="undo"><BackwardIcon aria-hidden="true" /> {{ $t('gameBar.undo') }}</button>
       </div>
       <div><button @click="filingBug = true"><ExclamationTriangleIcon aria-hidden="true" /> {{ $t('fileBug') }} </button></div>
       <div v-for="item in menuItems" :key="item.id">
