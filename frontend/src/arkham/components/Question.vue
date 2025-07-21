@@ -823,6 +823,14 @@ button:hover {
   width: 100%;
   white-space: nowrap;
   text-wrap: pretty;
+  @media (max-width: 800px) and (orientation: portrait) {
+    text-align: left;
+    font-size: small;
+    hyphens: auto;
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+    white-space: pre-wrap;
+  }
 }
 
 .choices button:before {
