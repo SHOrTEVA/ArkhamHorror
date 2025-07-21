@@ -283,7 +283,7 @@ const tokenEffects = computed(() => {
 
 
   return ["Skull", "Cultist", "Tablet", "ElderThing"].filter((face) => faces.includes(face)).map((face) => 
-    `<img src='${chaosTokenImage(face)}' width = 40 /><span>`
+    `<img src='${chaosTokenImage(face)}' /><span>`
           + formatContent(t(`${scenarioToI18n(scenario)}.tokens.${difficulty}.${lowerFirst(face)}`)) + `</span>`
           )
 })
@@ -623,10 +623,15 @@ const createModifier = (target: {tag: string, contents: string}, modifier: {tag:
 
 .skills-container {
   padding: 6px 10px;
-  :deep(.card) {
-    width: 10.71vw ;
-    height: 14.994vw;
-    max-width: 10.71vw;
+  @media (max-width: 800px) and (orientation: portrait) {
+    .card-row-cards {
+      height: auto;
+    }
+    :deep(.card) {
+      width: 10.71vw ;
+      height: 14.994vw;
+      max-width: 10.71vw;
+    }
   }
 }
 
@@ -962,10 +967,14 @@ i.iconSkillAgility {
   display: flex;
   gap: 10px;
   padding: 10px;
-  align-items: center;
+  align-items: start;
   color: var(--title);
-  justify-content: center;
+  justify-content: start;
   text-align: left;
+  :deep(img) {
+    width: 25px;
+    flex-shrink: 0;
+  }
 }
 
 .test-source {
