@@ -370,8 +370,15 @@ const assetStory = computed(() => {
     width: 20px;
     height: auto;
   }
-
   pointer-events: none;
+  @media (max-width: 800px) and (orientation: portrait) {
+    width: 150%;
+    align-items: center;
+    justify-content: center;
+    .poolItem {
+      width: auto;
+    }
+  }
 }
 
 .button{
