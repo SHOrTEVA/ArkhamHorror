@@ -185,7 +185,6 @@ function onDropDiscard(event: DragEvent) {
   }
 
   &:deep(.card-container) {
-    width: var(--card-width);
     margin: 0;
     position:relative;
     display: inline-flex;
