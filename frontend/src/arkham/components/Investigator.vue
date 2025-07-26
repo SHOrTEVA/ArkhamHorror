@@ -412,6 +412,7 @@ i.action {
   -webkit-font-smoothing: antialiased;
   position: relative;
   color: #EEE;
+  -webkit-text-stroke: 0.2px white;
 
   &:before {
     font-family: "Arkham";
