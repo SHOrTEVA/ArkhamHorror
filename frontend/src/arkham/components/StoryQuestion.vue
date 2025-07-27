@@ -298,4 +298,14 @@ button {
 .active {
   border: 1px solid var(--select);
 }
+
+.question-content h2 {
+    color: white;
+    text-align: left;
+    hyphens: auto;
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+    white-space: pre-wrap;
+}
+
 </style>
