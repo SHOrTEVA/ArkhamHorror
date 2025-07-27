@@ -257,6 +257,9 @@ const isVertical = computed(() => {
   //position: inherit;
   transition: margin-top 0.3s;
   position: relative;
+  @media (max-width: 800px) and (orientation: portrait) {
+    margin-top: -70%;
+  }
 
   &:hover {
     margin-top: 0px;
