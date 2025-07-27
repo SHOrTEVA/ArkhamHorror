@@ -279,8 +279,8 @@ function onDrop(event: DragEvent) {
 
 <template>
   <div v-if="portrait" class="portrait-container">
-    <span><i class="action" v-for="n in investigator.remainingActions" :key="n"></i></span>
-    <span v-if="investigator.additionalActions.length > 0">
+    <span>
+      <i class="action" v-for="n in investigator.remainingActions" :key="n"></i>
       <template v-for="action in investigator.additionalActions" :key="action">
         <button @click="useEffectAction(action)" v-if="action.tag === 'EffectAction'" v-tooltip="action.contents[0]" :class="[{ activeButton: isActiveEffectAction(action)}, `${investigator.class.toLowerCase()}ActionButton`]">
           <i class="action"></i>
@@ -529,15 +529,33 @@ i.action {
   flex-direction: column;
   overflow: visible;
   :deep(span) {
-    height: 0.87rem;
+    display: flex;
     overflow: visible;
     z-index: 10;
+    position: absolute;
+    top:-10%;
+    -webkit-animation: breathing 2s ease-in-out infinite alternate !important;
+    animation: breathing 2s ease-in-out infinite alternate !important;
+    @keyframes breathing {
+      0% {
+        transform: scale(1);
+      }
+      50% {
+        transform: scale(3); // 0.9/0.35 ≈ 2.57 to match font-size change
+      }
+      100% {
+        transform: scale(1);
+      }
+    }
     @media (min-width: 801px) {
       display: none;
     }
   }
   :deep(.action) {
     font-size: 0.35rem;
+  }
+  :deep(.additional) {
+    top:70%;
   }
 }
 
