@@ -511,6 +511,14 @@ form {
           width: 100%;
           margin: 0;
         }
+        @media (max-width: 800px) and (orientation: portrait) {
+          align-items: center;
+          text-align: left;
+          hyphens: auto;
+          overflow-wrap: break-word;
+          word-wrap: break-word;
+          white-space: pre-wrap;
+        }
       }
     }
   }

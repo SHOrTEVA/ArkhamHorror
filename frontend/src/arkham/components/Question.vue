@@ -764,7 +764,6 @@ button:hover {
 .question-label {
   display: flex;
   flex-direction: column;
-  max-width: 75vw;
 }
 
 .question-label p {
@@ -970,6 +969,9 @@ h2 {
   width: 100%;
   form {
     flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
   }
 }
 
