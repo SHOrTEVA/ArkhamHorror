@@ -705,9 +705,9 @@ function toggleHandAreaMarginBottom(event: Event) {
           <template v-for="treacheryId in inHandTreacheries" :key="treacheryId">
             <Treachery
               v-if="solo || (playerId == investigator.playerId)"
-              :treachery="game.treacheries[treacheryId]"
+              :treachery="treachery"
               :game="game"
-              :data-index="treacheryId"
+              :data-index="treachery.id"
               :playerId="playerId"
               @choose="$emit('choose', $event)"
             />
