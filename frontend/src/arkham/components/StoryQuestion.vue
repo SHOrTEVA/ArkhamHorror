@@ -213,6 +213,12 @@ button {
   text-transform: uppercase;
   background-color: #532e61;
   font-weight: bold;
+  text-align: left;
+  font-size: small;
+  hyphens: auto;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+  white-space: pre-wrap;
   border-radius: 0.6em;
   color: #EEE;
   font: Arial, sans-serif;
