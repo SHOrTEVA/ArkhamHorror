@@ -10,6 +10,7 @@ import PoolItem from '@/arkham/components/PoolItem.vue';
 import AbilityButton from '@/arkham/components/AbilityButton.vue'
 import Token from '@/arkham/components/Token.vue';
 import * as Arkham from '@/arkham/types/Treachery';
+import { IsMobile } from '@/arkham/isMobile';
 
 export interface Props {
   game: Game
@@ -32,6 +33,7 @@ const image = computed(() => {
 const id = computed(() => props.treachery.id)
 const choices = computed(() => ArkhamGame.choices(props.game, props.playerId))
 const isExhausted = computed(() => props.treachery.exhausted)
+const { isMobile } = IsMobile();
 
 function canInteract(c: Message): boolean {
   if (c.tag === "TargetLabel") {
@@ -82,6 +84,15 @@ const cardAction = computed(() => choices.value.findIndex(canInteract))
 </script>
 <template>
   <div class="treachery" :class="{ attached, exhausted: isExhausted }">
+    <AbilityButton
+      v-if="isMobile"
+      v-for="ability in abilities"
+      :key="ability.index"
+      :ability="ability.contents"
+      :data-image="image"
+      :game="game"
+      @click="$emit('choose', ability.index)"
+    />
     <img
       :src="image"
       class="card"
@@ -90,13 +101,14 @@ const cardAction = computed(() => choices.value.findIndex(canInteract))
       :data-delay="overlayDelay"
     />
     <AbilityButton
+      v-if="!isMobile"
       v-for="ability in abilities"
       :key="ability.index"
       :ability="ability.contents"
       :data-image="image"
       :game="game"
       @click="$emit('choose', ability.index)"
-      />
+    />
     <div class="pool">
       <PoolItem
         v-if="horror && horror > 0"

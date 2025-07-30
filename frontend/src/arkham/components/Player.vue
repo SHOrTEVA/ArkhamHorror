@@ -670,52 +670,50 @@ function toggleHandAreaMarginBottom(event: Event) {
       </div>
     </div>
     <div v-if="isMobile" class="hand hand-area-IsMobile" :style="{ marginBottom: `${handAreaMarginBottom}px` }" @click="toggleHandAreaMarginBottom">
-        <transition-group tag="section" class="hand" @enter="onEnter" @leave="onLeave" @before-enter="onBeforeEnter"
-          @drop="onDropHand($event)"
-          @dragover.prevent="dragover($event)"
-          @dragenter.prevent
-          :style="{ pointerEvents: `${handAreaPointerEvents}` }"
-          >
-          <HandCard
-            v-for="card in playerHand"
-            :card="card"
+      <transition-group tag="section" class="hand" @enter="onEnter" @leave="onLeave" @before-enter="onBeforeEnter"
+        @drop="onDropHand($event)"
+        @dragover.prevent="dragover($event)"
+        @dragenter.prevent
+        :style="{ pointerEvents: `${handAreaPointerEvents}` }"
+        >
+        <HandCard
+          v-for="card in playerHand"
+          :card="card"
+          :game="game"
+          :playerId="playerId"
+          :ownerId="investigator.id"
+          :key="toCardContents(card).id"
+          @choose="$emit('choose', $event)"
+          :draggable="debug.active"
+          @dragstart="startHandDrag($event, card)"
+        />
+        <template v-for="enemy in inHandEnemies" :key="enemy.id">
+          <Enemy
+            v-if="solo || (playerId == investigator.playerId)"
+            :enemy="enemy"
             :game="game"
+            :data-index="enemy.cardId"
             :playerId="playerId"
-            :ownerId="investigator.id"
-            :key="toCardContents(card).id"
             @choose="$emit('choose', $event)"
-            :draggable="debug.active"
-            @dragstart="startHandDrag($event, card)"
           />
-
-          <template v-for="enemy in inHandEnemies" :key="enemy.id">
-            <Enemy
-              v-if="solo || (playerId == investigator.playerId)"
-              :enemy="enemy"
-              :game="game"
-              :data-index="enemy.cardId"
-              :playerId="playerId"
-              @choose="$emit('choose', $event)"
-            />
-            <div class="card-container" v-else>
-              <img class="card" :src="encounterBack" />
-            </div>
-          </template>
-
-          <template v-for="treacheryId in inHandTreacheries" :key="treacheryId">
-            <Treachery
-              v-if="solo || (playerId == investigator.playerId)"
-              :treachery="treachery"
-              :game="game"
-              :data-index="treachery.id"
-              :playerId="playerId"
-              @choose="$emit('choose', $event)"
-            />
-            <div class="card-container" v-else>
-              <img class="card" :src="encounterBack" />
-            </div>
-          </template>
-        </transition-group>
+          <div class="card-container" v-else>
+            <img class="card" :src="encounterBack" />
+          </div>
+        </template>
+        <template v-for="treachery in inHandTreacheries" :key="treachery.id">
+          <Treachery
+            v-if="solo || (playerId == investigator.playerId)"
+            :treachery="treachery"
+            :game="game"
+            :data-index="treachery.id"
+            :playerId="playerId"
+            @choose="$emit('choose', $event)"
+          />
+          <div class="card-container" v-else>
+            <img class="card" :src="encounterBack" />
+          </div>
+        </template>
+      </transition-group>
     </div>
     <CardRow
       v-if="showCards.ref.length > 0"
