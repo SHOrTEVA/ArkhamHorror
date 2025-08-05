@@ -56,6 +56,16 @@ const drawCardsAction = computed(() => {
     });
 })
 
+const discardCardsAction = computed(() => {
+  return choices
+    .value
+    .some(choice => 
+      discards
+        .value
+        .some(discardItem => discardItem.contents.id === choice.target?.contents)
+    )
+})
+
 const noCards = computed<ArkhamCard.Card[]>(() => [])
 
 // eslint-disable-next-line
@@ -127,7 +137,7 @@ function onDropDiscard(event: DragEvent) {
       @dragenter.prevent
       @click="showDiscards"
     >
-      <Card v-if="topOfDiscard" :game="game" :card="topOfDiscard" :playerId="playerId" />
+      <Card v-if="topOfDiscard" :class="{'discard--can-use': discardCardsAction === true}" :game="game" :card="topOfDiscard" :playerId="playerId" />
       <button v-if="discards.length > 0" class="view-discard-button" @click="showDiscards">{{viewDiscardLabel}}</button>
       <button v-if="debug.active && discards.length > 0" class="view-discard-button" @click="debug.send(game.id, {tag: 'ShuffleDiscardBackIn', contents: investigatorId})">Shuffle Back In</button>
     </div>
@@ -173,42 +183,49 @@ function onDropDiscard(event: DragEvent) {
 <style scoped lang="scss">
 
 .discard {
-  width: var(--card-width);
+  cursor: pointer;
   button {
     white-space: nowrap;
     text-wrap: pretty;
+    display: none;
+  }
+
+  @media (min-width: 801px) {
+    width: var(--card-width);
+    :deep(button) {
+      display: block;
+    }
   }
 
   &:deep(.card) {
     margin: 0;
     box-shadow: none;
+    filter: grayscale(.85);
+    width: var(--card-width);
+    @media (max-width: 800px) and (orientation: portrait)  {
+      width: calc(var(--pool-token-width)*1.2);
+    }
   }
 
   &:deep(.card-container) {
     margin: 0;
-    position:relative;
+    position: relative;
     display: inline-flex;
-    &::after {
-      pointer-events: none;
-      border-radius: 6px;
-      content: "";
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background-color: #FFF;
-      opacity: .85;
-      mix-blend-mode: saturation;
-    }
+
   }
-  @media (max-width: 800px) and (orientation: portrait)  {
-    :deep(button){
-        display: none;
-    }
-    :deep(.card){
-        max-width: calc(var(--pool-token-width)*1.2);
-    }
+}
+
+.discard--can-use{
+  &::before {
+    content: '';
+    position: absolute;
+    border-radius: 6px;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;      
+    z-index: 1;
+    box-shadow: inset 0 0 0 2px var(--select);
   }
 }
 
@@ -239,7 +256,7 @@ function onDropDiscard(event: DragEvent) {
 
 .deck--can-draw {
   border: 2px solid var(--select);
-  border-radius: 10px;
+  border-radius: 6px;
   cursor: pointer;
 }
 
