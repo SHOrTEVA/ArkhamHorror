@@ -674,7 +674,7 @@ function toggleHandAreaMarginBottom(event: Event) {
         @drop="onDropHand($event)"
         @dragover.prevent="dragover($event)"
         @dragenter.prevent
-        :style="{ pointerEvents: `${handAreaPointerEvents}` }"
+        :style="{ pointerEvents: `${handAreaPointerEvents}`, flex: 1 }"
         >
         <HandCard
           v-for="card in playerHand"
@@ -955,6 +955,7 @@ function toggleHandAreaMarginBottom(event: Event) {
   align-items: flex-start;
   flex: 1;
   max-width: 100%;
+  height: calc(var(--card-height) * 4);
   :deep(.card){
     width: calc(var(--card-width) * 4);
     min-width: calc(var(--card-width) * 4);
