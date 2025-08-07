@@ -322,9 +322,6 @@ const classObject = computed(() => {
     content: "\0059";
     margin-right: 5px;
   }
-  @media (max-width: 800px) and (orientation: portrait) {
-    display: none;
-  }
 }
 
 </style>
