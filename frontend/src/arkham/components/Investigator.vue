@@ -282,10 +282,7 @@ function onDrop(event: DragEvent) {
     <span>
       <i class="action" v-for="n in investigator.remainingActions" :key="n"></i>
       <template v-for="action in investigator.additionalActions" :key="action">
-        <button @click="useEffectAction(action)" v-if="action.tag === 'EffectAction'" v-tooltip="action.contents[0]" :class="[{ activeButton: isActiveEffectAction(action)}, `${investigator.class.toLowerCase()}ActionButton`]">
-          <i class="action"></i>
-        </button>
-        <i v-else class="action" :class="`${investigator.class.toLowerCase()}Action`"></i>
+        <i v-if="action.tag !== 'EffectAction'" class="action" :class="`${investigator.class.toLowerCase()}Action`"></i>
       </template>
     </span>
     <img
@@ -327,10 +324,9 @@ function onDrop(event: DragEvent) {
           <span class="action-container"><i class="action" v-for="n in investigator.remainingActions" :key="n"></i></span>
           <span v-if="investigator.additionalActions.length > 0">
             <template v-for="action in investigator.additionalActions" :key="action">
-            <button @click="useEffectAction(action)" v-if="action.tag === 'EffectAction'" v-tooltip="action.contents[0]" :class="[{ activeButton: isActiveEffectAction(action)}, `${investigator.class.toLowerCase()}ActionButton`]">
-              <i class="action"></i>
-            </button>
-            <i v-else class="action" :class="`${investigator.class.toLowerCase()}Action`"></i>
+              <button @click="useEffectAction(action)" v-if="action.tag === 'EffectAction'" v-tooltip="action.contents[0]" :class="[{ activeButton: isActiveEffectAction(action)}, `${investigator.class.toLowerCase()}ActionButton`]">
+                <i class="action"></i>
+              </button>
             </template>
           </span>
           <template v-if="debug.active">
