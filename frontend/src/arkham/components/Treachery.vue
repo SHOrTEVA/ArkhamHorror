@@ -10,7 +10,6 @@ import PoolItem from '@/arkham/components/PoolItem.vue';
 import AbilityButton from '@/arkham/components/AbilityButton.vue'
 import Token from '@/arkham/components/Token.vue';
 import * as Arkham from '@/arkham/types/Treachery';
-import { IsMobile } from '@/arkham/isMobile';
 
 export interface Props {
   game: Game
@@ -18,6 +17,7 @@ export interface Props {
   playerId: string
   attached?: boolean
   overlayDelay?: number
+  isInHand?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), { attached: false })
@@ -33,7 +33,6 @@ const image = computed(() => {
 const id = computed(() => props.treachery.id)
 const choices = computed(() => ArkhamGame.choices(props.game, props.playerId))
 const isExhausted = computed(() => props.treachery.exhausted)
-const { isMobile } = IsMobile();
 
 function canInteract(c: Message): boolean {
   if (c.tag === "TargetLabel") {
@@ -85,7 +84,7 @@ const cardAction = computed(() => choices.value.findIndex(canInteract))
 <template>
   <div class="treachery" :class="{ attached, exhausted: isExhausted }">
     <AbilityButton
-      v-if="isMobile"
+      v-if="isInHand"
       v-for="ability in abilities"
       :key="ability.index"
       :ability="ability.contents"
@@ -101,7 +100,7 @@ const cardAction = computed(() => choices.value.findIndex(canInteract))
       :data-delay="overlayDelay"
     />
     <AbilityButton
-      v-if="!isMobile"
+      v-if="!isInHand"
       v-for="ability in abilities"
       :key="ability.index"
       :ability="ability.contents"

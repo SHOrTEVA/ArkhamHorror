@@ -707,6 +707,7 @@ function toggleHandAreaMarginBottom(event: Event) {
             :game="game"
             :data-index="treachery.id"
             :playerId="playerId"
+            :isInHand="true"
             @choose="$emit('choose', $event)"
           />
           <div class="card-container" v-else>
