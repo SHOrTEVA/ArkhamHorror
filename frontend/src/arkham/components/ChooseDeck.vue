@@ -555,7 +555,25 @@ option.guardian {
   background-color: var(--guardian-dark);
 }
 
+option.seeker {
+  background-color: var(--seeker-dark);
+}
+
+option.survivor {
+  background-color: var(--survivor-dark);
+}
+
+option.rogue {
+  background-color: var(--rogue-dark);
+}
+
+option.neutral {
+  background-color: var(--neutral-dark);
+}
+
 option.mystic {
   background-color: var(--mystic-dark);
 }
+
+
 </style>
