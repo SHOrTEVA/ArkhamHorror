@@ -24,6 +24,7 @@ export type Token
   | 'Lock'
   | 'LostSoul'
   | 'Offering'
+  | 'Pillar'
   | 'Resource'
   | 'Secret'
   | 'Shell'
@@ -61,6 +62,7 @@ export const TokenType = {
   Lock: 'Lock',
   LostSoul: 'LostSoul',
   Offering: 'Offering',
+  Pillar: 'Pillar',
   Resource: 'Resource',
   Secret: 'Secret',
   Shell: 'Shell',
@@ -99,6 +101,7 @@ export const tokenDecoder: JsonDecoder.Decoder<Token> = JsonDecoder.oneOf<Token>
   JsonDecoder.literal('Lock'),
   JsonDecoder.literal('LostSoul'),
   JsonDecoder.literal('Offering'),
+  JsonDecoder.literal('Pillar'),
   JsonDecoder.literal('Resource'),
   JsonDecoder.literal('Secret'),
   JsonDecoder.literal('Shell'),

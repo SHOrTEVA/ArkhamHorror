@@ -620,7 +620,6 @@ const replaceText = (text: string): string => {
 }
 
 .card-overlay {
-  pointer-events: none;
   position: absolute;
   z-index: 1000;
   display: flex;
@@ -2214,7 +2213,7 @@ const replaceText = (text: string): string => {
   position: absolute;
   top: 0;
   left: 2px;
-  pointer-events: none;
+  pointer-events: auto;
   animation: fadeIn 0.5s;
 }
 
