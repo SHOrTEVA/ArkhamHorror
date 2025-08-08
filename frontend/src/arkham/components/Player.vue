@@ -389,7 +389,19 @@ const handAreaPointerEvents = ref('none');
 
 onMounted(() => {
   if (isMobile) {
-      document.addEventListener('click',toggleHandAreaMarginBottom)
+    document.addEventListener('click',toggleHandAreaMarginBottom)
+    const isMinimized_SkillTest = inject('isMinimized_SkillTest', ref(false))
+    watch([() => props.game.skillTest, isMinimized_SkillTest], ([newSkillTest,isMinimized]) => {
+      if (newSkillTest && !isMinimized) {
+        handAreaMarginBottom.value = handCardExposedHeight_MAX;
+        handAreaPointerEvents.value = 'auto';
+        document.removeEventListener('click', toggleHandAreaMarginBottom)
+      } else {
+        handAreaMarginBottom.value = handCardExposedHeight_MIN;
+        handAreaPointerEvents.value = 'none';
+        document.addEventListener('click',toggleHandAreaMarginBottom)
+      }
+    });  
   }
 });
 
@@ -867,7 +879,6 @@ function toggleHandAreaMarginBottom(event: Event) {
   }
 }
 
-
 .hand-area {
   display: flex;
   flex-direction: column;
@@ -890,4 +901,9 @@ function toggleHandAreaMarginBottom(event: Event) {
   }
 }
 
+.card {
+  width: var(--card-width);
+  min-width: var(--card-width);
+  border-radius: 2px;
+}
 </style>
