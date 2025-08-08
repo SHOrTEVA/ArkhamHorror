@@ -1467,9 +1467,10 @@ runGameMessage msg g = case msg of
         g' <- runGameMessage (PutCardIntoPlay controller card mtarget payment windows') g
         let
           recordLimit g'' = \case
-            MaxPerGame _ -> g'' & cardUsesL . at (toCardCode card) . non 0 +~ 1
-            MaxPerRound _ -> g'' & cardUsesL . at (toCardCode card) . non 0 +~ 1
-            MaxPerTraitPerRound _ _ -> g'' & cardUsesL . at (toCardCode card) . non 0 +~ 1
+            MaxPerGame _ -> g'' & cardUsesL . at (toCardCode card) . non [] %~ (iid:)
+            MaxPerRound _ -> g'' & cardUsesL . at (toCardCode card) . non [] %~ (iid:)
+            MaxPerTraitPerRound _ _ -> g'' & cardUsesL . at (toCardCode card) . non [] %~ (iid:)
+            LimitPerRound _ -> g'' & cardUsesL . at (toCardCode card) . non [] %~ (iid:)
             _ -> g''
         pure $ foldl' recordLimit g' (cdLimits $ toCardDef card)
       else do
@@ -2085,19 +2086,6 @@ runGameMessage msg g = case msg of
       . enemiesL
       . ix eid
       %~ overAttrs (\x -> x {enemyPlacement = OutOfPlay zone, enemyKeys = mempty})
-  DefeatedAddToVictory (EnemyTarget eid) -> do
-    mods <- getModifiers eid
-    card <- field EnemyCard eid
-    let zone = if StayInVictory `elem` mods then VictoryDisplayZone else RemovedZone
-    pushAll
-      $ windows [Window.LeavePlay (EnemyTarget eid), Window.AddedToVictory card]
-      <> [RemoveEnemy eid]
-    pure
-      $ g
-      & entitiesL
-      . enemiesL
-      . ix eid
-      %~ overAttrs (\x -> x {enemyPlacement = OutOfPlay zone})
   AddToVictory (SkillTarget sid) -> do
     card <- field SkillCard sid
     pushAll $ windows [Window.AddedToVictory card]
@@ -2319,6 +2307,7 @@ runGameMessage msg g = case msg of
       isPerRound = \case
         MaxPerRound _ -> True
         MaxPerTraitPerRound _ _ -> True
+        LimitPerRound _ -> True
         _ -> False
     let roundEndUses =
           map cdCardCode
@@ -2908,9 +2897,10 @@ runGameMessage msg g = case msg of
         push $ ObtainCard card.id
         let
           recordLimit g'' = \case
-            MaxPerGame _ -> g'' & cardUsesL . at (toCardCode card) . non 0 +~ 1
-            MaxPerRound _ -> g'' & cardUsesL . at (toCardCode card) . non 0 +~ 1
-            MaxPerTraitPerRound _ _ -> g'' & cardUsesL . at (toCardCode card) . non 0 +~ 1
+            MaxPerGame _ -> g'' & cardUsesL . at (toCardCode card) . non [] %~ (iid:)
+            MaxPerRound _ -> g'' & cardUsesL . at (toCardCode card) . non [] %~ (iid:)
+            MaxPerTraitPerRound _ _ -> g'' & cardUsesL . at (toCardCode card) . non [] %~ (iid:)
+            LimitPerRound _ -> g'' & cardUsesL . at (toCardCode card) . non [] %~ (iid:)
             _ -> g''
         pure
           $ foldl'

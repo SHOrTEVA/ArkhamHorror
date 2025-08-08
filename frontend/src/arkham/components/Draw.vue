@@ -24,6 +24,7 @@ export interface Props {
 }
 
 const props = defineProps<Props>()
+const emit = defineEmits(['choose'])
 const investigatorId = computed(() => props.investigator.id)
 const debug = useDebug()
 
