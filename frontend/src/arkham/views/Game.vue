@@ -2,7 +2,7 @@
 import { LottieAnimation } from "lottie-web-vue"
 import { useRouter } from 'vue-router'
 import processingJSON from "@/assets/processing.json"
-import { onMounted, reactive, ref, computed, provide, onUnmounted, watch } from 'vue'
+import { onMounted, reactive, ref, computed, provide, onUnmounted, watch, useTemplateRef } from 'vue'
 import GameDetails from '@/arkham/components/GameDetails.vue';
 import * as ArkhamGame from '@/arkham/types/Game';
 import * as JsonDecoder from 'ts.data.json';
@@ -263,6 +263,16 @@ watch(uiLock, async () => {
   if (r) handleResult(r)
 })
 
+const mouseX = ref(0);
+const mouseY = ref(0);
+
+document.addEventListener('mousemove', (event) => {
+  mouseX.value = event.clientX;
+  mouseY.value = event.clientY;
+});
+
+const undoScenarioDialog = useTemplateRef<HTMLDialogElement>('undoScenarioDialog')
+
 // Keyboard Shortcuts
 const handleKeyPress = (event: KeyboardEvent) => {
   if (filingBug.value) return
@@ -276,7 +286,7 @@ const handleKeyPress = (event: KeyboardEvent) => {
   }
 
   if (event.key === 'U') {
-    undoScenario()
+    undoScenarioDialog.value?.showModal()
     return
   }
 
@@ -330,6 +340,20 @@ const handleKeyPress = (event: KeyboardEvent) => {
   }
 
   if (event.key === 'e') {
+    if(!game.value || !playerId.value) return
+    const elementUnderMouse = document.elementFromPoint(mouseX.value, mouseY.value);
+    if (elementUnderMouse) {
+      const dataId = elementUnderMouse.getAttribute('data-id')
+      if (dataId && game.value.assets[dataId]) {
+        const exhausted = elementUnderMouse.classList.contains('exhausted')
+        if (exhausted) {
+          debug.send(game.value.id, { tag: 'Ready', contents: { tag: 'AssetTarget', contents: dataId } })
+        } else {
+          debug.send(game.value.id, { tag: 'Exhaust', contents: { tag: 'AssetTarget', contents: dataId } })
+        }
+        return
+      }
+    }
     const endTurn = choices.value.findIndex((c) => {
       if (c.tag !== Message.MessageType.END_TURN_BUTTON) return false
       return game.value?.investigators[c.investigatorId]?.playerId === playerId.value
@@ -365,6 +389,7 @@ async function undo() {
 }
 
 async function undoScenario() {
+  undoScenarioDialog.value?.close()
   processing.value = true
   if (game.value) game.value.question = {}
   resultQueue.value = []
@@ -425,6 +450,8 @@ window.sendDebug = function (msg: any) {
   if (!game.value) return
   debug.send(game.value.id, msg)
 }
+
+window.undo = undo
 
 // Callbacks
 async function choose(idx: number) {
@@ -742,6 +769,13 @@ onUnmounted(() => {
         </div>
       </div>
     </template>
+    <dialog id="undoScenarioDialog" ref="undoScenarioDialog">
+      <p>Are you sure you wish to undo to the beginning of the scenario?</p>
+      <div class="buttons">
+        <button @click="undoScenario()">Yes</button>
+        <button @click="undoScenarioDialog?.close()">No</button>
+      </div>
+    </dialog>
   </div>
 </template>
 
@@ -1455,5 +1489,37 @@ button:hover .shortcut {
 .info {
   background-color: var(--seeker-extra-dark);
   padding: 10px;
+}
+
+dialog {
+  width: 400px;
+  max-width: 90vw;
+  padding: 20px;
+  border-radius: 10px;
+  background-color: var(--background);
+  color: var(--title);
+  font-size: 1.2em;
+  margin: 0 auto;
+
+  position: absolute; 
+  top: 50%; 
+  transform: translateY(-50%);
+
+  &::backdrop {
+    backdrop-filter: blur(3px);
+    background-color: rgba(0,0,0,0.8);
+  }
+
+  .buttons {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 10px;
+
+    button {
+      padding: 5px 10px;
+      font-size: 1.2em;
+    }
+  }
 }
 </style>

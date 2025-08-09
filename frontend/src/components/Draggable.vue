@@ -95,7 +95,7 @@ async function minimize() {
     // Minimizing
     isMinimized.value = true
     emit('minimize', true)
-    
+
     // Save the original position and size
     const rect = el.getBoundingClientRect()
     originalLeft.value = rect.left
