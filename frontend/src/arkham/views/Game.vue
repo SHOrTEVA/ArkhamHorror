@@ -787,7 +787,6 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   flex: 1;
-  overflow: hidden;
 }
 
 .game-main {
