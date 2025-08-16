@@ -924,7 +924,6 @@ function minimize_SkillTest(isMinimized:boolean){
   position: relative;
   width: 100%;
   gap: 10px;
-  z-index: -2;
   @media (max-width: 800px) and (orientation: portrait) {
     padding-top: 10px;
     padding-bottom: 0;
