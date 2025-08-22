@@ -449,6 +449,15 @@ instance IsLabel "willpower" (Int -> ModifierType) where
 instance IsLabel "damage" (Int -> ModifierType) where
   fromLabel = DamageDealt
 
+instance IsLabel "noAction" ModifierType where
+  fromLabel = ActionCostModifier (-1)
+
+instance IsLabel "retaliate" ModifierType where
+  fromLabel = AddKeyword Retaliate
+
+instance IsLabel "alert" ModifierType where
+  fromLabel = AddKeyword Alert
+
 data Modifier = Modifier
   { modifierSource :: Source
   , modifierType :: ModifierType
