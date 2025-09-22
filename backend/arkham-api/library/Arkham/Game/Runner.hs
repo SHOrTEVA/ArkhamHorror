@@ -720,6 +720,7 @@ runGameMessage msg g = case msg of
       & (focusedCardsL %~ map (filter (`notElem` cards)))
       & (foundCardsL . each %~ filter (`notElem` cards))
   FocusChaosTokens tokens -> pure $ g & focusedChaosTokensL <>~ tokens
+  SealChaosToken token -> pure $ g & focusedChaosTokensL %~ filter (/= token)
   Msg.RevealChaosToken SkillTestSource {} _ token -> pure $ g & focusedChaosTokensL %~ filter (/= token)
   UnfocusChaosTokens -> pure $ g & focusedChaosTokensL .~ mempty
   ChoosePlayer iid SetLeadInvestigator -> do
@@ -772,7 +773,11 @@ runGameMessage msg g = case msg of
       . (focusedCardsL %~ map (filter ((/= cardId) . toCardId)))
   GameOver -> do
     clearQueue
-    pure $ g & gameStateL .~ IsOver
+    let newMode = case g ^. modeL of
+          This c -> This c
+          That c -> That c
+          These c1 _ -> This c1
+    pure $ g & gameStateL .~ IsOver & modeL .~ newMode
   PlaceLocation lid card ->
     if isNothing $ g ^. entitiesL . locationsL . at lid
       then do
@@ -2365,7 +2370,8 @@ runGameMessage msg g = case msg of
     placement <- case mtarget of
       Just (EnemyTarget eid) -> field EnemyPlacement eid
       Just (AssetTarget aid) -> field AssetPlacement aid
-      Just _ -> error "no known placement for non-enemy target"
+      Just (LocationTarget lid) -> pure (AtLocation lid)
+      Just _ -> error $ "no known placement for non-enemy target: " <> show mtarget
       Nothing -> pure Unplaced
     push $ ReadStoryWithPlacement iid card storyMode mtarget placement
     pure g
@@ -3295,7 +3301,7 @@ preloadEntities g = do
 -- effects (See Moonstone) it won't be loaded in the environment until 1 step
 -- too late.
 instance RunMessage Game where
-  runMessage msg g = do
+  runMessage msg g =
     ( (modeL . here) (runMessage msg) g
         >>= (modeL . there) (runMessage msg)
         >>= entitiesL (runMessage msg)
@@ -3312,7 +3318,7 @@ instance RunMessage Game where
         >>= (skillTestL . traverse) (runMessage msg)
         >>= (activeCostL . traverse) (runMessage msg)
         >>= runGameMessage msg
-      )
+    )
       <&> handleActionDiff g
 
 runPreGameMessage :: Runner Game

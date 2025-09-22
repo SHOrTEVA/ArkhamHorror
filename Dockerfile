@@ -118,7 +118,7 @@ ENV LC_ALL=C.UTF-8
 
 RUN apt-get update && \
   apt-get upgrade -y --assume-yes && \
-  apt-get install -y --assume-yes libpq-dev ca-certificates nginx curl && \
+  apt-get install -y --assume-yes libpq-dev ca-certificates nginx curl cron && \
   rm -rf /var/lib/apt/lists/*
 
 RUN mkdir -p \

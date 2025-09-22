@@ -1,4 +1,6 @@
 {
+  "serviceUnavailable": "Service Unavailable",
+  "pleaseTryAgainLater": "Please try again later.",
   "nav": {
     "home": "Home",
     "about": "About",
@@ -43,6 +45,7 @@
   "Resign": "Resign",
   "Investigate": "Investigate",
   "Evade": "Evade",
+  "Explore": "Explore",
   "Fight": "Fight",
   "Engage": "Engage",
   "Forced": "Forced",
@@ -57,6 +60,7 @@
   "setup": "Setup",
   "addToken": "Add 1 {'{'}{token}{'}'} chaos token to the chaos bag for the remainder of the campaign.",
   "choice": {
+    "cards": "Cards",
     "clues": "Clues",
     "resources": "Resources",
     "physical": "Physical",

@@ -167,7 +167,7 @@ storyWithChooseUpToN lead pids n flavor choices =
     )
 
 data AdvancementMethod = AdvancedWithClues | AdvancedWithOther
-  deriving stock (Generic, Eq, Show, Data)
+  deriving stock (Generic, Ord, Eq, Show, Data)
   deriving anyclass (FromJSON, ToJSON)
 
 instance IsLabel "clues" AdvancementMethod where
@@ -177,7 +177,7 @@ instance IsLabel "other" AdvancementMethod where
   fromLabel = AdvancedWithOther
 
 data AgendaAdvancementMethod = AgendaAdvancedWithDoom | AgendaAdvancedWithOther
-  deriving stock (Generic, Eq, Show, Data)
+  deriving stock (Generic, Ord, Eq, Show, Data)
   deriving anyclass (FromJSON, ToJSON)
 
 instance IsLabel "doom" AgendaAdvancementMethod where
@@ -334,19 +334,19 @@ instance IsMessage (EnemyCreation Message) where
   {-# INLINE toMessage #-}
 
 data ReplaceStrategy = DefaultReplace | Swap
-  deriving stock (Show, Eq, Generic, Data)
+  deriving stock (Show, Ord, Eq, Generic, Data)
   deriving anyclass (ToJSON, FromJSON)
 
 data IncludeDiscard = IncludeDiscard | ExcludeDiscard
-  deriving stock (Show, Eq, Generic, Data)
+  deriving stock (Show, Ord, Eq, Generic, Data)
   deriving anyclass (ToJSON, FromJSON)
 
 newtype FromSkillType = FromSkillType SkillType
-  deriving stock (Show, Eq, Generic, Data)
+  deriving stock (Show, Ord, Eq, Generic, Data)
   deriving anyclass (ToJSON, FromJSON)
 
 newtype ToSkillType = ToSkillType SkillType
-  deriving stock (Show, Eq, Generic, Data)
+  deriving stock (Show, Ord, Eq, Generic, Data)
   deriving anyclass (ToJSON, FromJSON)
 
 pattern SuccessfulInvestigationWith :: InvestigatorId -> Target -> Message
@@ -365,7 +365,7 @@ pattern DealAssetDamage aid source damage horror <- DealAssetDamageWithCheck aid
 type IsSameAction = Bool
 
 data CanAdvance = CanAdvance | CanNotAdvance
-  deriving stock (Show, Eq, Generic, Data)
+  deriving stock (Show, Ord, Eq, Generic, Data)
   deriving anyclass (ToJSON, FromJSON)
 
 class AndThen a where
@@ -378,15 +378,15 @@ instance AndThen EnemyAttackDetails where
   andThen cd msg = cd {attackAfter = [msg]}
 
 data ShuffleIn = ShuffleIn | DoNotShuffleIn
-  deriving stock (Show, Eq, Generic, Data)
+  deriving stock (Show, Ord, Eq, Generic, Data)
   deriving anyclass (ToJSON, FromJSON)
 
 data GroupKey = HunterGroup
-  deriving stock (Show, Eq, Generic, Data)
+  deriving stock (Show, Ord, Eq, Generic, Data)
   deriving anyclass (ToJSON, FromJSON)
 
 data AutoStatus = Auto | Manual | NoAutoStatus
-  deriving stock (Show, Eq, Generic, Data)
+  deriving stock (Show, Ord, Eq, Generic, Data)
   deriving anyclass (ToJSON, FromJSON)
 
 instance Semigroup AutoStatus where
@@ -642,6 +642,7 @@ data Message
   | DiscardTopOfEncounterDeck InvestigatorId Int Source (Maybe Target)
   | DiscardTopOfEncounterDeckWithDiscardedCards InvestigatorId Int Source (Maybe Target) [EncounterCard]
   | Discarded Target Source Card
+  | DiscardedCards InvestigatorId Source Target [Card]
   | DiscardedCard CardId
   | DiscardedTopOfEncounterDeck InvestigatorId [EncounterCard] Source Target
   | DiscardedTopOfDeck InvestigatorId [PlayerCard] Source Target
@@ -995,7 +996,7 @@ data Message
   | FinishedSearch
   | Search Search
   | ResolveSearch Target
-  | PreSearchFound InvestigatorId Target DeckSignifier [Card]
+  | PreSearchFound InvestigatorId (Maybe Target) DeckSignifier [Card]
   | SearchFound InvestigatorId Target DeckSignifier [Card]
   | FoundCards (Map Zone [Card]) -- Deprecated
   | SearchNoneFound InvestigatorId Target
@@ -1177,7 +1178,7 @@ data Message
   | -- UI
     ClearUI
   | Priority Message
-  deriving stock (Show, Eq, Data)
+  deriving stock (Show, Eq, Ord, Data)
 
 $(deriveToJSON defaultOptions ''Message)
 
@@ -1185,6 +1186,11 @@ instance FromJSON Message where
   parseJSON = withObject "Message" \o -> do
     t :: Text <- o .: "tag"
     case t of
+      "PreSearchFound" -> do
+        contents <- (Left <$> o .: "contents") <|> (Right <$> o .: "contents")
+        case contents of
+          Right (a, b, c, d) -> pure $ PreSearchFound a b c d
+          Left (a, b, c, d) -> pure $ PreSearchFound a (Just b) c d
       "CancelEachNext" -> do
         contents <- (Left <$> o .: "contents") <|> (Right <$> o .: "contents")
         case contents of
@@ -1360,12 +1366,6 @@ instance FromJSON Message where
 defaultParseMessage :: Value -> Parser Message
 defaultParseMessage = $(mkParseJSON defaultOptions ''Message)
 {-# NOINLINE defaultParseMessage #-}
-
-stepMessage :: Int -> Message -> Message
-stepMessage n = \case
-  UseCardAbility iid source idx ws payment ->
-    UseCardAbilityStep iid source idx ws payment n
-  other -> other
 
 uiToRun :: UI Message -> Message
 uiToRun = \case

@@ -462,6 +462,9 @@ const createModifier = (target: {tag: string, contents: string}, modifier: {tag:
           <template v-if="modifier.type.tag === 'DoubleDifficulty'">
             <span class="text">Double Difficulty</span>
           </template>
+          <template v-if="modifier.type.tag === 'OtherModifier' && modifier.type.contents === 'CancelAnyChaosToken'">
+            <span class="text">Cancel Matching Chaos Tokens</span>
+          </template>
           <template v-if="modifier.type.tag === 'OtherModifier' && modifier.type.contents === 'MayIgnoreLocationEffectsAndKeywords'">
             <span class="text">May Ignore Location Effects</span>
           </template>
@@ -527,7 +530,7 @@ const createModifier = (target: {tag: string, contents: string}, modifier: {tag:
 .skill-test-contents {
   padding: 10px;
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
   justify-items: center;
   gap: 5px;
@@ -560,6 +563,7 @@ const createModifier = (target: {tag: string, contents: string}, modifier: {tag:
     padding: 2px 4px;
     box-sizing: border-box;
     border-radius: 2px;
+    min-width: 1.5em;
   }
 }
 
@@ -600,6 +604,7 @@ const createModifier = (target: {tag: string, contents: string}, modifier: {tag:
     padding: 2px 4px;
     box-sizing: border-box;
     border-radius: 2px;
+    min-width: 1.5em;
   }
 }
 

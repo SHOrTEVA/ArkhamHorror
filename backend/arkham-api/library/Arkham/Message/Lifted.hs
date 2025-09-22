@@ -54,13 +54,13 @@ import Arkham.Helpers.Effect qualified as Msg
 import Arkham.Helpers.Enemy qualified as Msg
 import Arkham.Helpers.GameValue (getGameValue)
 import Arkham.Helpers.Investigator (
-  canDiscoverCluesAtYourLocation,
   canHaveDamageHealed,
   canHaveHorrorHealed,
   getCanDiscoverClues,
  )
 import Arkham.Helpers.Location (withLocationOf)
 import Arkham.Helpers.Message qualified as Msg
+import Arkham.Helpers.Message.Discard qualified as HandDiscard
 import Arkham.Helpers.Modifiers qualified as Msg
 import Arkham.Helpers.Playable (getIsPlayable)
 import Arkham.Helpers.Query
@@ -831,6 +831,10 @@ removeDoom
   :: (ReverseQueue m, Sourceable source, Targetable target) => source -> target -> Int -> m ()
 removeDoom source target n = push $ RemoveDoom (toSource source) (toTarget target) n
 
+removeDoomFrom
+  :: (ReverseQueue m, Sourceable source, Targetable target) => source -> Int -> target -> m ()
+removeDoomFrom source n target = removeDoom source target n
+
 removeAllDoom :: (ReverseQueue m, Sourceable source, Targetable target) => source -> target -> m ()
 removeAllDoom source target = push $ RemoveAllDoom (toSource source) (toTarget target)
 
@@ -1329,7 +1333,7 @@ addToHand
   -> cards
   -> m ()
 addToHand iid (toList -> cards) = do
-  for_ cards obtainCard
+  for_ cards (obtainCard . toCard)
   push $ AddToHand iid (map toCard cards)
 
 drawToHand
@@ -1338,7 +1342,7 @@ drawToHand
   -> cards
   -> m ()
 drawToHand iid (toList -> cards) = do
-  for_ cards obtainCard
+  for_ cards (obtainCard . toCard)
   push $ DrawToHand iid (map toCard cards)
 
 addToDiscard
@@ -1347,7 +1351,7 @@ addToDiscard
   -> cards
   -> m ()
 addToDiscard iid (toList -> cards) = do
-  for_ cards obtainCard
+  for_ cards (obtainCard . toCard)
   for_ cards $ push . Msg.addToDiscard iid
 
 addToHandQuiet
@@ -1356,7 +1360,7 @@ addToHandQuiet
   -> cards
   -> m ()
 addToHandQuiet iid (toList -> cards) = do
-  for_ cards obtainCard
+  for_ cards (obtainCard . toCard)
   push $ AddToHandQuiet iid (map toCard cards)
 
 returnToHand :: (Targetable a, ReverseQueue m) => InvestigatorId -> a -> m ()
@@ -2410,12 +2414,11 @@ healDamageOn source n target = healDamage target source n
 discoverAtYourLocation
   :: (ReverseQueue m, Sourceable source) => IsInvestigate -> InvestigatorId -> source -> Int -> m ()
 discoverAtYourLocation isInvestigate iid s n = do
-  whenM (canDiscoverCluesAtYourLocation isInvestigate iid) do
-    push
-      $ Msg.DiscoverClues iid
-      $ (Msg.discoverAtYourLocation s n)
-        { Msg.discoverAction = if isInvestigate == IsInvestigate then Just #investigate else Nothing
-        }
+  push
+    $ Msg.DiscoverClues iid
+    $ (Msg.discoverAtYourLocation s n)
+      { Msg.discoverAction = if isInvestigate == IsInvestigate then Just #investigate else Nothing
+      }
 
 discoverAtYourLocationAndThen
   :: (ReverseQueue m, Sourceable source)
@@ -2645,16 +2648,17 @@ cancelEndTurn iid = lift $ Msg.removeAllMessagesMatching \case
     Window.TurnEnds _ -> True
     _ -> False
 
-obtainCard :: (IsCard a, ReverseQueue m) => a -> m ()
-obtainCard card = do
-  filterInbox \case
-    Arkham.Message.Discarded _ _ discarded -> discarded.id == toCardId card
-    _ -> False
-  push $ ObtainCard $ toCardId card
+obtainCard :: (FetchCard a, ReverseQueue m) => a -> m ()
+obtainCard a =
+  fetchCardMaybe a >>= traverse_ \card -> do
+    filterInbox \case
+      Arkham.Message.Discarded _ _ discarded -> discarded.id == toCardId card
+      _ -> False
+    push $ ObtainCard $ toCardId card
 
 removeCardFromGame :: (ReverseQueue m, IsCard card) => card -> m ()
 removeCardFromGame card = do
-  obtainCard card
+  obtainCard $ toCard card
   push $ RemovedFromGame (toCard card)
 
 playCardPayingCost :: ReverseQueue m => InvestigatorId -> Card -> m ()
@@ -2890,8 +2894,15 @@ discardCard
   -> m ()
 discardCard investigator source =
   toCard <&> \case
-    card@(PlayerCard _) -> push $ DiscardCard (asId investigator) (toSource source) (toCardId card)
-    card@(EncounterCard _) -> addToEncounterDiscard (only card)
+    card@(PlayerCard _) -> do
+      inHand <- matches card (InHandOf NotForPlay (InvestigatorWithId $ asId investigator))
+      if inHand
+        then push $ toMessage $ HandDiscard.discardCard (asId investigator) source card
+        else push $ DiscardCard (asId investigator) (toSource source) (toCardId card)
+    card@(EncounterCard _) -> do
+      addToEncounterDiscard (only card)
+      checkWhen $ Window.Discarded (Just $ asId investigator) (toSource source) card
+      checkAfter $ Window.Discarded (Just $ asId investigator) (toSource source) card
     VengeanceCard card -> discardCard investigator source card
 
 forAction :: LiftMessage m body => Action -> body -> m ()
@@ -3058,7 +3069,7 @@ placeCluesOnLocation iid source n = push $ InvestigatorPlaceCluesOnLocation iid 
 
 drawCardFrom :: (IsDeck deck, IsCard card, ReverseQueue m) => InvestigatorId -> card -> deck -> m ()
 drawCardFrom iid (toCard -> card) deck = do
-  obtainCard card
+  obtainCard $ toCard card
   case card of
     EncounterCard ec -> push $ InvestigatorDrewEncounterCardFrom iid ec (Just $ toDeck deck)
     PlayerCard pc -> push $ InvestigatorDrewPlayerCardFrom iid pc (Just $ toDeck deck)
@@ -3066,7 +3077,7 @@ drawCardFrom iid (toCard -> card) deck = do
 
 drawCard :: (ReverseQueue m, IsCard card) => InvestigatorId -> card -> m ()
 drawCard iid card = do
-  obtainCard card
+  obtainCard $ toCard card
   case toCard card of
     EncounterCard ec -> push $ InvestigatorDrewEncounterCard iid ec
     PlayerCard pc -> push $ InvestigatorDrewPlayerCardFrom iid pc Nothing
@@ -3074,7 +3085,7 @@ drawCard iid card = do
 
 resolveRevelation :: (ReverseQueue m, IsCard card) => InvestigatorId -> card -> m ()
 resolveRevelation iid card = do
-  obtainCard card
+  obtainCard $ toCard card
   push $ ResolveRevelation iid (toCard card)
 
 resign :: ReverseQueue m => InvestigatorId -> m ()
@@ -3170,7 +3181,7 @@ resolveChaosTokens iid source tokens = do
 
 removeLocation :: (ReverseQueue m, AsId location, IdOf location ~ LocationId) => location -> m ()
 removeLocation (asId -> lid) = do
-  whenM (matches lid $ not_ LocationBeingRemoved) do
+  whenM (matches lid $ IncludeEmptySpace $ not_ LocationBeingRemoved) do
     noClues <- lid <=~> LocationWithoutClues
     if noClues
       then
@@ -3232,10 +3243,10 @@ cancelEvent eId = matchingDon't \case
   _ -> False
 
 cancelMovement
-  :: ( ReverseQueue m
-     , Sourceable source
+  :: ( Sourceable source
      , Targetable investigator
      , ToId investigator InvestigatorId
+     , ReverseQueue m
      )
   => source -> investigator -> m ()
 cancelMovement source investigator = do
@@ -3305,7 +3316,7 @@ advanceCurrentActWithClues source = do
   push $ AdvanceAct actId (toSource source) #clues
 
 updateLocation
-  :: (ReverseQueue m, Eq a, Show a, Typeable a, ToJSON a, FromJSON a)
+  :: (ReverseQueue m, Ord a, Show a, Typeable a, ToJSON a, FromJSON a)
   => LocationId
   -> Field Location a
   -> a
@@ -3390,3 +3401,6 @@ createWeaknessInThreatArea card iid = do
 
 allDrawEncounterCard :: ReverseQueue m => m ()
 allDrawEncounterCard = push Msg.AllDrawEncounterCard
+
+removeEnemy :: (ToId enemy EnemyId, ReverseQueue m) => enemy -> m ()
+removeEnemy = push . RemoveEnemy . asId

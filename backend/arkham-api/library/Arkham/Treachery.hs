@@ -657,6 +657,10 @@ allTreacheries =
       SomeTreacheryCard offerYouCannotRefuse
     , SomeTreacheryCard finePrint
     , SomeTreacheryCard sellYourSoul
+    , --- Return to The Depths Of Yoth [rttfa]
+      SomeTreacheryCard perilsOfYoth
+    , --- Return to Shattered Aeons [rttfa]
+      SomeTreacheryCard unknowablePast
     , --- Cult of Pnakotus [rttfa]
       SomeTreacheryCard fromAnotherTime
     , --- Doom Expedition [rttfa]

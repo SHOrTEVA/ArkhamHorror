@@ -22,7 +22,12 @@ import Arkham.Id
 import Arkham.Investigator.Types
 import Arkham.Location.Types
 import Arkham.Matcher
-import Arkham.Message (Message (..), ReplaceStrategy (..), pattern CancelNext, pattern BeginSkillTest)
+import Arkham.Message (
+  Message (..),
+  ReplaceStrategy (..),
+  pattern BeginSkillTest,
+  pattern CancelNext,
+ )
 import Arkham.Message.Lifted
 import Arkham.Message.Lifted.Choose
 import Arkham.Message.Lifted.Move
@@ -41,6 +46,9 @@ import Arkham.Text (Tooltip (..))
 import Arkham.Treachery.Cards qualified as Treacheries
 import Arkham.Window (Result (..), mkAfter)
 import Arkham.Window qualified as Window
+
+pickSupply :: ReverseQueue m => InvestigatorId -> Supply -> m ()
+pickSupply iid s = push $ PickSupply iid s
 
 getHasSupply :: HasGame m => InvestigatorId -> Supply -> m Bool
 getHasSupply iid s = (> 0) <$> getSupplyCount iid s
@@ -206,7 +214,9 @@ explore iid source cardMatcher exploreRule matchCount = do
               , cardDrewRules = mempty
               , cardDrewTarget = Nothing
               }
-          checkAfter $ Window.Explored iid mlid (Failure x)
+          -- Perils of Yoth will handle this case
+          unless (toCardDef x == Treacheries.perilsOfYoth) do
+            checkAfter $ Window.Explored iid mlid (Failure x)
     xs -> do
       deck' <- if null notMatched then pure rest else shuffle $ rest <> notMatched
       focusCards drawn do
@@ -248,70 +258,43 @@ cancelExplore source = push $ CancelNext (toSource source) ExploreMessage
 campaignI18n :: (HasI18n => a) -> a
 campaignI18n a = withI18n $ scope "theForgottenAge" a
 
-pickSupplies :: ReverseQueue m => InvestigatorId -> Metadata -> [Supply] -> Message -> m ()
-pickSupplies iid metadata supplies cont = do
-  let remaining = findWithDefault 0 iid (supplyPoints metadata)
-  when (remaining > 0) do
+pickSupplies :: ReverseQueue m => InvestigatorId -> Bool -> Metadata -> [Supply] -> Message -> m ()
+pickSupplies iid resupply metadata supplies cont = do
+  let pointsRemaining = findWithDefault 0 iid (supplyPoints metadata)
+  when (pointsRemaining > 0) do
     player <- getPlayer iid
-    investigatorSupplies <- field InvestigatorSupplies iid
+    chosenSupplies <- field InvestigatorSupplies iid
     let
-      availableSupply s = s `notElem` investigatorSupplies || s `elem` [Provisions, Medicine, Gasoline]
-      affordableSupplies = filter ((<= remaining) . supplyCost) supplies
+      availableSupply s = s `notElem` chosenSupplies || s `elem` [Provisions, Medicine, Gasoline]
+      affordableSupplies = filter ((<= pointsRemaining) . supplyCost) supplies
       availableSupplies = filter availableSupply affordableSupplies
-    push
-      $ Ask player
-      $ PickSupplies remaining investigatorSupplies
-      $ Label "Done" []
-      : map (\s -> supplyLabel s [PickSupply iid s, cont]) availableSupplies
+      choices = Label "$done" [] : map (\s -> supplyLabel s [PickSupply iid s, cont]) availableSupplies
+    push $ Ask player $ PickSupplies {..}
 
 supplyLabel :: Supply -> [Message] -> UI Message
 supplyLabel s = case s of
-  Provisions ->
-    go
-      "Provisions"
-      "(1 supply point each): Food and water for one person. A must-have for any journey."
-  Medicine ->
-    go
-      "Medicine"
-      "(2 supply points each): To stave off disease, infection, or venom."
-  Gasoline ->
-    go "Gasoline" "(1 supply points each): Enough for a long journey by car."
-  Rope ->
-    go
-      "Rope"
-      "(3 supply points): Several long coils of strong rope.  Vital for climbing and spelunking."
-  Blanket -> go "Blanket" "(2 supply points): For warmth at night."
-  Canteen ->
-    go "Canteen" "(2 supply points): Can be refilled at streams and rivers."
-  Torches ->
-    go
-      "Torches"
-      "(3 supply points): Can light up dark areas, or set sconces alight."
-  Compass ->
-    go
-      "Compass"
-      "(2 supply points): Can guide you when you are hopelessly lost."
-  Map ->
-    go
-      "Map"
-      "(3 supply points): Unmarked for now, but with time, you may be able to map out your surroundings."
-  Binoculars ->
-    go "Binoculars" "(2 supply points): To help you see faraway places."
-  Chalk -> go "Chalk" "(2 supply points): For writing on rough stone surfaces."
-  Pendant ->
-    go
-      "Pendant"
-      "(1 supply point): Useless, but fond memories bring comfort to travelers far from home."
-  Pocketknife ->
-    go
-      "Pocketknife"
-      "(2 supply point): Too small to be used as a reliable weapon, but easily concealed."
-  Pickaxe ->
-    go "Pickaxe" "(2 supply point): For breaking apart rocky surfaces."
-  KeyOfEztli -> go "Key of Eztli" "can not purchase"
-  MysteriousScepter -> go "Mysterious Scepter" "can not purchase"
+  Provisions -> go "provisions"
+  Medicine -> go "medicine"
+  Gasoline -> go "gasoline"
+  Rope -> go "rope"
+  Blanket -> go "blanket"
+  Canteen -> go "canteen"
+  Torches -> go "torches"
+  Compass -> go "compass"
+  Map -> go "map"
+  Binoculars -> go "binoculars"
+  Chalk -> go "chalk"
+  Pendant -> go "pendant"
+  Pocketknife -> go "pocketknife"
+  Pickaxe -> go "pickaxe"
+  KeyOfEztli -> go "keyOfEztli"
+  MysteriousScepter -> go "mysteriousScepter"
+  StickyGoop -> go "stickyGoop"
  where
-  go label tooltip = TooltipLabel label (Tooltip tooltip)
+  go label =
+    campaignI18n
+      $ let toKey suffix = "$" <> ikey ("supplies." <> label <> "." <> suffix)
+         in TooltipLabel (toKey "name") (Tooltip (toKey "tooltip"))
 
 useSupply :: ReverseQueue m => InvestigatorId -> Supply -> m ()
 useSupply iid s = push $ UseSupply iid s

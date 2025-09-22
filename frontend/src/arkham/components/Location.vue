@@ -15,6 +15,7 @@ import Asset from '@/arkham/components/Asset.vue';
 import Event from '@/arkham/components/Event.vue';
 import Story from '@/arkham/components/Story.vue';
 import Treachery from '@/arkham/components/Treachery.vue';
+import Token from '@/arkham/components/Token.vue'
 import AbilitiesMenu from '@/arkham/components/AbilitiesMenu.vue'
 import PoolItem from '@/arkham/components/PoolItem.vue';
 import * as Arkham from '@/arkham/types/Location';
@@ -58,8 +59,17 @@ const image = computed(() => {
 const id = computed(() => props.location.id)
 const choices = computed(() => ArkhamGame.choices(props.game, props.playerId))
 
+const locationStory = computed(() => {
+  const { stories } = props.game
+  return Object.values(stories).find((s) => s.otherSide?.contents === props.location.id)
+})
+
 const locus = computed(() => {
   return modifiers.value?.some((m) => m.type.tag === "UIModifier" && m.type.contents === "Locus") ?? false
+})
+
+const important = computed(() => {
+  return modifiers.value?.some((m) => m.type.tag === "UIModifier" && m.type.contents.tag === "ImportantToScenario") ?? false
 })
 
 function isCardAction(c: Message): boolean {
@@ -187,7 +197,7 @@ const stories = computed(() => {
       if (Object.values(enemies).find((e) => s.otherSide?.contents === e.id)) {
         return false
       }
-      return s.placement.tag === 'AtLocation' && s.placement.contents === props.location.id
+      return s.placement.tag === 'AtLocation' && s.placement.contents === props.location.id && s.otherSide?.contents !== props.location.id
     })
     .map((s) => s.id)
 })
@@ -226,7 +236,8 @@ const hasPool = computed(() => {
     (breaches.value && breaches.value > 0) ||
     (shards.value && shards.value > 0) ||
     (props.location.brazier && props.location.brazier === 'Lit') ||
-    (props.location.cardsUnderneath.length > 0)
+    (props.location.cardsUnderneath.length > 0) ||
+    (props.location.sealedChaosTokens.length > 0)
 })
 
 const blocked = computed(() => {
@@ -331,20 +342,26 @@ const showCardsUnderneath = () => emits('show', playerCardsUnderneath, "Cards Un
         <div class="card-frame" :class="{ explosion }" ref="frame">
           <Locus v-if="locus" class="locus" />
           <font-awesome-icon v-if="blocked" :icon="['fab', 'expeditedssl']" class="status-icon" />
+          <span class="important" v-if="important">
+            <font-awesome-icon :icon="['fa', 'circle-exclamation']" />
+          </span>
 
           <div class="card-frame-inner">
-            <div class="wave" v-if="location.floodLevel" :class="{ [location.floodLevel]: true }"></div>
-            <img
-              :data-id="id"
-              class="card card--locations"
-              :src="image"
-              :class="{ 'location--can-interact': canInteract }"
-              draggable="false"
-              @drop="onDrop"
-              @dragover.prevent="dragover"
-              @dragenter.prevent
-              @click="clicked"
-            />
+            <Story v-if="locationStory" :story="locationStory" :game="game" :playerId="playerId" @choose="choose"/>
+            <template v-else>
+              <div class="wave" v-if="location.floodLevel" :class="{ [location.floodLevel]: true }"></div>
+              <img
+                :data-id="id"
+                class="card card--locations"
+                :src="image"
+                :class="{ 'location--can-interact': canInteract }"
+                draggable="false"
+                @drop="onDrop"
+                @dragover.prevent="dragover"
+                @dragenter.prevent
+                @click="clicked"
+              />
+            </template>
           </div>
 
           <div class="clues pool" v-if="(clues ?? 0) > 0 || floodLevel">
@@ -370,6 +387,16 @@ const showCardsUnderneath = () => emits('show', playerCardsUnderneath, "Cards Un
             <PoolItem v-if="location.brazier && location.brazier === 'Lit'" type="resource" :amount="1" />
             <PoolItem v-if="encounterCardsUnderneath.length > 0" type="card" :amount="encounterCardsUnderneath.length" />
             <PoolItem v-if="playerCardsUnderneath.length > 0" type="player_card" :amount="playerCardsUnderneath.length" />
+
+            <Token
+              v-for="(sealedToken, index) in location.sealedChaosTokens"
+              :key="index"
+              :token="sealedToken"
+              :playerId="playerId"
+              :game="game"
+              @choose="choose"
+              class="sealed"
+            />
           </div>
         </div>
 
@@ -463,7 +490,6 @@ const showCardsUnderneath = () => emits('show', playerCardsUnderneath, "Cards Un
   width: calc(var(--card-width) + 4px);
   min-width: calc(var(--card-width) + 4px);
   border-radius: 3px;
-  box-shadow: 1px 1px 6px rgba(0, 0, 0, 0.45);
 }
 
 .card.card--locations {
@@ -519,6 +545,15 @@ const showCardsUnderneath = () => emits('show', playerCardsUnderneath, "Cards Un
   & :deep(.poolItem) {
     pointer-events: none;
   }
+
+  :deep(img) {
+    width: 30px;
+    height: auto;
+  }
+
+  :deep(.token-container) {
+    width: 20px;
+  }
 }
 
 .status-icon {
@@ -530,6 +565,25 @@ const showCardsUnderneath = () => emits('show', playerCardsUnderneath, "Cards Un
   color: rgba(0, 0, 0, 0.8);
   pointer-events: none;
   z-index: 1;
+  min-height: min-content;
+  scale: 0.8;
+}
+
+.important {
+  position: absolute;
+  bottom: 10%;
+  border-radius: 1000px;
+  font-size: 2.6em;
+  color: var(--important);
+  pointer-events: none;
+  z-index: 1;
+  max-width: 40%;
+  max-height: min-content;
+  aspect-ratio: 1 / 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  filter: drop-shadow(0px 0px 1px #000) drop-shadow(0px 0px 2px #000);
 }
 
 .card-container {
@@ -640,6 +694,13 @@ const showCardsUnderneath = () => emits('show', playerCardsUnderneath, "Cards Un
     overflow: hidden;
     position: relative;
     line-height: 0;
+    box-shadow: var(--card-shadow);
+    &:deep(.card) {
+      width: calc(var(--card-width) + 4px);
+      min-width: calc(var(--card-width) + 4px);
+      border-radius: 3px;
+      border-width: 1px;
+    }
   }
 }
 
@@ -827,5 +888,9 @@ const showCardsUnderneath = () => emits('show', playerCardsUnderneath, "Cards Un
 @keyframes wave {
   from { transform: rotate(0deg)}
   to { transform: rotate(360deg)}
+}
+
+:deep(.token) {
+  width: 30px;
 }
 </style>

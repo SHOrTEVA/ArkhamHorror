@@ -283,6 +283,7 @@ library
       Arkham.Act.Cards.UncoveringTheConspiracy
       Arkham.Act.Cards.UnderAttack
       Arkham.Act.Cards.UnexpectedRescue
+      Arkham.Act.Cards.UnrestrictedAccess
       Arkham.Act.Cards.WarmWelcome
       Arkham.Act.Cards.WhatHappened
       Arkham.Act.Cards.WhatHaveYouDone
@@ -1530,7 +1531,6 @@ library
       Arkham.Campaigns.TheDunwichLegacy.Key
       Arkham.Campaigns.TheForgottenAge.CampaignSteps
       Arkham.Campaigns.TheForgottenAge.ChaosBag
-      Arkham.Campaigns.TheForgottenAge.FlavorText
       Arkham.Campaigns.TheForgottenAge.Helpers
       Arkham.Campaigns.TheForgottenAge.Import
       Arkham.Campaigns.TheForgottenAge.Key
@@ -1677,6 +1677,7 @@ library
       Arkham.Enemy.Cards.BrotherhoodCultist
       Arkham.Enemy.Cards.BrownJenkin
       Arkham.Enemy.Cards.CaldwellPhilipsCompelledByDreams
+      Arkham.Enemy.Cards.CaptiveSubjects
       Arkham.Enemy.Cards.CarlSanfordDeathlessFanatic
       Arkham.Enemy.Cards.CarlSanfordIntimidatingPresence
       Arkham.Enemy.Cards.CarnevaleSentinel
@@ -2715,6 +2716,7 @@ library
       Arkham.Location.Cards.Airfield
       Arkham.Location.Cards.AlaskanWilds
       Arkham.Location.Cards.AlchemyLabs
+      Arkham.Location.Cards.AlienConservatory
       Arkham.Location.Cards.AltarToDagon
       Arkham.Location.Cards.AncientHall
       Arkham.Location.Cards.AncientHallRearrangedByTime
@@ -2791,6 +2793,7 @@ library
       Arkham.Location.Cards.BrokenPassage
       Arkham.Location.Cards.BrokenSteps_289
       Arkham.Location.Cards.BrokenSteps_290
+      Arkham.Location.Cards.BuenosAires
       Arkham.Location.Cards.BurialGround
       Arkham.Location.Cards.BurialPit
       Arkham.Location.Cards.BurnedRuins_204
@@ -2868,6 +2871,7 @@ library
       Arkham.Location.Cards.CyclopeanRuins_176a
       Arkham.Location.Cards.CyclopeanRuins_176b
       Arkham.Location.Cards.CyclopeanSpires
+      Arkham.Location.Cards.CyclopeanVaults
       Arkham.Location.Cards.CylindricalTower
       Arkham.Location.Cards.DancersMist
       Arkham.Location.Cards.DarkAbyss
@@ -3009,6 +3013,7 @@ library
       Arkham.Location.Cards.GrandGuignol
       Arkham.Location.Cards.GrandRue
       Arkham.Location.Cards.Graveyard
+      Arkham.Location.Cards.GreatHallOfCeleano
       Arkham.Location.Cards.GreatLibrary
       Arkham.Location.Cards.GreenRoom
       Arkham.Location.Cards.GuestHall
@@ -3022,6 +3027,7 @@ library
       Arkham.Location.Cards.HallOfTheSunlessSea
       Arkham.Location.Cards.HallsOfPnakotusEasternCorridors
       Arkham.Location.Cards.HallsOfPnakotusNorthernCorridors
+      Arkham.Location.Cards.HallsOfPnakotusSouthernCorridors
       Arkham.Location.Cards.HallsOfPnakotusWesternCorridors
       Arkham.Location.Cards.Hallway
       Arkham.Location.Cards.HangmansBrook
@@ -3453,6 +3459,7 @@ library
       Arkham.Location.Cards.TwilightAbyss
       Arkham.Location.Cards.TwistedUnderbrush
       Arkham.Location.Cards.Ulthar
+      Arkham.Location.Cards.UltimaThule
       Arkham.Location.Cards.UndercityAltar
       Arkham.Location.Cards.UndergroundRiver
       Arkham.Location.Cards.UndergroundRuins
@@ -3635,7 +3642,10 @@ library
       Arkham.Scenario.Scenarios.ReturnToHeartOfTheEldersPart1
       Arkham.Scenario.Scenarios.ReturnToHeartOfTheEldersPart2
       Arkham.Scenario.Scenarios.ReturnToLostInTimeAndSpace
+      Arkham.Scenario.Scenarios.ReturnToShatteredAeons
       Arkham.Scenario.Scenarios.ReturnToTheBoundaryBeyond
+      Arkham.Scenario.Scenarios.ReturnToTheCityOfArchives
+      Arkham.Scenario.Scenarios.ReturnToTheDepthsOfYoth
       Arkham.Scenario.Scenarios.ReturnToTheDevourerBelow
       Arkham.Scenario.Scenarios.ReturnToTheDoomOfEztli
       Arkham.Scenario.Scenarios.ReturnToTheEssexCountyExpress
@@ -3648,6 +3658,7 @@ library
       Arkham.Scenario.Scenarios.ReturnToTheUnspeakableOath
       Arkham.Scenario.Scenarios.ReturnToTheUntamedWilds
       Arkham.Scenario.Scenarios.ReturnToThreadsOfFate
+      Arkham.Scenario.Scenarios.ReturnToTurnBackTime
       Arkham.Scenario.Scenarios.ReturnToUndimensionedAndUnseen
       Arkham.Scenario.Scenarios.ReturnToWhereDoomAwaits
       Arkham.Scenario.Scenarios.ShatteredAeons
@@ -3714,7 +3725,6 @@ library
       Arkham.Scenarios.ForTheGreaterGood.Helpers
       Arkham.Scenarios.ForTheGreaterGood.Story
       Arkham.Scenarios.HeartOfTheElders.Helpers
-      Arkham.Scenarios.HeartOfTheElders.Story
       Arkham.Scenarios.HorrorInHighGear.Helpers
       Arkham.Scenarios.IceAndDeath.Helpers
       Arkham.Scenarios.InTheClutchesOfChaos.Helpers
@@ -3725,15 +3735,11 @@ library
       Arkham.Scenarios.MurderAtTheExcelsiorHotel.FlavorText
       Arkham.Scenarios.MurderAtTheExcelsiorHotel.Helpers
       Arkham.Scenarios.ShatteredAeons.Helpers
-      Arkham.Scenarios.ShatteredAeons.Story
       Arkham.Scenarios.TheBoundaryBeyond.Helpers
       Arkham.Scenarios.TheCityOfArchives.Helpers
-      Arkham.Scenarios.TheCityOfArchives.Story
       Arkham.Scenarios.TheDepthsOfYoth.Helpers
-      Arkham.Scenarios.TheDepthsOfYoth.Story
       Arkham.Scenarios.TheDevourerBelow.Helpers
       Arkham.Scenarios.TheDoomOfEztli.Helpers
-      Arkham.Scenarios.TheDoomOfEztli.Story
       Arkham.Scenarios.TheEssexCountyExpress.Helpers
       Arkham.Scenarios.TheGathering.Helpers
       Arkham.Scenarios.TheHeartOfMadness.Helpers
@@ -3761,7 +3767,7 @@ library
       Arkham.Scenarios.TheWitchingHour.Story
       Arkham.Scenarios.ThreadsOfFate.Helpers
       Arkham.Scenarios.ToTheForbiddenPeaks.Helpers
-      Arkham.Scenarios.TurnBackTime.Story
+      Arkham.Scenarios.TurnBackTime.Helpers
       Arkham.Scenarios.UndimensionedAndUnseen.Helpers
       Arkham.Scenarios.UnionAndDisillusion.Helpers
       Arkham.Scenarios.UnionAndDisillusion.Story
@@ -4355,6 +4361,7 @@ library
       Arkham.Treachery.Cards.Panic
       Arkham.Treachery.Cards.Paranoia
       Arkham.Treachery.Cards.PassageIntoTheVeil
+      Arkham.Treachery.Cards.PerilsOfYoth
       Arkham.Treachery.Cards.Phantasmagoria
       Arkham.Treachery.Cards.Pitfall
       Arkham.Treachery.Cards.Poisoned
@@ -4508,6 +4515,7 @@ library
       Arkham.Treachery.Cards.UnexpectedAmbush
       Arkham.Treachery.Cards.UnexpectedTransformation
       Arkham.Treachery.Cards.UnhallowedCountry
+      Arkham.Treachery.Cards.UnknowablePast
       Arkham.Treachery.Cards.Unlucky
       Arkham.Treachery.Cards.UnspeakableOathBloodthirst
       Arkham.Treachery.Cards.UnspeakableOathCowardice
@@ -4653,10 +4661,14 @@ library
     , case-insensitive
     , classy-prelude
     , conduit
+    , constraints-extras
     , containers
     , cryptohash-sha256
     , crypton-x509-store
     , data-default-class
+    , dependent-map
+    , dependent-sum
+    , dependent-sum-template
     , directory
     , email-validate
     , errors
@@ -4690,6 +4702,7 @@ library
     , relude
     , safe
     , semialign
+    , some
     , stm
     , string-conversions
     , template-haskell

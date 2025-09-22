@@ -132,6 +132,7 @@ allEncounterEnemyCards =
       , brotherhoodAcolyte
       , brotherhoodCultist
       , brownJenkin
+      , captiveSubjects
       , carlSanfordDeathlessFanatic
       , carnevaleSentinel
       , catacombsDocent
@@ -1343,6 +1344,8 @@ ichtacaScionOfYig =
       { cdCardTraits = setFromList [Humanoid, Monster, Serpent, Elite]
       , cdKeywords = setFromList [Keyword.Hunter, Keyword.Retaliate]
       , cdVictoryPoints = Just 2
+      , cdDoubleSided = True
+      , cdOtherSide = Just "04325b"
       }
 
 alejandroVela :: CardDef
@@ -1352,6 +1355,8 @@ alejandroVela =
       { cdCardTraits = setFromList [Humanoid, Cultist, Elite]
       , cdKeywords = setFromList [Keyword.Alert, Keyword.Hunter]
       , cdVictoryPoints = Just 2
+      , cdDoubleSided = True
+      , cdOtherSide = Just "04326b"
       }
 
 formlessSpawn :: CardDef
@@ -3017,6 +3022,13 @@ featheredSerpent =
   (enemy "53047" "Feathered Serpent" ReturnToPillarsOfJudgement 2)
     { cdCardTraits = setFromList [Creature, Serpent]
     , cdVengeancePoints = Just 1
+    }
+
+captiveSubjects :: CardDef
+captiveSubjects =
+  (enemy "53058" "Captive Subjects" ReturnToTheCityOfArchives 2)
+    { cdCardTraits = singleton Monster
+    , cdKeywords = setFromList [Keyword.Aloof, Keyword.Retaliate]
     }
 
 

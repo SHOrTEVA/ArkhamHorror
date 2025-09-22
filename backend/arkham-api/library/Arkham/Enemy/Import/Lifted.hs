@@ -21,6 +21,7 @@ import Arkham.Enemy.Runner as X (
   exhaustedL,
   fightL,
   flippedL,
+  getEnemyMetaDefault,
   healthL,
   is,
   placementL,
@@ -31,12 +32,13 @@ import Arkham.Enemy.Runner as X (
   pushM,
   setExhausted,
   setMeta,
-  getEnemyMetaDefault,
   setPrey,
+  setPreyIsBearer,
   setSpawnAt,
   spawnAtL,
   surgeIfUnableToSpawnL,
   tokensL,
+  pattern EvadeCriteria,
   pattern R2,
   pattern R3,
  )
@@ -74,7 +76,8 @@ doesNotReadyDuringUpkeep :: (ReverseQueue m, Sourceable source) => source -> Ene
 doesNotReadyDuringUpkeep source attrs = roundModifier source attrs DoesNotReadyDuringUpkeep
 
 insteadOfDefeat
-  :: (HasQueue Message m, AsId enemy, IdOf enemy ~ EnemyId) => enemy -> QueueT Message (QueueT Message m) () -> QueueT Message m ()
+  :: (HasQueue Message m, AsId enemy, IdOf enemy ~ EnemyId)
+  => enemy -> QueueT Message (QueueT Message m) () -> QueueT Message m ()
 insteadOfDefeat asEnemy body = whenM (beingDefeated asEnemy) do
   cancelEnemyDefeat asEnemy
   pushAll =<< capture body
@@ -121,6 +124,3 @@ beingDefeated (asId -> enemyId) = fromQueue $ any isDefeatedMessage
 
 spawnAtEmptyLocation :: EnemyAttrs -> EnemyAttrs
 spawnAtEmptyLocation = spawnAtL ?~ SpawnAt EmptyLocation
-
-removeEnemy :: (ToId enemy EnemyId, ReverseQueue m) => enemy -> m ()
-removeEnemy = push . RemoveEnemy . asId

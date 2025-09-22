@@ -406,6 +406,7 @@ allEncounterTreacheryCards =
       , overgrowth
       , painfulReflection
       , passageIntoTheVeil
+      , perilsOfYoth
       , phantasmagoria
       , pitfall
       , poisonousSpores
@@ -522,6 +523,7 @@ allEncounterTreacheryCards =
       , unexpectedAmbush
       , unexpectedTransformation
       , unhallowedCountry
+      , unknowablePast
       , unlucky
       , vampiresKiss
       , vastExpanse
@@ -3166,6 +3168,20 @@ finePrint = (weakness "53014" "Fine Print") {cdCardTraits = singleton Pact}
 
 sellYourSoul :: CardDef
 sellYourSoul = (weakness "53015" "Sell Your Soul") {cdCardTraits = singleton Pact}
+
+perilsOfYoth :: CardDef
+perilsOfYoth =
+  peril
+    (treachery "53060" "Perils of Yoth" ReturnToTheDepthsOfYoth 2)
+      { cdCardTraits = setFromList [Hazard]
+      }
+
+unknowablePast :: CardDef
+unknowablePast =
+  peril
+    (treachery "53065" "Unknowable Past" ReturnToShatteredAeons 2)
+      { cdCardTraits = setFromList [Hex]
+      }
 
 fromAnotherTime :: CardDef
 fromAnotherTime =

@@ -74,6 +74,8 @@ type Supply
   | 'Gasoline'
   | 'Pocketknife'
   | 'Pickaxe'
+  | 'MysteriousScepter'
+  | 'StickyGoop'
 
 export const supplyDecoder = JsonDecoder.oneOf<Supply>([
   JsonDecoder.literal('Provisions'),
@@ -89,7 +91,9 @@ export const supplyDecoder = JsonDecoder.oneOf<Supply>([
   JsonDecoder.literal('Pendant'),
   JsonDecoder.literal('Gasoline'),
   JsonDecoder.literal('Pocketknife'),
-  JsonDecoder.literal('Pickaxe')
+  JsonDecoder.literal('Pickaxe'),
+  JsonDecoder.literal('MysteriousScepter'),
+  JsonDecoder.literal('StickyGoop')
 ], 'Supply')
 
 export type PickSupplies = {
@@ -97,6 +101,7 @@ export type PickSupplies = {
   pointsRemaining: number
   chosenSupplies: Supply[]
   choices: Message[]
+  resupply: boolean
 }
 
 export type DropDown = {
@@ -300,6 +305,7 @@ export const pickSuppliesDecoder = JsonDecoder.object<PickSupplies>(
     pointsRemaining: JsonDecoder.number(),
     chosenSupplies: JsonDecoder.array<Supply>(supplyDecoder, 'Supply[]'),
     choices: JsonDecoder.array<Message>(messageDecoder, 'Message[]'),
+    resupply: JsonDecoder.boolean()
   },
   'PickSupplies',
 );

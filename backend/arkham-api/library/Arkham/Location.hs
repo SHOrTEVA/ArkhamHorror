@@ -897,6 +897,14 @@ allLocations =
     , SomeLocationCard subterraneanSwamp
     , SomeLocationCard chthonianDepths
     , SomeLocationCard treacherousDescent
+    , --- Return to the City of Archives
+      SomeLocationCard hallsOfPnakotusSouthernCorridors
+    , SomeLocationCard cyclopeanVaults
+    , SomeLocationCard alienConservatory
+    , --- Return to Shattered Aeons
+      SomeLocationCard greatHallOfCeleano
+    , SomeLocationCard buenosAires
+    , SomeLocationCard ultimaThule
     , --- Return to Rainforest
       SomeLocationCard riversideTemple
     , SomeLocationCard waterfall

@@ -113,6 +113,7 @@ allLocationCards =
       , administrationOffice_131
       , airfield
       , alaskanWilds
+      , alienConservatory
       , alchemyLabs
       , altarToDagon
       , ancientHall
@@ -188,6 +189,7 @@ allLocationCards =
       , brokenPassage
       , brokenSteps_289
       , brokenSteps_290
+      , buenosAires
       , burialGround
       , burialPit
       , burnedRuins_204
@@ -265,6 +267,7 @@ allLocationCards =
       , cyclopeanRuins_176a
       , cyclopeanRuins_176b
       , cyclopeanSpires
+      , cyclopeanVaults
       , cylindricalTower
       , dancersMist
       , darkAbyss
@@ -405,6 +408,7 @@ allLocationCards =
       , grandGuignol
       , grandRue
       , graveyard
+      , greatHallOfCeleano
       , greatLibrary
       , greenRoom
       , guestHall
@@ -418,6 +422,7 @@ allLocationCards =
       , hallOfTheSunlessSea
       , hallsOfPnakotusEasternCorridors
       , hallsOfPnakotusNorthernCorridors
+      , hallsOfPnakotusSouthernCorridors
       , hallsOfPnakotusWesternCorridors
       , hallway
       , hangmansBrook
@@ -849,6 +854,7 @@ allLocationCards =
       , twilightAbyss
       , twistedUnderbrush
       , ulthar
+      , ultimaThule
       , undercityAltar
       , undergroundRiver
       , undergroundRuins
@@ -9073,6 +9079,52 @@ treacherousDescent =
       Moon
       [Heart, Diamond, Circle]
       ReturnToKnYan
+
+hallsOfPnakotusSouthernCorridors :: CardDef
+hallsOfPnakotusSouthernCorridors =
+  location
+    "53055"
+    ("Halls of Pnakotus" <:> "Southern Corridors")
+    [Ancient, Pnakotus]
+    Plus
+    [Square, Diamond, Heart, Hourglass]
+    ReturnToTheCityOfArchives
+
+cyclopeanVaults :: CardDef
+cyclopeanVaults =
+  victory 1
+    $ location
+      "53056"
+      "Cyclopean Vaults"
+      [Ancient, Pnakotus]
+      Hourglass
+      [Plus, Heart]
+      ReturnToTheCityOfArchives
+
+alienConservatory :: CardDef
+alienConservatory =
+  location
+    "53057"
+    "Alien Conservatory"
+    [Ancient, Pnakotus]
+    Heart
+    [Plus, Hourglass]
+    ReturnToTheCityOfArchives
+
+greatHallOfCeleano :: CardDef
+greatHallOfCeleano =
+  singleSided
+    $ location "53062" "Great Hall of Celeano" [Otherworld] Droplet [Diamond] ReturnToShatteredAeons
+
+buenosAires :: CardDef
+buenosAires =
+  singleSided
+    $ location "53063" "Buenos Aires" [Shattered] Equals [Star] ReturnToShatteredAeons
+
+ultimaThule :: CardDef
+ultimaThule =
+  singleSided
+    $ location "53064" "Ultima Thule" [Shattered] Equals [Star] ReturnToShatteredAeons
 
 riversideTemple :: CardDef
 riversideTemple =

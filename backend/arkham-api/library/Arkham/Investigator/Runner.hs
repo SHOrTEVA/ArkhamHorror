@@ -458,6 +458,7 @@ runInvestigatorMessage msg a@InvestigatorAttrs {..} = runQueueT $ case msg of
   AddDeckBuildingAdjustment iid adjustment | iid == investigatorId -> do
     pure $ a & deckBuildingAdjustmentsL %~ (adjustment :)
   SetupInvestigator iid | iid == investigatorId -> do
+    shuffled <- shuffle (unDeck investigatorDeck)
     (startsWithMsgs, deck') <-
       foldM
         ( \(msgs, currentDeck) cardDef -> do
@@ -488,7 +489,7 @@ runInvestigatorMessage msg a@InvestigatorAttrs {..} = runQueueT $ case msg of
                   )
               _ -> pure (msgs, currentDeck)
         )
-        ([], investigatorDeck)
+        ([], Deck shuffled)
         investigatorStartsWith
     let (permanentCards, deck'') = partition (cdPermanent . toCardDef) (unDeck deck')
     let deck''' =
@@ -629,9 +630,8 @@ runInvestigatorMessage msg a@InvestigatorAttrs {..} = runQueueT $ case msg of
       & (mulligansTakenL +~ 1)
   ForInvestigator iid BeginGame | iid == investigatorId -> do
     -- if we have any cards with revelations on them, we need to trigger them
-    let revelationCards = filter (hasRevelation . toCardDef) investigatorHand
     let
-      choices = mapMaybe cardChoice revelationCards
+      choices = mapMaybe cardChoice investigatorHand
       cardChoice = \case
         card@(PlayerCard card') -> do
           if hasRevelation card'
@@ -845,15 +845,20 @@ runInvestigatorMessage msg a@InvestigatorAttrs {..} = runQueueT $ case msg of
         DiscardChoose -> do
           let n = min handDiscard.amount (length cs)
           case handDiscard.filter of
-            CardWithId _ ->
-              pushAll
-                [DiscardCard investigatorId handDiscard.source c.id | c <- filterCards handDiscard.filter cs]
-            _ ->
+            CardWithId _ -> do
+              let cs' = filterCards handDiscard.filter cs
+              pushAll [DiscardCard investigatorId handDiscard.source c.id | c <- cs']
+              for_ handDiscard.target \target ->
+                push $ DiscardedCards investigatorId handDiscard.source target cs'
+            _ -> do
+              let cs' = filterCards handDiscard.filter cs
               pushWhen (n > 0)
                 $ chooseN player n
                 $ [ targetLabel c [DiscardCard investigatorId handDiscard.source c.id]
-                  | c <- filterCards handDiscard.filter cs
+                  | c <- cs
                   ]
+              for_ handDiscard.target \target ->
+                push $ DiscardedCards investigatorId handDiscard.source target cs'
         DiscardAll -> do
           let cards = filterCards handDiscard.filter cs
 
@@ -863,12 +868,16 @@ runInvestigatorMessage msg a@InvestigatorAttrs {..} = runQueueT $ case msg of
               $ [ targetLabel c [DiscardCard investigatorId handDiscard.source c.id]
                 | c <- cards
                 ]
+            for_ handDiscard.target \target ->
+              push $ DiscardedCards investigatorId handDiscard.source target cards
         DiscardRandom -> do
           -- only cards actually in hand
           let filtered = filterCards handDiscard.filter investigatorHand
-          for_ (nonEmpty filtered) $ \targets -> do
+          for_ (nonEmpty filtered) \targets -> do
             cards <- sampleN handDiscard.amount targets
             pushAll $ map (DiscardCard investigatorId handDiscard.source . toCardId) cards
+            for_ handDiscard.target \target ->
+              push $ DiscardedCards investigatorId handDiscard.source target cards
     push $ DoneDiscarding investigatorId
     pure $ a & discardingL ?~ handDiscard
   Discard _ source (CardIdTarget cardId) | isJust (find ((== cardId) . toCardId) investigatorHand) -> do
@@ -1562,7 +1571,6 @@ runInvestigatorMessage msg a@InvestigatorAttrs {..} = runQueueT $ case msg of
                ]
         ]
         <> [whenAssignedWindowMsg | notNull horrorTargets]
-        <> [CheckDefeated source (toTarget aid) | aid <- checkAssets]
         <> [ CheckWindows
                $ [mkAfter (Window.TakeDamage source damageEffect (toTarget iid) totalDamage) | totalDamage > 0]
                <> [mkAfter (Window.TakeHorror source (toTarget iid) totalHorror) | totalHorror > 0]
@@ -1576,6 +1584,7 @@ runInvestigatorMessage msg a@InvestigatorAttrs {..} = runQueueT $ case msg of
                   ]
                <> [mkAfter (Window.AssignedHorror source iid horrorTargets) | notNull horrorTargets]
            ]
+        <> [CheckDefeated source (toTarget aid) | aid <- checkAssets]
     pure a
   InvestigatorDoAssignDamage iid source DamageEvenly matcher health 0 damageTargets horrorTargets | iid == toId a -> do
     healthDamageableAssets <-
@@ -1967,43 +1976,9 @@ runInvestigatorMessage msg a@InvestigatorAttrs {..} = runQueueT $ case msg of
     pure a
   FlipClues target n | isTarget a target -> do
     pure $ a & tokensL %~ flipClues n
-  DiscoverClues iid d | iid == investigatorId -> do
-    mods <- getModifiers iid
+  DiscoverClues iid d | iid == investigatorId && d.location == DiscoverYourLocation -> do
     lid <- fromJustNote "missing location" <$> getDiscoverLocation iid d
-
-    let additionalDiscoveredAt =
-          Map.fromListWith (<>) [(olid, Sum x) | DiscoveredCluesAt olid x <- mods, olid /= lid]
-    let additionalDiscovered = getSum $ fold [Sum x | d.isInvestigate == IsInvestigate, DiscoveredClues x <- mods]
-
-    let
-      total lid' n = do
-        let
-          getMaybeMax :: ModifierType -> Maybe Int -> Maybe Int
-          getMaybeMax (MaxCluesDiscovered x) Nothing = Just x
-          getMaybeMax (MaxCluesDiscovered x) (Just x') = Just $ min x x'
-          getMaybeMax _ x = x
-        mMax :: Maybe Int <- foldr getMaybeMax Nothing <$> getModifiers lid'
-        pure $ maybe n (min n) mMax
-
-    canDiscoverClues <-
-      anyM (getCanDiscoverClues d.isInvestigate iid) (lid : Map.keys additionalDiscoveredAt)
-    if canDiscoverClues
-      then do
-        baseOk <- getCanDiscoverClues d.isInvestigate iid lid
-        base <- total lid (d.count + additionalDiscovered)
-        discoveredClues <- min base <$> field LocationClues lid
-        checkWindowMsg <- checkWindows [mkWhen (Window.WouldDiscoverClues iid lid d.source discoveredClues)]
-
-        otherWindows <- forMaybeM (mapToList additionalDiscoveredAt) \(lid', n) -> runMaybeT do
-          liftGuardM $ getCanDiscoverClues d.isInvestigate iid lid'
-          discoveredClues' <- lift $ min <$> total lid' (getSum n) <*> field LocationClues lid'
-          guard (discoveredClues' > 0)
-          lift $ checkWindows [mkWhen (Window.WouldDiscoverClues iid lid' d.source discoveredClues')]
-        pushAll $ [checkWindowMsg | baseOk] <> otherWindows <> [DoStep 1 msg]
-      else do
-        tokens <- field LocationTokens lid
-        putStrLn $ "Can't discover clues in " <> tshow lid <> ": " <> tshow tokens
-
+    push $ DiscoverClues iid (d {discoverLocation = DiscoverAtLocation lid})
     pure a
   DoStep 1 (DiscoverClues iid d) | iid == investigatorId -> do
     mods <- getModifiers iid
@@ -2757,7 +2732,7 @@ runInvestigatorMessage msg a@InvestigatorAttrs {..} = runQueueT $ case msg of
             <> [afterEntering]
             <> [afterMoveButBeforeEnemyEngagement | movement.means /= Place]
             <> [CheckEnemyEngagement iid]
-          pure a
+          pure $ a & movementL .~ Nothing
   Do (WhenWillEnterLocation iid lid) | iid == investigatorId -> do
     pure $ a & placementL .~ AtLocation lid
   CheckEnemyEngagement iid | iid == investigatorId -> do
@@ -3343,9 +3318,8 @@ runInvestigatorMessage msg a@InvestigatorAttrs {..} = runQueueT $ case msg of
   ForTarget (isTarget a -> True) (DoStep 2 (ForInvestigator _ AllDrawCardAndResource)) | not (a ^. defeatedL || a ^. resignedL) -> do
     lift $ takeUpkeepResources a
   LoadDeck iid deck | iid == investigatorId -> do
-    shuffled <- shuffleM $ flip map (unDeck deck) $ \card ->
-      card {pcOwner = Just iid}
-    pure $ a & deckL .~ Deck shuffled
+    let deck' = flip map (unDeck deck) \card -> card {pcOwner = Just iid}
+    pure $ a & deckL .~ Deck deck'
   LoadSideDeck iid deck | iid == investigatorId -> do
     pure $ a & sideDeckL ?~ deck
   InvestigatorCommittedCard iid card | iid == investigatorId -> do
@@ -3992,27 +3966,15 @@ runInvestigatorMessage msg a@InvestigatorAttrs {..} = runQueueT $ case msg of
               let windows' = [mkWhen Window.NonFast, mkWhen (Window.DuringTurn iid)]
               playableCards <- concatForM (mapToList targetCards) $ \(_, cards) ->
                 filterM (getIsPlayable who source (UnpaidCost NoAction) windows') cards
-              let
-                choices =
-                  [ targetLabel
-                      card
-                      [ if card `elem` playableCards
-                          then
-                            chooseOne
-                              player
-                              [ Label "Add to hand" [addFoundToHand]
-                              , Label "Play Card" [addFoundToHand, PayCardCost iid card windows']
-                              ]
-                          else addFoundToHand
-                      ]
-                  | (zone, cards) <- mapToList targetCards
-                  , card <- cards
-                  , let addFoundToHand = AddFocusedToHand iid (toTarget who) zone (toCardId card)
-                  ]
-              push
-                $ if null choices
-                  then chooseOne player [Label "No cards found" []]
-                  else chooseN player (min n (length choices)) choices
+              let choices = [card | (_, cards) <- mapToList targetCards, card <- cards]
+              if null choices
+                then Lifted.prompt iid "No cards found" Choose.nothing
+                else Choose.chooseNM iid (min n (length choices)) do
+                  Choose.targets choices \card -> do
+                    Choose.chooseOrRunOneM iid do
+                      when (card `elem` playableCards) do
+                        Choose.labeled "Add to hand" $ Lifted.addToHand iid (only card)
+                      Choose.labeled "Play Card" $ Lifted.playCardPayingCost iid card
             DrawOrCommitFound who n -> do
               -- [TODO] We need this to determine what state the skill test
               -- is in, if we are committing cards we need to use
@@ -4125,7 +4087,8 @@ runInvestigatorMessage msg a@InvestigatorAttrs {..} = runQueueT $ case msg of
                 then Lifted.promptI iid "noCardsFound" $ push $ SearchNoneFound iid searchTarget
                 else
                   pushAll
-                    [ PreSearchFound iid searchTarget (Deck.InvestigatorDeck iid') (concat $ toList targetCards)
+                    [ PreSearchFound iid (Just searchTarget) (Deck.InvestigatorDeck iid') (concat $ toList targetCards)
+                    , After (PreSearchFound iid Nothing (Deck.InvestigatorDeck a.id) (concat $ toList targetCards))
                     , SearchFound iid searchTarget (Deck.InvestigatorDeck iid') (concat $ toList targetCards)
                     ]
             DrawAllFound who -> do
@@ -4154,7 +4117,12 @@ runInvestigatorMessage msg a@InvestigatorAttrs {..} = runQueueT $ case msg of
                           <> [ ShuffleDeck (Deck.InvestigatorDeck a.id) | shouldShuffle && length targetCards == length foundCards
                              ]
                           <> [after]
-            ReturnCards -> pure ()
+            ReturnCards -> do
+              unless (all null (toList targetCards)) do
+                pushAll
+                  [ PreSearchFound iid Nothing (Deck.InvestigatorDeck a.id) (concat $ toList targetCards)
+                  , After (PreSearchFound iid Nothing (Deck.InvestigatorDeck a.id) (concat $ toList targetCards))
+                  ]
       _ -> pure ()
     pure a
   RemoveFromDiscard iid cardId | iid == investigatorId -> do
@@ -4190,7 +4158,9 @@ runInvestigatorMessage msg a@InvestigatorAttrs {..} = runQueueT $ case msg of
   InvestigatorPlaceCluesOnLocation iid source n | iid == investigatorId -> do
     withLocationOf iid \lid -> do
       batchId <- getRandom
-      would <- Helpers.checkWindow $ (mkWhen $ Window.WouldPlaceClueOnLocation iid lid source n) { windowBatchId = Just batchId }
+      would <-
+        Helpers.checkWindow
+          $ (mkWhen $ Window.WouldPlaceClueOnLocation iid lid source n) {windowBatchId = Just batchId}
       pushBatched batchId [would, Do msg]
     pure a
   Do (InvestigatorPlaceCluesOnLocation iid source n) | iid == investigatorId -> do

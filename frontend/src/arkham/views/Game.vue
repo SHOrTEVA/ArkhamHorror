@@ -155,12 +155,12 @@ const websocketUrl = computed(() => {
 })
 
 await fetchGame(props.gameId, props.spectate).then(async ({ game: newGame, playerId: newPlayerId, multiplayerMode}) => {
-    try { await loadAllImages(newGame) } catch (e) { console.error(e) }
-    game.value = newGame
-    solo.value = multiplayerMode === "Solo"
-    gameLog.value = Object.freeze(newGame.log)
-    playerId.value = newPlayerId
-    ready.value = true
+  try { await loadAllImages(newGame) } catch (e) { console.error(e) }
+  game.value = newGame
+  solo.value = multiplayerMode === "Solo"
+  gameLog.value = Object.freeze(newGame.log)
+  playerId.value = newPlayerId
+  ready.value = true
 })
 
 // Local Decoders
@@ -324,6 +324,11 @@ const actionMap = computed<Map<string, () => void>>(() => {
   return map
 })
 
+const canUndoScenario = computed(() => {
+  if(!game.value) return false
+  return game.value.scenarioSteps > 1
+})
+
 // Keyboard Shortcuts
 const handleKeyPress = (event: KeyboardEvent) => {
   if (filingBug.value) return
@@ -337,6 +342,7 @@ const handleKeyPress = (event: KeyboardEvent) => {
   }
 
   if (event.key === 'U') {
+    if(!canUndoScenario.value) return
     undoScenarioDialog.value?.showModal()
     return
   }
@@ -458,7 +464,7 @@ async function fileBug() {
   filingBug.value = false
   Api.fileBug(props.gameId).then((response) => {
     const title = encodeURIComponent(bugTitle.value)
-    const body = encodeURIComponent(`${bugDescription.value}\n\nfile: ${response.data}`)
+    const body = encodeURIComponent(`${bugDescription.value}\n\ngame: ${window.location.href}\nfile: ${response.data}`)
     window.open(`https://github.com/halogenandtoast/ArkhamHorror/issues/new?labels=bug&title=${title}&body=${body}&assignee=halogenandtoast&projects=halogenandtoast/2`, '_blank')
     submittingBug.value = false
   }).catch(() => {
@@ -595,7 +601,7 @@ onUnmounted(() => {
   <div id="game" v-else-if="ready && game && playerId">
     <dialog v-if="error" class="error-dialog">
       <h2>{{$t('error')}}</h2>
-      <p>{{error}}</p>
+      <p class="error-message">{{error}}</p>
       <p>{{$t('errorContent')}}</p>
       <div class="buttons">
         <button @click="bugDescription = error ?? ''; error = null; filingBug = true"><ExclamationTriangleIcon aria-hidden="true" /> {{$t('fileBug')}}</button>
@@ -644,7 +650,7 @@ onUnmounted(() => {
     </Draggable>
     <Draggable v-if="filingBug">
       <template #handle>
-        <header clas="file-a-bug-header">
+        <header>
           <h2>{{ $t('gameBar.fileABug') }}</h2>
         </header>
       </template>
@@ -717,8 +723,8 @@ onUnmounted(() => {
             <MenuItem v-slot="{ active }">
               <button :class="{ active }" @click="undo"><BackwardIcon aria-hidden="true" /> {{ $t('gameBar.undo') }} <span class='shortcut'>u</span></button>
             </MenuItem>
-            <MenuItem v-slot="{ active }">
-              <button :class="{ active }" @click="undoingScenario = true"><BackwardIcon aria-hidden="true" /> {{ $t('gameBar.restartScenario') }} <span class='shortcut'>U</span></button>
+            <MenuItem v-if="canUndoScenario" v-slot="{ active }">
+              <button :class="{ active }" @click="undoScenarioDialog && undoScenarioDialog.showModal()"><BackwardIcon aria-hidden="true" /> {{ $t('gameBar.restartScenario') }} <span class='shortcut'>U</span></button>
             </MenuItem>
           </template>
         </Menu>
@@ -1449,18 +1455,20 @@ button:hover .shortcut {
   backdrop-filter: blur(3px);
   background-color: rgba(0,0,0,0.8);
   position: absolute;
+  padding: 0;
+  padding-block: 10px;
   width: 50%;
   display: flex;
   z-index: 100;
   display: flex;
   flex-direction: column;
-  padding: 10px;
   border: 0;
   border-radius: 10px;
   top: 50%;
 
   p {
     padding: 10px;
+    margin: 0;
   }
 
   h2 {
@@ -1490,6 +1498,12 @@ button:hover .shortcut {
   align-items: center;
   justify-self: center;
   align-self: center;
+
+  .error-message {
+    max-height: 50vh;
+    overflow: auto;
+    padding-inline: 20px;
+  }
 }
 .loader {
   z-index: 1000;

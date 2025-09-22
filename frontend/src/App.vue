@@ -416,6 +416,8 @@ button {
   --combat-light: #F1D3D0;
   --agility-light: #8CEEBD;
 
+  --important: rgba(212, 165, 10, 0.9);
+
   --wild: #8a7d5a;
   --guardian: #5cb4fd;
   --mystic: #ba81f2;
@@ -447,6 +449,12 @@ button {
   --blessed: #6a5720;
   --cursed: #270F31;
   --frost: #39394C;
+  --auto-fail: #4A1216;
+  --elder-sign: #4A6973;
+  --skull: #26110E;
+  --cultist: #172615;
+  --tablet: #1E2A3A;
+  --elder-thing: #2D1F25;
 
   --delete: #c13131;
   --background: #2e3440;
@@ -457,8 +465,12 @@ button {
   --box-border: #434c5e;
 
   --title: #cecece;
+  --text: white;
   --spooky-green: #879C5A;
   --spooky-green-dark: #3A5144;
+
+  --button: #555;
+  --button-highlight: #444;
 
   --button-1: #6E8640;
   --button-1-highlight: #5a6e34;
@@ -472,7 +484,7 @@ button {
   --card-sideways-aspect: 1.41844;
   --card-tarot-aspect: 0.571429;
 
-  --card-shadow: 1px 1px 6px rgba(0, 0, 0, 0.45);
+  --card-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
 
   --select: #ff00ff;
   --select-dark: #d400d4;

@@ -318,7 +318,7 @@ instance RunMessage TheDreamEaters where
                   else do
                     for_ (mapToList $ otherCampaignPlayers meta) \(pid, iattrs) -> do
                       let i = overAttrs (const iattrs) $ lookupInvestigator (toId iattrs) pid
-                      push $ SetInvestigator pid i
+                      push $ Priority $ SetInvestigator pid i
                 let newAttrs = fromJustNote "not full campaign" (otherCampaignAttrs meta)
                 pure
                   $ TheDreamEaters
@@ -354,7 +354,7 @@ instance RunMessage TheDreamEaters where
                   else do
                     for_ (mapToList $ otherCampaignPlayers meta) \(pid, iattrs) -> do
                       let i = overAttrs (const iattrs) $ lookupInvestigator (toId iattrs) pid
-                      push $ SetInvestigator pid i
+                      push $ Priority $ SetInvestigator pid i
                 let newAttrs = fromJustNote "not full campaign" (otherCampaignAttrs meta)
                 pure
                   $ TheDreamEaters

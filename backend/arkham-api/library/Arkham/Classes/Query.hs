@@ -19,7 +19,7 @@ withCount :: (HasCallStack, Query a, HasGame m) => (Int -> m ()) -> a -> m ()
 withCount f = selectCount >=> f
 
 selectAny :: (HasCallStack, Query a, HasGame m) => a -> m Bool
-selectAny = fmap notNull . selectMap id
+selectAny = selectExists
 
 whenAny :: (HasCallStack, Query a, HasGame m) => a -> m () -> m ()
 whenAny q f = whenM (selectAny q) f
@@ -328,7 +328,7 @@ selectForMaybeM = selectMaybeM ()
 
 selectOnlyOne
   :: forall a m
-   . (HasCallStack, Show a, Query a, HasGame m, Typeable (QueryElement a))
+   . (HasCallStack, Show a, Query a, HasGame m)
   => a
   -> m (QueryElement a)
 selectOnlyOne matcher =
@@ -364,8 +364,13 @@ isMatch
   -> m Bool
 isMatch a m = elem a <$> select m
 
-class (Ord (QueryElement a), Eq (QueryElement a)) => Query a where
+class (Ord (QueryElement a), Eq (QueryElement a), Typeable (QueryElement a)) => Query a where
+  toSomeQuery :: a -> SomeQuery (QueryElement a)
+  select_ :: (HasCallStack, HasGame m) => a -> m [QueryElement a]
+  selectExists :: (HasCallStack, HasGame m) => a -> m Bool
+  selectExists q = cached (ExistKey $ toSomeQuery q) $ notNull <$> select_ q
   select :: (HasCallStack, HasGame m) => a -> m [QueryElement a]
+  select q = cached (SelectKey $ toSomeQuery q) (select_ q)
 
 matches :: (HasCallStack, HasGame m, Query a) => QueryElement a -> a -> m Bool
 matches a matcher = elem a <$> select matcher

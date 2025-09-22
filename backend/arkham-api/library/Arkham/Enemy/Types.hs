@@ -179,6 +179,10 @@ setPrey
   => InvestigatorMatcher -> CardBuilder EnemyId a -> CardBuilder EnemyId a
 setPrey prey = fmap (overAttrs (\a -> a {enemyPrey = Prey prey}))
 
+setPreyIsBearer
+  :: (Entity a, EntityAttrs a ~ EnemyAttrs) => CardBuilder EnemyId a -> CardBuilder EnemyId a
+setPreyIsBearer = fmap (overAttrs preyIsBearer)
+
 setSpawnAt
   :: (Entity a, EntityAttrs a ~ EnemyAttrs)
   => LocationMatcher -> CardBuilder EnemyId a -> CardBuilder EnemyId a
@@ -242,6 +246,13 @@ enemyWith f cardDef (fight, health, evade) (healthDamage, sanityDamage) g =
             }
     }
 
+pattern EvadeCriteria :: Criterion
+pattern EvadeCriteria =
+  Criteria
+    [ OnSameLocation
+      , EnemyCriteria (ThisEnemy (EnemyMatchAll [EnemyIsEngagedWith You, EnemyWithEvade]))
+      ]
+
 instance HasAbilities EnemyAttrs where
   getAbilities e =
     [ basicAbility
@@ -258,10 +269,7 @@ instance HasAbilities EnemyAttrs where
           )
         $ ActionAbility [#fight] (ActionCost 1)
     , basicAbility
-        $ restrictedAbility
-          e
-          AbilityEvade
-          (OnSameLocation <> EnemyCriteria (ThisEnemy $ EnemyIsEngagedWith You <> EnemyWithEvade))
+        $ restrictedAbility e AbilityEvade EvadeCriteria
         $ ActionAbility [#evade] (ActionCost 1)
     , basicAbility
         $ restrictedAbility

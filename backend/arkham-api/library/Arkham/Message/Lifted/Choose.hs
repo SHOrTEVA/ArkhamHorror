@@ -19,7 +19,7 @@ import Arkham.Queue
 import Arkham.SkillType
 import Arkham.Source
 import Arkham.Target
-import Arkham.Text (FlavorText, toI18n)
+import Arkham.Text (FlavorText (..), FlavorTextEntry (..), FlavorTextModifier (..), toI18n)
 import Arkham.Window (defaultWindows)
 import Control.Monad.State.Strict
 import Control.Monad.Writer.Strict
@@ -44,6 +44,7 @@ newtype ChooseT m a = ChooseT {unChooseT :: StateT ChooseState (WriterT [UI Mess
 
 instance HasGame m => HasGame (ChooseT m) where
   getGame = lift getGame
+  getCache = GameCache \_ build -> build
 
 instance MonadTrans ChooseT where
   lift = ChooseT . lift . lift
@@ -199,6 +200,9 @@ labeledValidate' valid label action = unterminated do
       tell [Label ("$" <> ikey ("label." <> label)) msgs]
     else tell [InvalidLabel ("$" <> ikey ("label." <> label))]
 
+invalidLabeled' :: (HasI18n, ReverseQueue m) => Text -> ChooseT m ()
+invalidLabeled' label = unterminated $ tell [InvalidLabel ("$" <> ikey ("label." <> label))]
+
 chooseTest :: (HasI18n, ReverseQueue m) => SkillType -> Int -> QueueT Message m () -> ChooseT m ()
 chooseTest skind n body = countVar n $ skillVar skind $ labeled' "test" body
 
@@ -258,6 +262,9 @@ cardLabeled :: (ReverseQueue m, HasCardCode a) => a -> QueueT Message m () -> Ch
 cardLabeled a action = unterminated do
   msgs <- lift $ capture action
   tell [CardLabel (toCardCode a) msgs]
+
+cardsLabeled :: (ReverseQueue m, HasCardCode a) => [a] -> (a -> QueueT Message m ()) -> ChooseT m ()
+cardsLabeled as action = traverse_ (\a -> cardLabeled a (action a)) as
 
 deckLabeled :: ReverseQueue m => InvestigatorId -> QueueT Message m () -> ChooseT m ()
 deckLabeled iid action = unterminated do
@@ -416,3 +423,13 @@ chooseSome1M' iid txt choices = do
     case label of
       Nothing -> chooseSome1 iid (toI18n txt) choices'
       Just l -> questionLabel l iid $ ChooseSome1 (toI18n txt) choices'
+
+resolutionFlavorWithChooseOne
+  :: (HasI18n, ReverseQueue m) => (HasI18n => FlavorTextBuilder ()) -> ChooseT m () -> m ()
+resolutionFlavorWithChooseOne builder f = flip storyWithChooseOneM f do
+  case buildFlavor builder of
+    FlavorText {..} ->
+      FlavorText
+        { flavorTitle
+        , flavorBody = [ModifyEntry [ResolutionEntry] $ CompositeEntry flavorBody]
+        }
