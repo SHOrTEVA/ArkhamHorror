@@ -59,6 +59,7 @@ data LocationAttrs = LocationAttrs
   , locationGlobalMeta :: Map Aeson.Key Value
   , locationPosition :: Maybe Pos
   , locationBeingRemoved :: Bool
+  , locationConcealedCards :: [ConcealedCardId]
   }
   deriving stock (Show, Eq)
 
@@ -135,6 +136,9 @@ instance HasField "keys" LocationAttrs (Set ArkhamKey) where
 instance HasField "seals" LocationAttrs (Set Seal) where
   getField = locationSeals
 
+instance HasField "cardCode" LocationAttrs CardCode where
+  getField = locationCardCode
+
 makeLensesWith suffixedFields ''LocationAttrs
 
 setMeta :: ToJSON a => a -> LocationAttrs -> LocationAttrs
@@ -182,5 +186,6 @@ instance FromJSON LocationAttrs where
     locationGlobalMeta <- o .:? "globalMeta" .!= mempty
     locationPosition <- o .:? "position"
     locationBeingRemoved <- o .:? "beingRemoved" .!= False
+    locationConcealedCards <- o .:? "concealedCards" .!= []
 
     pure LocationAttrs {..}

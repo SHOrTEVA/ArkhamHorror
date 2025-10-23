@@ -9,13 +9,16 @@ import Arkham.Enemy.Runner
 import Arkham.Helpers.Modifiers
 import Arkham.Matcher
 import Arkham.Prelude
+import Arkham.Tracing
 
 createEnemy :: (HasCallStack, IsCard a) => a -> EnemyId -> Enemy
 createEnemy a eid = lookupEnemy (toCardCode a) eid (toCardId a)
 
 instance RunMessage Enemy where
-  runMessage (SendMessage target msg) e | e `is` target = runMessage msg e
-  runMessage msg e@(Enemy x) = do
+  runMessage (SendMessage target msg) e | e `is` target =
+    withSpan_ ("Enemy[" <> unCardCode (toCardCode e) <> "].runMessage") do
+      runMessage msg e
+  runMessage msg e@(Enemy x) = withSpan_ ("Enemy[" <> unCardCode (toCardCode e) <> "].runMessage") do
     -- we must check that an enemy exists when grabbing modifiers
     -- as some messages are not masked when targetting cards in the
     -- discard.
@@ -473,11 +476,41 @@ allEnemies =
       SomeEnemyCard forgottenShoggoth
     , SomeEnemyCard rampagingShoggoth
     , -- The Scarlet Keys
-      -- signature
+      --- signature [tsk]
       SomeEnemyCard agentFletcher
-    , -- basic weakness
+    , --- basic weakness [tsk]
       SomeEnemyCard lurkerInTheDark
     , SomeEnemyCard ectoplasmicHorror
+    , --- Riddles and Rain [tsk]
+      SomeEnemyCard theRedGlovedManShroudedInMystery
+    , --- Dead Heat [tsk]
+      SomeEnemyCard amaranthLurkingCorruption
+    , SomeEnemyCard amaranthCorruptionRevealed
+    , SomeEnemyCard razinFarhiReanimatedArtificer
+    , SomeEnemyCard thrallDeadHeat
+    , SomeEnemyCard ancientRaider
+    , SomeEnemyCard khalidBelovedCompanion
+    , --- Sanguine Shadows [tsk]
+      SomeEnemyCard laChicaRojaTheGirlInTheCarmineCoat
+    , SomeEnemyCard boundNightgaunt
+    , SomeEnemyCard theSanguineWatcherWithTheRubySpectacles
+    , SomeEnemyCard apportionedKa
+    , --- Dealings in the Dark [tsk]
+      SomeEnemyCard umbralHarbinger
+    , SomeEnemyCard sinisterAspirantA
+    , SomeEnemyCard sinisterAspirantB
+    , SomeEnemyCard sinisterAspirantC
+    , --- Crimson Conspiracy [tsk]
+      SomeEnemyCard coterieAgentA
+    , SomeEnemyCard coterieAgentB
+    , SomeEnemyCard coterieAgentC
+    , --- Mysteries Abound [tsk]
+      SomeEnemyCard coterieEnvoy
+    , --- Outsiders [tsk]
+      SomeEnemyCard paracausalEntity
+    , SomeEnemyCard apocalypticPresage
+    , --- Agents of Yuggoth [tsk]
+      SomeEnemyCard emissaryFromYuggoth
     , -- The Feast of Hemloch Vale
       -- signature [fhv]
       SomeEnemyCard zamacona
@@ -550,6 +583,15 @@ allEnemies =
     , --- Venomous Hate [rttfa]
       SomeEnemyCard vengefulSerpent
     , SomeEnemyCard serpentGuardian
+    , -- Return to The Circle Undone
+      --- Return to At Death's Doorstep [rttcu]
+      SomeEnemyCard senatorNathanielRhodesAdeptPolitician
+    , SomeEnemyCard dmitriKonstantinovTakingTheLongView
+    , --- Return to The Wages of Sin [rttcu]
+      SomeEnemyCard returnToHeretic_38
+    , SomeEnemyCard returnToHeretic_39
+    , --- Bloodthirsty Spirits [rttcu]
+      SomeEnemyCard screechingBanshee
     , -- Nathanial Cho
       SomeEnemyCard tommyMalloy
     , -- Curse of the Rougarou

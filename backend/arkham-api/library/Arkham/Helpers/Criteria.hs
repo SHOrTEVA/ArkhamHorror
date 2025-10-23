@@ -9,6 +9,7 @@ import {-# SOURCE #-} Arkham.Asset (createAsset)
 import Arkham.Asset.Types (Asset, AssetAttrs (..), Field (..))
 import Arkham.Attack.Types
 import Arkham.Campaigns.EdgeOfTheEarth.Partner (getPartner)
+import Arkham.Campaigns.TheScarletKeys.Concealed.Types (Field (..))
 import Arkham.Capability
 import Arkham.Card
 import Arkham.Classes.Entity
@@ -48,7 +49,13 @@ import Arkham.Helpers.Phase (matchPhase)
 import Arkham.Helpers.Placement (onSameLocation)
 import {-# SOURCE #-} Arkham.Helpers.Playable (getIsPlayable, getIsPlayableWithResources)
 import Arkham.Helpers.Query (getPlayerCount)
-import Arkham.Helpers.Scenario (getScenarioDeck, getVictoryDisplay, scenarioField, scenarioFieldMap)
+import Arkham.Helpers.Scenario (
+  getScenarioDeck,
+  getVictoryDisplay,
+  scenarioField,
+  scenarioFieldMap,
+  scenarioFieldMaybe,
+ )
 import Arkham.Helpers.SkillTest (skillTestMatches)
 import Arkham.Helpers.Source (sourceMatches)
 import Arkham.Helpers.Tarot (affectedByTarot)
@@ -66,13 +73,13 @@ import Arkham.Projection
 import Arkham.Scenario.Types (Field (..))
 import Arkham.ScenarioLogKey
 import Arkham.Scenarios.BeforeTheBlackThrone.Cosmos qualified as Cosmos
-import Arkham.Scenarios.BeforeTheBlackThrone.Helpers (getCosmos)
 import Arkham.Skill.Types (Field (..))
 import Arkham.SkillTest.Base
 import Arkham.Source
 import Arkham.Story.Types (Field (..))
 import Arkham.Target
 import Arkham.Token qualified as Token
+import Arkham.Tracing
 import Arkham.Trait
 import Arkham.Treachery.Types (Field (..))
 import Arkham.Window (Window (..), mkWhen)
@@ -86,9 +93,10 @@ import Data.Map.Monoidal.Strict (getMonoidalMap)
 import Data.Set qualified as Set
 import Data.Text qualified as T
 import Data.Typeable
+import Data.UUID qualified as UUID
 
 passesCriteria
-  :: (HasCallStack, HasGame m)
+  :: (HasCallStack, Tracing m, HasGame m)
   => InvestigatorId
   -> Maybe (Card, CostStatus)
   -> Source
@@ -96,7 +104,7 @@ passesCriteria
   -> [Window]
   -> Criterion
   -> m Bool
-passesCriteria iid mcard source' requestor windows' = \case
+passesCriteria iid mcard source' requestor windows' ctr = withSpan' "passesCriteria" \currentSpan -> addAttribute currentSpan "criterion" (tshow ctr) >> case ctr of
   Criteria.CanEnterThisVehicle -> do
     case source.asset of
       Just aid -> do
@@ -235,7 +243,7 @@ passesCriteria iid mcard source' requestor windows' = \case
   Criteria.CanMoveThis dir -> do
     case source of
       LocationSource lid -> do
-        cosmos' <- getCosmos
+        cosmos' <- Cosmos.getCosmos
         case Cosmos.findInCosmos lid cosmos' of
           Nothing -> pure False
           Just pos -> pure $ Cosmos.isEmpty $ Cosmos.viewCosmos (Cosmos.updatePosition pos dir) cosmos'
@@ -350,7 +358,10 @@ passesCriteria iid mcard source' requestor windows' = \case
           $ "Can not check if "
           <> show source
           <> " is in players threat area"
-  Criteria.NotSetup -> not <$> getInSetup
+  Criteria.NotSetup -> do
+    scenarioFieldMaybe ScenarioTurn >>= \case
+      Nothing -> not <$> getInSetup
+      Just n -> pure $ n > 0
   Criteria.Self -> case source of
     InvestigatorSource iid' -> pure $ iid == iid'
     _ -> pure False
@@ -461,6 +472,7 @@ passesCriteria iid mcard source' requestor windows' = \case
             StorySource sid -> onSameLocation iid =<< field StoryPlacement sid
             AssetSource aid -> onSameLocation iid =<< field AssetPlacement aid
             EnemySource eid -> onSameLocation iid =<< field EnemyPlacement eid
+            ConcealedCardSource cid -> onSameLocation iid =<< field ConcealedCardPlacement cid
             TreacherySource tid -> maybe (pure False) (onSameLocation iid) =<< fieldMay TreacheryPlacement tid
             ProxySource (CardIdSource _) (AssetSource aid) -> go (AssetSource aid)
             ProxySource (CardCodeSource _) (AssetSource aid) -> go (AssetSource aid)
@@ -470,6 +482,7 @@ passesCriteria iid mcard source' requestor windows' = \case
         go source
   Criteria.DuringTurn (Matcher.replaceYouMatcher iid -> who) -> selectAny (Matcher.TurnInvestigator <> who)
   Criteria.CardExists cardMatcher -> selectAny cardMatcher
+  Criteria.ScarletKeyExists skeyMatcher -> selectAny skeyMatcher
   Criteria.ExtendedCardExists cardMatcher ->
     case mcard of
       Just (card, _) -> selectAny (Matcher.replaceYouMatcher iid $ Matcher.replaceThisCard (toCardId card) cardMatcher)
@@ -551,7 +564,7 @@ passesCriteria iid mcard source' requestor windows' = \case
     pure $ notNull filteredDiscards
   Criteria.CanAffordCostIncrease n -> do
     let
-      go :: HasGame n => Maybe (Card, CostStatus) -> n Bool
+      go :: (HasGame n, Tracing n) => Maybe (Card, CostStatus) -> n Bool
       go = \case
         Just (card, AuxiliaryCost aux inner) -> do
           let increase = IncreaseCostOf (Matcher.basic $ Matcher.CardWithId card.id) $ totalResourceCost aux
@@ -601,6 +614,7 @@ passesCriteria iid mcard source' requestor windows' = \case
           <> Matcher.NotAgenda (Matcher.AgendaWithModifier CannotRemoveDoomOnThis)
       ]
   Criteria.ChaosTokenExists matcher -> selectAny matcher
+  Criteria.ConcealedCardExists matcher -> selectAny matcher
   Criteria.AssetExists matcher -> do
     -- N.B. Old Shotgun (2) needs to have a different uses when playing an
     -- event We add the event card to the "game" when asking for a matching
@@ -615,16 +629,17 @@ passesCriteria iid mcard source' requestor windows' = \case
             _ -> a
         runReaderT
           (selectAny (Matcher.replaceYouMatcher iid matcher))
-          (g & entitiesL %~ (<> addCardEntityWith iid setPlacement mempty card))
+          (g & entitiesL %~ (<> addCardEntityWith iid setPlacement UUID.nil mempty card))
       _ -> selectAny (Matcher.replaceYouMatcher iid matcher)
   Criteria.TargetExists matcher -> do
     selectAny (Matcher.replaceYouMatcher iid matcher)
   Criteria.IsReturnTo -> do
     mcampaign <- selectOne Matcher.TheCampaign
     case mcampaign of
-      Nothing -> selectOne Matcher.TheScenario >>= \case
-        Nothing -> pure False
-        Just scenario -> pure $ "5" `T.isPrefixOf` coerce scenario
+      Nothing ->
+        selectOne Matcher.TheScenario >>= \case
+          Nothing -> pure False
+          Just scenario -> pure $ "5" `T.isPrefixOf` coerce scenario
       Just campaign -> pure $ "5" `T.isPrefixOf` coerce campaign
   Criteria.DifferentAssetsExist matcher1 matcher2 -> do
     m1 <- select (Matcher.replaceYouMatcher iid matcher1)
@@ -665,6 +680,9 @@ passesCriteria iid mcard source' requestor windows' = \case
   Criteria.InvestigatorsHaveSpendableClues valueMatcher -> do
     total <- selectSum InvestigatorClues (Matcher.InvestigatorWithoutModifier CannotSpendClues)
     total `gameValueMatches` valueMatcher
+  Criteria.InvestigatorsHaveClues valueMatcher -> do
+    total <- selectSum InvestigatorClues Matcher.Anyone
+    total `gameValueMatches` valueMatcher
   Criteria.Criteria rs -> allM (passesCriteria iid mcard source' requestor windows') rs
   Criteria.AnyCriterion rs -> anyM (passesCriteria iid mcard source' requestor windows') rs
   Criteria.AgendaCount n matcher -> do
@@ -675,13 +693,17 @@ passesCriteria iid mcard source' requestor windows' = \case
   Criteria.AssetCount n matcher -> do
     (>= n) <$> selectCount (Matcher.replaceYouMatcher iid matcher)
   Criteria.BearerNotEliminated -> pure False
-  Criteria.EnemyCount n matcher -> do
-    (>= n) <$> selectCount (Matcher.replaceYouMatcher iid matcher)
+  Criteria.EnemyCount valueMatcher matcher -> do
+    n <- selectCount (Matcher.replaceYouMatcher iid matcher)
+    gameValueMatches n valueMatcher
   Criteria.EventCount valueMatcher matcher -> do
     n <- selectCount (Matcher.replaceYouMatcher iid matcher)
     gameValueMatches n valueMatcher
   Criteria.ExtendedCardCount n matcher ->
     (>= n) <$> selectCount matcher
+  Criteria.KeyCount valueMatcher matcher -> do
+    n <- selectCount matcher
+    gameValueMatches n valueMatcher
   Criteria.AllLocationsMatch targetMatcher locationMatcher -> do
     targets <- select (Matcher.replaceYouMatcher iid targetMatcher)
     actual <- select (Matcher.replaceYouMatcher iid locationMatcher)
@@ -726,7 +748,7 @@ passesCriteria iid mcard source' requestor windows' = \case
 
 -- | Build a matcher and check the list
 passesEnemyCriteria
-  :: HasGame m
+  :: (HasGame m, Tracing m)
   => InvestigatorId
   -> Source
   -> [Window]

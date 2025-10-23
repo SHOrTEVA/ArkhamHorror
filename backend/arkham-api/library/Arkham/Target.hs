@@ -8,11 +8,13 @@ import Arkham.Prelude
 
 import {-# SOURCE #-} Arkham.Ability.Types
 import Arkham.Action
+import Arkham.Campaigns.TheScarletKeys.Key.Id (ScarletKeyId)
 import {-# SOURCE #-} Arkham.Card
 import {-# SOURCE #-} Arkham.Card.EncounterCard
 import {-# SOURCE #-} Arkham.Card.PlayerCard
 import Arkham.ChaosToken.Types
 import Arkham.Id
+import Arkham.Key
 import Arkham.Matcher.Agenda
 import {-# SOURCE #-} Arkham.Matcher.Asset
 import Arkham.Matcher.Card
@@ -57,6 +59,7 @@ data Target
   | PhaseTarget Phase
   | ChaosTokenTarget ChaosToken
   | ChaosTokenFaceTarget ChaosTokenFace
+  | KeyTarget ArkhamKey
   | TestTarget
   | ResourceTarget InvestigatorId
   | YouTarget
@@ -73,6 +76,8 @@ data Target
   | ActiveCostTarget ActiveCostId
   | LabeledTarget Text Target -- Use with caution, this is not a real target
   | ThisTarget -- Used with withModifiers
+  | ScarletKeyTarget ScarletKeyId
+  | ConcealedCardTarget ConcealedCardId
   deriving stock (Show, Eq, Ord, Data, Generic)
 
 instance HasField "asset" (Maybe Target) (Maybe AssetId) where
@@ -176,6 +181,9 @@ instance Targetable AgendaId where
 instance Targetable BatchId where
   toTarget = BatchTarget
 
+instance Targetable ConcealedCardId where
+  toTarget = ConcealedCardTarget
+
 instance Targetable CardCode where
   toTarget = CardCodeTarget
 
@@ -217,6 +225,9 @@ instance Targetable StoryId where
 
 instance Targetable SkillTestId where
   toTarget = SkillTestTarget
+
+instance Targetable ScarletKeyId where
+  toTarget = ScarletKeyTarget
 
 instance Targetable ChaosTokenFace where
   toTarget = ChaosTokenFaceTarget

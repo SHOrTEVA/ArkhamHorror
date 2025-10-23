@@ -34,18 +34,19 @@ import Arkham.SkillType
 import Arkham.Source
 import Arkham.Target
 import Arkham.Timing qualified as Timing
+import Arkham.Tracing
 import Arkham.Window (Window (..), mkAfter, mkWhen, mkWindow)
 import Arkham.Window qualified as Window
 import Control.Lens (each)
 import Data.Map.Strict qualified as Map
 
-totalChaosTokenValues :: HasGame m => SkillTest -> m Int
+totalChaosTokenValues :: (HasGame m, Tracing m) => SkillTest -> m Int
 totalChaosTokenValues s = do
   x <- sum <$> for (skillTestSetAsideChaosTokens s) (getModifiedChaosTokenValue s)
   y <- getAdditionalChaosTokenValues s
   pure $ x + y
 
-totalModifiedSkillValue :: HasGame m => SkillTest -> m Int
+totalModifiedSkillValue :: (HasGame m, Tracing m) => SkillTest -> m Int
 totalModifiedSkillValue s = do
   results <- calculateSkillTestResultsData s
   chaosTokenValues <- totalChaosTokenValues s
@@ -55,7 +56,7 @@ totalModifiedSkillValue s = do
       0
       (skillTestResultsSkillValue results + chaosTokenValues + skillTestResultsIconValue results)
 
-calculateSkillTestResultsData :: HasGame m => SkillTest -> m SkillTestResultsData
+calculateSkillTestResultsData :: (HasGame m, Tracing m) => SkillTest -> m SkillTestResultsData
 calculateSkillTestResultsData s = do
   modifiers' <- getModifiers (SkillTestTarget s.id)
   modifiedSkillTestDifficulty <- getModifiedSkillTestDifficulty s
@@ -81,7 +82,7 @@ calculateSkillTestResultsData s = do
       (resultValueModifiers <$ guard (resultValueModifiers /= 0))
       isSuccess
 
-autoFailSkillTestResultsData :: HasGame m => SkillTest -> m SkillTestResultsData
+autoFailSkillTestResultsData :: (HasGame m, Tracing m) => SkillTest -> m SkillTestResultsData
 autoFailSkillTestResultsData s = do
   modifiedSkillTestDifficulty <- getModifiedSkillTestDifficulty s
   mods <- getModifiers s
@@ -96,7 +97,7 @@ subtractSkillIconCount SkillTest {..} =
   matches WildIcon = False
   matches (SkillIcon _) = False
 
-getAdditionalChaosTokenValues :: HasGame m => SkillTest -> m Int
+getAdditionalChaosTokenValues :: (HasGame m, Tracing m) => SkillTest -> m Int
 getAdditionalChaosTokenValues s = do
   mods <- getModifiers s
   let vs = [v | AddChaosTokenValue v <- mods]
@@ -104,7 +105,7 @@ getAdditionalChaosTokenValues s = do
 
 -- per the FAQ the double negative modifier ceases to be active
 -- when Sure Gamble is used so we overwrite both Negative and DoubleNegative
-getModifiedChaosTokenValue :: HasGame m => SkillTest -> ChaosToken -> m Int
+getModifiedChaosTokenValue :: (HasGame m, Tracing m) => SkillTest -> ChaosToken -> m Int
 getModifiedChaosTokenValue _ t | t.cancelled = pure 0
 getModifiedChaosTokenValue s t = do
   tokenModifiers' <- getModifiers (ChaosTokenTarget t)
@@ -160,7 +161,7 @@ instance RunMessage SkillTest where
       -- see: faqs/drawing-thin
       pure $ s & difficultyL %~ \(SkillTestDifficulty d) -> SkillTestDifficulty (SumCalculation [d, Fixed n])
     ChaosTokenCanceled _ _ token -> do
-      let cancelIf t = if t.id == token.id then token {chaosTokenCancelled = True} else token
+      let cancelIf t = if t.id == token.id then token {chaosTokenCancelled = True} else t
       pure
         $ s
         & (setAsideChaosTokensL %~ map cancelIf)
@@ -415,6 +416,9 @@ instance RunMessage SkillTest where
           ]
       pure $ s & toResolveChaosTokensL .~ mempty & resolvedChaosTokensL <>~ skillTestToResolveChaosTokens
     PassSkillTest -> do
+      pushAll [CheckAllAdditionalCommitCosts, Do PassSkillTest]
+      pure s
+    Do PassSkillTest -> do
       modifiedSkillValue' <- totalModifiedSkillValue s
       player <- getPlayer skillTestInvestigator
       removeAllMessagesMatching \case
@@ -434,6 +438,9 @@ instance RunMessage SkillTest where
       push $ chooseOne player [SkillTestApplyResultsButton]
       pure $ s & resultL .~ SucceededBy NonAutomatic n
     FailSkillTest -> do
+      pushAll [CheckAllAdditionalCommitCosts, Do FailSkillTest]
+      pure s
+    Do FailSkillTest -> do
       resultsData <- autoFailSkillTestResultsData s
       difficulty <- getModifiedSkillTestDifficulty s
       -- player <- getPlayer skillTestInvestigator
@@ -487,17 +494,17 @@ instance RunMessage SkillTest where
       pure s
     CheckAdditionalCommitCosts iid cards -> do
       modifiers' <- getModifiers iid
-      cardModifiers <- concat <$> traverse getModifiers cards
-      let
-        msgs = map (CommitCard iid) cards
-        additionalCosts =
-          mapMaybe
-            ( \case
-                CommitCost c -> Just c
-                AdditionalCostToCommit iid' c | iid' == iid -> Just c
-                _ -> Nothing
-            )
-            (modifiers' <> cardModifiers)
+      let msgs = map (CommitCard iid) cards
+      cardsAdditionalCosts <-
+        cards & concatMapM \c -> do
+          cardModifiers <- getModifiers c
+          let noAdditionalCosts = NoAdditionalCosts `elem` cardModifiers
+          pure $ cardModifiers & mapMaybe \case
+            AdditionalCostToCommit iid' cst | iid' == iid && noAdditionalCosts -> Just cst
+            _ -> Nothing
+
+      let playerCommitCosts = [c | CommitCost c <- modifiers']
+      let additionalCosts = cardsAdditionalCosts <> playerCommitCosts
       afterMsg <- checkWindows [mkAfter $ Window.CommittedCards iid cards]
       whenMsg <- checkWindows [mkWhen $ Window.CommittedCards iid cards]
       if null additionalCosts

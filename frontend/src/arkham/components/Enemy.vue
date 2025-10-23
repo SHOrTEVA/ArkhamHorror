@@ -17,6 +17,7 @@ import Event from '@/arkham/components/Event.vue'
 import Skill from '@/arkham/components/Skill.vue'
 import Token from '@/arkham/components/Token.vue'
 import Story from '@/arkham/components/Story.vue'
+import ScarletKey from '@/arkham/components/ScarletKey.vue';
 import * as Arkham from '@/arkham/types/Enemy'
 
 const props = withDefaults(defineProps<{
@@ -132,6 +133,7 @@ const lostSouls = computed(() => props.enemy.tokens[TokenType.LostSoul])
 const bounties = computed(() => props.enemy.tokens[TokenType.Bounty])
 const evidence = computed(() => props.enemy.tokens[TokenType.Evidence])
 const warnings = computed(() => props.enemy.tokens[TokenType.Warning])
+const targets = computed(() => props.enemy.tokens[TokenType.Target])
 const seals = computed(() => props.enemy.tokens[TokenType.Seal])
 
 const omnipotent = computed(() => {
@@ -251,7 +253,7 @@ function startDrag(event: DragEvent, enemy: Arkham.Enemy) {
 
           <div class="pool">
             <div class="keys" v-if="keys.length > 0">
-              <Key v-for="key in keys" :key="keyToId(key)" :name="key" />
+              <Key v-for="key in keys" :key="keyToId(key)" :name="key" :game="game" :playerId="playerId" @choose="choose" />
             </div>
             <PoolItem v-if="!omnipotent && !attached" type="health" :amount="enemyDamage" />
             <PoolItem v-if="doom && doom > 0" type="doom" :amount="doom" />
@@ -262,6 +264,7 @@ function startDrag(event: DragEvent, enemy: Arkham.Enemy) {
             <PoolItem v-if="bounties && bounties > 0" type="resource" :amount="bounties" />
             <PoolItem v-if="evidence && evidence > 0" type="resource" tooltip="Evidence" :amount="evidence" />
             <PoolItem v-if="warnings && warnings > 0" type="resource" tooltip="Warning" :amount="warnings" />
+            <PoolItem v-if="targets && targets > 0" type="resource" tooltip="Target" :amount="targets" />
             <PoolItem v-if="seals && seals > 0" type="resource" tooltip="Seal" :amount="seals" />
             <PoolItem v-if="enemy.cardsUnderneath.length > 0" type="card" :amount="enemy.cardsUnderneath.length" />
             <Token
@@ -324,6 +327,16 @@ function startDrag(event: DragEvent, enemy: Arkham.Enemy) {
         :attached="true"
         @choose="$emit('choose', $event)"
       />
+      <ScarletKey
+        v-for="skId in enemy.scarletKeys"
+        :scarletKey="game.scarletKeys[skId]"
+        :game="game"
+        :playerId="playerId"
+        :key="skId"
+        @choose="choose"
+        :attached="true"
+      />
+
       <template v-if="debug.active">
         <button @click="debugging = true">Debug</button>
       </template>
@@ -345,7 +358,7 @@ function startDrag(event: DragEvent, enemy: Arkham.Enemy) {
   </div>
 </template>
 
-<style scoped lang="scss">
+<style scoped>
 .small-treachery :deep(.card) {
   height: calc(var(--card-width) * 0.35);
 }
@@ -355,6 +368,10 @@ function startDrag(event: DragEvent, enemy: Arkham.Enemy) {
   object-position: bottom;
   height: calc(var(--card-width) * 0.6);
   margin-top: 2px;
+}
+
+:deep(.scarletKey) {
+  margin-top: calc(var(--card-width) * -0.4);
 }
 
 .enemy--can-interact {
@@ -395,7 +412,9 @@ function startDrag(event: DragEvent, enemy: Arkham.Enemy) {
     width: 20px;
   }
 
-  pointer-events: none;
+  &:not(:has(.key--can-interact)) {
+    pointer-events: none;
+  }
 }
 
 .exhausted {
@@ -432,7 +451,7 @@ function startDrag(event: DragEvent, enemy: Arkham.Enemy) {
     left: 100%;
     transform: translateY(50%) translateZ(0);
     z-index: 20000000000;
-    //z-index: 0;
+    /*z-index: 0;*/
   }
 
   &.left {

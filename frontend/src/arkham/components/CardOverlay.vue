@@ -1,8 +1,9 @@
 <script lang="ts" setup>
-import { reactive, ref, computed, watch, watchEffect, onMounted, onUnmounted } from 'vue'
+import { ComputedRef, reactive, ref, computed, watch, watchEffect, onMounted, onUnmounted } from 'vue'
 import { imgsrc, isLocalized, toCamelCase } from '@/arkham/helpers'
 import { BugAntIcon } from '@heroicons/vue/20/solid'
 import Key from '@/arkham/components/Key.vue'
+import { type ArkhamKey, keyToId } from '@/arkham/types/Key'
 import PoolItem from '@/arkham/components/PoolItem.vue'
 import { useDbCardStore, ArkhamDBCard } from '@/stores/dbCards'
 
@@ -216,6 +217,15 @@ watch([hoveredElement, sideways], ([el]) => {
 const ds = <T extends string = string>(key: T) =>
   computed<string | null>(() => hoveredElement.value?.dataset?.[key as any] ?? null)
 
+const dsMap = <X>(
+  key: keyof DOMStringMap,          // dataset keys
+  map: (v: string) => X
+): ComputedRef<X | null> =>
+  computed(() => {
+    const v = hoveredElement.value?.dataset?.[key]
+    return v !== undefined ? map(v) : null
+  })
+
 const jsonDs = <T>(key: string): T => {
   try { return JSON.parse(hoveredElement.value?.dataset?.[key] ?? '[]') as T }
   catch { return [] as unknown as T }
@@ -226,7 +236,7 @@ const health = ds('health')
 const evade = ds('evade')
 const victory = ds('victory')
 const keywords = ds('keywords')
-const swarm = ds('swarm')
+const swarm = dsMap('swarm', v => v === 'true')
 
 const depth = computed<number | null>(() => {
   const d = hoveredElement.value?.dataset?.depth
@@ -238,7 +248,7 @@ const crossedOff = computed<string[] | null>(() => {
   return arr.length ? arr : null
 })
 
-const spentKeys = computed<string[]>(() => jsonDs<string[]>('spentKeys'))
+const spentKeys = computed<ArkhamKey[]>(() => jsonDs<ArkhamKey[]>('spentKeys'))
 
 const overlay = ds('overlay')
 
@@ -515,7 +525,7 @@ watch(card, (src) => { if (src) loadAR(src) })
     <img class="horror horror-3" v-if="horror && horror >= 3" :src="imgsrc('horror-overlay.png')"/>
     <PoolItem class="depth" v-if="depth" type="resource" :amount="depth" />
     <div class="spent-keys" v-if="spentKeys.length > 0">
-      <Key v-for="key in spentKeys" :key="key" :name="key" />
+      <Key v-for="key in spentKeys" :key="keyToId(key)" :name="key" @choose="() => {}"/>
     </div>
     <div v-if="customizationsCard" class="customizations-wrapper" :class="{mutated}">
       <img :src="customizationsCard" />
@@ -542,7 +552,7 @@ watch(card, (src) => { if (src) loadAR(src) })
   </div>
 </template>
 
-<style scoped lang="scss">
+<style scoped>
 .fight, .evade, .health, .swarm {
   font-family: "Teutonic";
   position: absolute;
@@ -634,6 +644,7 @@ watch(card, (src) => { if (src) loadAR(src) })
     aspect-ratio: var(--card-aspect);
   }
   img.damage {
+    box-shadow: none;
     width: auto;
     height: 22px;
     position: absolute;
@@ -652,6 +663,7 @@ watch(card, (src) => { if (src) loadAR(src) })
 
   }
   img.horror {
+    box-shadow: none;
     width: auto;
     height: 22px;
     position: absolute;
@@ -670,8 +682,8 @@ watch(card, (src) => { if (src) loadAR(src) })
   }
   &.sideways {
     height: 300px !important;
-    //width: fit-content !important;
-    //aspect-ratio: var(--card-sideways-aspect);
+    /*width: fit-content !important;*/
+    /*aspect-ratio: var(--card-sideways-aspect);*/
     width: auto;
     @media (max-width: 800px) and (orientation: portrait){
       overflow: auto;
@@ -746,7 +758,7 @@ watch(card, (src) => { if (src) loadAR(src) })
   background-color: rgba(0,0,0,0.4);
 }
 
-// Hunter's Armor
+/* Hunter's Armor */
 .tick-09021 {
   --top-0: 19.1%;
   --top-1: 30.0%;
@@ -821,7 +833,7 @@ watch(card, (src) => { if (src) loadAR(src) })
   left: var(--left-3);
 }
 
-// Runic Axe
+/* Runic Axe */
 .tick-09022 {
   --top-0: 18.6%;
   --top-1: 25.3%;
@@ -902,7 +914,7 @@ watch(card, (src) => { if (src) loadAR(src) })
   left: var(--left-4);
 }
 
-// Custom Modifications
+/* Custom Modifications */
 .tick-09023 {
   --top-0: 19.1%;
   --top-1: 33.4%;
@@ -977,7 +989,7 @@ watch(card, (src) => { if (src) loadAR(src) })
   left: var(--left-4);
 }
 
-// Alchemical Distillation
+/* Alchemical Distillation */
 .tick-09040 {
   --top-0: 19.1%;
   --top-1: 26.7%;
@@ -1054,7 +1066,7 @@ watch(card, (src) => { if (src) loadAR(src) })
   left: var(--left-5);
 }
 
-// Empirical Hypothesis
+/* Empirical Hypothesis */
 .tick-09041 {
   --top-0: 18.4%;
   --top-1: 25.2%;
@@ -1139,7 +1151,7 @@ watch(card, (src) => { if (src) loadAR(src) })
   left: var(--left-4);
 }
 
-// The Raven Quill
+/* The Raven Quill */
 .tick-09042 {
   --top-1: 24.8%;
   --top-2: 31.2%;
@@ -1257,7 +1269,7 @@ watch(card, (src) => { if (src) loadAR(src) })
   left: var(--left-4);
 }
 
-// Damning Testimony
+/* Damning Testimony */
 .tick-09059 {
   --top-0: 18.6%;
   --top-1: 32.7%;
@@ -1332,7 +1344,7 @@ watch(card, (src) => { if (src) loadAR(src) })
   left: var(--left-4);
 }
 
-// Friends in Low Places
+/* Friends in Low Places */
 .tick-09060 {
   --top-1: 24.3%;
   --top-2: 34.0%;
@@ -1435,7 +1447,7 @@ watch(card, (src) => { if (src) loadAR(src) })
   left: var(--left-3);
 }
 
-// Honed Instinct
+/* Honed Instinct */
 .tick-09061 {
   --top-0: 19.0%;
   --top-1: 25.6%;
@@ -1545,7 +1557,7 @@ watch(card, (src) => { if (src) loadAR(src) })
   left: var(--left-5);
 }
 
-// Living Ink
+/* Living Ink */
 .tick-09079 {
   --top-1: 25.5%;
   --top-2: 36.5%;
@@ -1640,7 +1652,7 @@ watch(card, (src) => { if (src) loadAR(src) })
   left: var(--left-3);
 }
 
-// Summoned Servitor
+/* Summoned Servitor */
 .tick-09080 {
   --top-0: 18.3%;
   --top-1: 27.8%;
@@ -1734,7 +1746,7 @@ watch(card, (src) => { if (src) loadAR(src) })
   left: var(--left-5);
 }
 
-// Power Word
+/* Power Word */
 .tick-09081 {
   --top-0: 18.5%;
   --top-1: 28.2%;
@@ -1749,7 +1761,7 @@ watch(card, (src) => { if (src) loadAR(src) })
   --left-3: 14.2%;
 }
 
-// Power Word (Mutated)
+/* Power Word (Mutated) */
 .mutated .tick-09081 {
   --top-0: 18.8%;
   --top-1: 28.4%;
@@ -1825,7 +1837,7 @@ watch(card, (src) => { if (src) loadAR(src) })
   left: var(--left-3);
 }
 
-// Pocket Multi Tool
+/* Pocket Multi Tool */
 .tick-09099 {
   --top-0: 19.1%;
   --top-1: 30.0%;
@@ -1901,7 +1913,7 @@ watch(card, (src) => { if (src) loadAR(src) })
   left: var(--left-4);
 }
 
-// Makeshift Trap
+/* Makeshift Trap */
 .tick-09100 {
   --top-0: 19.2%;
   --top-1: 26.8%;
@@ -1977,7 +1989,7 @@ watch(card, (src) => { if (src) loadAR(src) })
   left: var(--left-4);
 }
 
-// Grizzled
+/* Grizzled */
 .tick-09101 {
   --top-1: 25.4%;
   --top-2: 33.6%;
@@ -2105,7 +2117,7 @@ watch(card, (src) => { if (src) loadAR(src) })
   left: var(--left-5);
 }
 
-// Hyperphysical Shotcaster
+/* Hyperphysical Shotcaster */
 .tick-09119 {
   --top-0: 19.0%;
   --top-1: 28.4%;

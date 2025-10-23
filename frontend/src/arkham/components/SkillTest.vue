@@ -55,7 +55,7 @@ const shouldRender = (mod: Modifier) => {
   if (type.tag === 'DamageDealt') return true
   if (type.tag === 'AnySkillValue') return true
   if (type.tag === 'SkillModifier') return true
-  if (type.tag === 'ActionSkillModifier') return true
+  if (type.tag === 'ActionSkillModifier') return type.action === props.skillTest.action
   if (type.tag === 'AddSkillValue') return true
   if (type.tag === 'RevealAnotherChaosToken') return true
   if (type.tag === 'DoubleSuccess') return true
@@ -220,6 +220,10 @@ const targetCard = computed(() => {
   return props.game.cards[props.skillTest.targetCard]
 })
 
+const isConcealed = computed(() => {
+  return props.skillTest.source.tag === 'AbilitySource' && props.skillTest.source.contents[0].tag === 'ConcealedCardSource'
+})
+
 type SwarmEnemy = Omit<Enemy, "placement"> & {
   placement: { tag: "AsSwarm"; swarmHost: string; swarmCard: Cards.Card };
 };
@@ -336,6 +340,12 @@ const createModifier = (target: {tag: string, contents: string}, modifier: {tag:
           </div>
         </div>
         <Card v-else-if="targetCard" :game="game" :card="targetCard" class="target-card" :revealed="true" playerId="" />
+        <img
+          v-else-if="isConcealed"
+          :src="imgsrc('mini-cards/concealed-card.jpg')"
+          class="target-card concealed"
+          :data-image="imgsrc('mini-cards/concealed-card.jpg')"
+        />
         <div class="test-status">
           <div class="test-difficulty">
             <button
@@ -516,7 +526,7 @@ const createModifier = (target: {tag: string, contents: string}, modifier: {tag:
   </Draggable>
 </template>
 
-<style scoped lang="scss">
+<style lang="scss" scoped>
 .skill-test {
   backdrop-filter: blur(0px);
   -webkit-backdrop-filter: blur(0px); /* Safari support */
@@ -525,6 +535,14 @@ const createModifier = (target: {tag: string, contents: string}, modifier: {tag:
   text-align: center;
   z-index: 10;
   overflow: auto;
+
+  .choices, :deep(.choices) {
+    gap: 0px;
+  }
+
+  .question-choices, :deep(.question-choices) {
+    gap: 0px;
+  }
 }
 
 .skill-test-contents {
@@ -995,10 +1013,15 @@ i.iconSkillAgility {
 .target-card {
   width: 100%;
   align-items: flex-end;
+  &.concealed {
+    width: 50%;
+    max-width: calc(var(--card-width) * 0.75);
+  }
 }
 
 .test-source {
   width: 100%;
   align-items: flex-start;
 }
+
 </style>

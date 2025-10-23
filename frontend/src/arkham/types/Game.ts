@@ -2,8 +2,10 @@ import * as JsonDecoder from 'ts.data.json';
 import { v2Optional } from '@/arkham/parser';
 import { Investigator, InvestigatorDetails, investigatorDecoder, investigatorDetailsDecoder } from '@/arkham/types/Investigator';
 import { Modifier, modifierDecoder } from '@/arkham/types/Modifier';
+import { ConcealedCard, concealedCardDecoder } from '@/arkham/types/ConcealedCard';
 import { Enemy, enemyDecoder } from '@/arkham/types/Enemy';
 import { Story, storyDecoder } from '@/arkham/types/Story';
+import { ScarletKey, scarletKeyDecoder } from '@/arkham/types/ScarletKey';
 import { Location, locationDecoder } from '@/arkham/types/Location';
 import { Message, MessageType } from '@/arkham/types/Message';
 import { Source } from '@/arkham/types/Source';
@@ -76,6 +78,7 @@ export type Game = {
   leadInvestigatorId: string;
   activePlayerId: string;
   locations: Record<string, Location>;
+  concealed: Record<string, ConcealedCard>;
   phase: Phase;
   phaseStep: PhaseStep | null;
   playerOrder: string[];
@@ -131,6 +134,8 @@ export function choices(game: Game, playerId: string): Message[] {
         return q.readChoices.contents;
       case 'PickSupplies':
         return q.choices;
+      case 'PickDestiny':
+        return [];
       default:
         return [];
     }
@@ -204,6 +209,7 @@ export const gameDecoder: JsonDecoder.Decoder<Game> = JsonDecoder.object(
     agendas: JsonDecoder.record<Agenda>(agendaDecoder, 'Dict<UUID, Agenda>'),
     assets: JsonDecoder.record<Asset>(assetDecoder, 'Dict<UUID, Asset>'),
     events: JsonDecoder.record<Event>(eventDecoder, 'Dict<UUID, Event>'),
+    scarletKeys: JsonDecoder.record<ScarletKey>(scarletKeyDecoder, 'Dict<CardCode, ScarletKey>'),
     enemies: JsonDecoder.record<Enemy>(enemyDecoder, 'Dict<UUID, Enemy>'),
     stories: JsonDecoder.record<Story>(storyDecoder, 'Dict<UUID, Story>'),
     gameState: gameStateDecoder,
@@ -212,6 +218,7 @@ export const gameDecoder: JsonDecoder.Decoder<Game> = JsonDecoder.object(
     leadInvestigatorId: JsonDecoder.string(),
     activePlayerId: JsonDecoder.string(),
     locations: JsonDecoder.record<Location>(locationDecoder, 'Dict<UUID, Location>'),
+    concealed: JsonDecoder.record<ConcealedCard>(concealedCardDecoder, 'Dict<UUID, ConcealedCard>'),
     phase: phaseDecoder,
     phaseStep: JsonDecoder.nullable(phaseStepDecoder),
     playerOrder: JsonDecoder.array(JsonDecoder.string(), 'PlayerOrder[]'),

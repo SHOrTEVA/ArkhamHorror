@@ -12,6 +12,7 @@ import Arkham.Message qualified as Msg
 import Arkham.Message.Lifted (story)
 import Arkham.Message.Lifted.Queue
 import Arkham.Prelude
+import Arkham.Tarot
 import Arkham.Text
 import Control.Monad.State.Strict
 import GHC.Records
@@ -54,8 +55,17 @@ p = addEntry . FT.p
 ul :: FT.UlItems -> FlavorTextBuilder ()
 ul = addEntry . FT.ul
 
+cols :: FlavorTextBuilder () -> FlavorTextBuilder ()
+cols body = do
+  let dup x = (x, x)
+  inner <- FlavorTextBuilder $ StateT $ Identity .  dup . execState (runStoryBuilder body)
+  addEntry $ FT.cols inner.flavorBody
+
 img :: HasCardCode a => a -> FlavorTextBuilder ()
 img = addEntry . FT.img . toCardCode
+
+tarot :: TarotCardArcana -> FlavorTextBuilder ()
+tarot = addEntry . TarotEntry
 
 compose :: FlavorTextBuilder () -> FlavorTextBuilder ()
 compose builder = case buildFlavor builder of
@@ -75,6 +85,16 @@ instance HasField "validate" (Scope -> FlavorTextBuilder ()) (Bool -> Scope -> F
     for_ (buildFlavor (f t)).flavorBody \case
       ModifyEntry mods inner' -> addEntry $ ModifyEntry (modifier : mods) inner'
       inner' -> addEntry $ ModifyEntry [modifier] inner'
+
+instance HasField "center" (Scope -> FlavorTextBuilder ()) (Scope -> FlavorTextBuilder ()) where
+  getField f t = for_ (buildFlavor (f t)).flavorBody \case
+    ModifyEntry mods inner' -> addEntry $ ModifyEntry (CenteredEntry : mods) inner'
+    inner' -> addEntry $ ModifyEntry [CenteredEntry] inner'
+
+instance HasField "noUnderline" (Scope -> FlavorTextBuilder ()) (Scope -> FlavorTextBuilder ()) where
+  getField f t = for_ (buildFlavor (f t)).flavorBody \case
+    ModifyEntry mods inner' -> addEntry $ ModifyEntry (NoUnderline : mods) inner'
+    inner' -> addEntry $ ModifyEntry [NoUnderline] inner'
 
 instance HasField "valid" (Scope -> FlavorTextBuilder ()) (Scope -> FlavorTextBuilder ()) where
   getField f t = for_ (buildFlavor (f t)).flavorBody \case
@@ -101,6 +121,11 @@ instance HasField "blue" (Scope -> FlavorTextBuilder ()) (Scope -> FlavorTextBui
     ModifyEntry mods inner' -> addEntry $ ModifyEntry (BlueEntry : mods) inner'
     inner' -> addEntry $ ModifyEntry [BlueEntry] inner'
 
+instance HasField "resolution" (Scope -> FlavorTextBuilder ()) (Scope -> FlavorTextBuilder ()) where
+  getField f t = for_ (buildFlavor (f t)).flavorBody \case
+    ModifyEntry mods inner' -> addEntry $ ModifyEntry (ResolutionEntry : mods) inner'
+    inner' -> addEntry $ ModifyEntry [ResolutionEntry] inner'
+
 instance HasField "green" (Scope -> FlavorTextBuilder ()) (Scope -> FlavorTextBuilder ()) where
   getField f t = for_ (buildFlavor (f t)).flavorBody \case
     ModifyEntry mods inner' -> addEntry $ ModifyEntry (GreenEntry : mods) inner'
@@ -120,6 +145,16 @@ instance
   getField f builder = for_ (buildFlavor $ f builder).flavorBody \case
     ModifyEntry mods inner' -> addEntry $ ModifyEntry (GreenEntry : mods) inner'
     inner' -> addEntry $ ModifyEntry [GreenEntry] inner'
+
+instance
+  HasField
+    "resolution"
+    (FlavorTextBuilder () -> FlavorTextBuilder ())
+    (FlavorTextBuilder () -> FlavorTextBuilder ())
+  where
+  getField f builder = for_ (buildFlavor $ f builder).flavorBody \case
+    ModifyEntry mods inner' -> addEntry $ ModifyEntry (ResolutionEntry : mods) inner'
+    inner' -> addEntry $ ModifyEntry [ResolutionEntry] inner'
 
 storyOnlyBuild :: ReverseQueue m => [InvestigatorId] -> FlavorTextBuilder () -> m ()
 storyOnlyBuild [] _ = pure ()

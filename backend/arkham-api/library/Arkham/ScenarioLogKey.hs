@@ -80,6 +80,9 @@ data ScenarioLogKey
     TheTeamStudiedTheHistoryOfTheElderThings
   | TheTeamDiscernedTheOriginOfTheShoggoths
   | TheTeamDiscoveredAHiddenPower
+  | -- | Sanguine Shadows
+    MatiasBolivarTrustsYou
+  | MatiasBolivarDoesntTrustYou
   | -- | Return to the City of Archives
     ReadAboutEarth
   | SawAFamiliarSpecimen
@@ -100,6 +103,7 @@ data ScenarioCountKey
   | SignOfTheGods
   | Distortion
   | Barriers LocationId LocationId
+  | CiviliansSlain
   deriving stock (Eq, Show, Ord, Data)
 
 instance ToGameLoggerFormat ScenarioLogKey where
@@ -165,6 +169,7 @@ instance FromJSON ScenarioCountKey where
         "CurrentDepth" -> pure CurrentDepth
         "SignOfTheGods" -> pure SignOfTheGods
         "Distortion" -> pure Distortion
+        "CiviliansSlain" -> pure CiviliansSlain
         _ -> fail "Unknown tag"
     _ -> fail "Expected String or Object"
 

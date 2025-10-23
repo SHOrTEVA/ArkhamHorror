@@ -85,6 +85,7 @@ data Payment
   | HorrorPayment Int
   | DamagePayment Int
   | DirectDamagePayment Int
+  | DirectHorrorPayment Int
   | InvestigatorDamagePayment Int
   | SkillIconPayment [SkillIcon]
   | Payments [Payment]
@@ -138,9 +139,6 @@ data Cost
   | SpendKeyCost ArkhamKey
   | SpendTokenKeyCost Int ChaosTokenFace
   | GroupSpendKeyCost ArkhamKey LocationMatcher
-  | DamageCost Source Target Int
-  | DirectDamageCost Source InvestigatorMatcher Int
-  | InvestigatorDamageCost Source InvestigatorMatcher DamageStrategy Int
   | DiscardTopOfDeckCost Int
   | DiscardTopOfDeckWithTargetCost Target Int
   | DiscardCost Zone Target
@@ -165,8 +163,6 @@ data Cost
   | SameSkillIconCost Int
   | DiscardCombinedCost Int
   | ShuffleDiscardCost Int CardMatcher
-  | HorrorCost Source Target Int
-  | HorrorCostX Source -- for The Black Book
   | Free
   | ScenarioResourceCost Int
   | ResourceCost Int
@@ -210,6 +206,15 @@ data Cost
   | GloriaCost -- lol, not going to attempt to make this generic
   | ArchiveOfConduitsUnidentifiedCost -- this either
   | LabeledCost Text Cost
+  | -- We do the costs that can kill the investigator last so we don't trigger discards before the cost is paid
+    DirectHorrorCost Source InvestigatorMatcher Int
+  | DirectDamageAndHorrorCost Source InvestigatorMatcher Int Int
+  | HorrorCost Source Target Int
+  | HorrorCostX Source -- for The Black Book
+  | DamageCost Source Target Int
+  | DirectDamageCost Source InvestigatorMatcher Int
+  | InvestigatorDamageCost Source InvestigatorMatcher DamageStrategy Int
+  | XCost Cost
   deriving stock (Show, Eq, Ord, Data)
 
 instance Plated Cost
@@ -246,6 +251,7 @@ data DynamicUseCostValue = DrawnCardsValue | DynamicCalculation GameCalculation
 
 displayCostType :: Cost -> Text
 displayCostType = \case
+  XCost c -> "X " <> displayCostType c
   LabeledCost lbl _ -> lbl
   ShuffleTopOfScenarioDeckIntoYourDeck n deckKey -> "Shuffle top " <> tshow n <> " cards of the " <> toDisplay deckKey <> " deck into your deck"
   RemoveEnemyDamageCost _n _k -> "Remove damage from enemy"
@@ -405,6 +411,8 @@ displayCostType = \case
   OrCost cs -> T.intercalate " or " $ map displayCostType cs
   DamageCost _ _ n -> tshow n <> " Damage"
   DirectDamageCost _ _ n -> tshow n <> " Direct Damage"
+  DirectHorrorCost _ _ n -> tshow n <> " Direct Damage"
+  DirectDamageAndHorrorCost _ _ m n -> tshow m <> " Direct Damage and " <> tshow n <> " Direct Horror"
   InvestigatorDamageCost _ _ _ n -> tshow n <> " Damage"
   DiscardCost zone _ -> "Discard from " <> zoneLabel zone
   DiscardCardCost _ -> "Discard Card"
@@ -439,12 +447,14 @@ displayCostType = \case
     Antiquity -> tshow n <> " Antiquities"
     Bounty -> if n == 1 then "1 Bounty" else tshow n <> " Bounties"
     Charge -> pluralize n "Charge"
+    Civilian -> pluralize n "Civilian"
     Clue -> error "Not a use"
     Corruption -> tshow n <> " Corruption"
     Damage -> error "Not a use"
     Depth -> tshow n <> " Depth"
     Doom -> error "Not a use"
     Durability -> tshow n <> " Durability"
+    Eclipse -> tshow n <> " Eclipses"
     Evidence -> tshow n <> " Evidence"
     Growth -> tshow n <> " Growth"
     Horror -> error "Not a use"
@@ -464,6 +474,7 @@ displayCostType = \case
     Shell -> pluralize n "Shell"
     Supply -> if n == 1 then "1 Supply" else tshow n <> " Supplies"
     Suspicion -> tshow n <> " Suspicion"
+    Target -> pluralize n "Target"
     Ticket -> pluralize n "Ticket"
     Time -> tshow n <> " Time"
     Truth -> tshow n <> " Truths"
@@ -478,12 +489,14 @@ displayCostType = \case
     Antiquity -> "X Antiquities"
     Bounty -> "X Bounties"
     Charge -> "X Charges"
+    Civilian -> "X Civilians"
     Clue -> error "Not a use"
     Corruption -> "X Corruptions"
     Damage -> error "Not a use"
     Depth -> "X Depth"
     Doom -> error "Not a use"
     Durability -> "X Durability"
+    Eclipse -> "X Eclipses"
     Evidence -> "X Evidence"
     Growth -> "X Growth"
     Horror -> error "Not a use"
@@ -503,6 +516,7 @@ displayCostType = \case
     Shell -> "X Shells"
     Supply -> "X Supplies"
     Suspicion -> "X Suspicion"
+    Target -> "X Targets"
     Ticket -> "X Times"
     Time -> "X Time"
     Truth -> "X Truths"
@@ -517,12 +531,14 @@ displayCostType = \case
     Antiquity -> tshow n <> "-" <> tshow m <> " Antiquities"
     Bounty -> tshow n <> "-" <> tshow m <> " Bounties"
     Charge -> tshow n <> "-" <> tshow m <> " Charges"
+    Civilian -> tshow n <> "-" <> tshow m <> " Civilians"
     Clue -> error "Not a use"
     Corruption -> tshow n <> "-" <> tshow m <> " Corruption"
     Damage -> error "Not a use"
     Depth -> tshow n <> "-" <> tshow m <> " Depth"
     Doom -> error "Not a use"
     Durability -> tshow n <> "-" <> tshow m <> " Durability"
+    Eclipse -> tshow n <> "-" <> tshow m <> " Eclipses"
     Evidence -> tshow n <> "-" <> tshow m <> " Evidence"
     Growth -> tshow n <> "-" <> tshow m <> " Growth"
     Horror -> error "Not a use"
@@ -542,6 +558,7 @@ displayCostType = \case
     Shell -> tshow n <> "-" <> tshow m <> " Shells"
     Supply -> tshow n <> "-" <> tshow m <> " Supplies"
     Suspicion -> tshow n <> "-" <> tshow m <> " Suspicion"
+    Target -> tshow n <> "-" <> tshow m <> " Targets"
     Ticket -> tshow n <> "-" <> tshow m <> " Tickets"
     Time -> tshow n <> "-" <> tshow m <> " Time"
     Truth -> tshow n <> "-" <> tshow m <> " Truth"
@@ -593,8 +610,13 @@ combineCosts :: [Cost] -> [Cost]
 combineCosts l@[] = l
 combineCosts l@[_] = l
 combineCosts (x : y : rest) = case (x, y) of
+  (ClueCost (Static a), ClueCost (Static b)) -> combineCosts $ ClueCost (Static $ a + b) : rest
+  (ClueCost (PerPlayer a), ClueCost (PerPlayer b)) -> combineCosts $ ClueCost (PerPlayer $ a + b) : rest
+  (ClueCost (Static a), ClueCost (PerPlayer b)) -> combineCosts $ ClueCost (StaticWithPerPlayer a b) : rest
+  (ClueCost (PerPlayer a), ClueCost (Static b)) -> combineCosts $ ClueCost (StaticWithPerPlayer b a) : rest
   (ActionCost a, ActionCost b) -> combineCosts $ ActionCost (a + b) : rest
   (ResourceCost a, ResourceCost b) -> combineCosts $ ResourceCost (a + b) : rest
+  (HorrorCost s1 t1 a, HorrorCost s2 t2 b) | s1 == s2 && t1 == t2 -> combineCosts $ HorrorCost s1 t1 (a + b) : rest
   _ -> x : combineCosts (y : rest)
 
 instance Monoid Cost where

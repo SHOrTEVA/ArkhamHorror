@@ -1,5 +1,6 @@
 module Arkham.Event.Events.DynamiteBlast (dynamiteBlast) where
 
+import Arkham.Campaigns.TheScarletKeys.Concealed.Helpers
 import Arkham.Event.Cards qualified as Cards
 import Arkham.Event.Import.Lifted
 import Arkham.ForMovement
@@ -22,11 +23,16 @@ instance RunMessage DynamiteBlast where
       chooseOneM iid do
         for_ locations \location -> do
           enemies <- if canDealDamage then select (enemyAt location) else pure []
+          concealed <- if canDealDamage then getConcealedIds (ForExpose $ toSource attrs) iid else pure []
           investigators <- select $ investigatorAt location
-          unless (null enemies && null investigators) do
+          unless (null enemies && null investigators && null concealed) do
             targeting location do
               uiEffect attrs location Explosion
               for_ enemies (nonAttackEnemyDamage (Just iid) attrs 3)
               for_ investigators \iid' -> assignDamage iid' attrs 3
+              unless (null concealed) do
+                chooseOneM iid do
+                  labeled "Expose concealed card" $ chooseTargetM iid concealed $ exposeConcealed iid attrs
+                  labeled "Do not expose concealed card" nothing
       pure e
     _ -> DynamiteBlast <$> liftRunMessage msg attrs

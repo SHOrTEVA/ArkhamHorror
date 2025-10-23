@@ -445,7 +445,7 @@ const toggleIncludeEncounter = () => {
   </div>
 </template>
 
-<style scoped lang="scss">
+<style scoped>
 .container {
   display: flex;
   height: calc(100% - 40px);
@@ -470,7 +470,7 @@ const toggleIncludeEncounter = () => {
 
   &:deep(.card-container) {
     width: unset;
-    max-width: unset;
+    max-width: 300px;
   }
 }
 

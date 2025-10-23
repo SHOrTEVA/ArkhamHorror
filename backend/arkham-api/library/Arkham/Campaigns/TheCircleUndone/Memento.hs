@@ -4,6 +4,7 @@ import Arkham.Prelude
 
 data Memento
   = MesmerizingFlute
+  | StrangeIncantation
   | RitualComponents
   | ScrapOfTornShadow
   | Gilman'sJournal
@@ -11,5 +12,6 @@ data Memento
   | WornCrucifix
   | WispOfSpectralMist
   | CornHuskDoll
+  | BloodyTreeCarvings
   deriving stock (Show, Ord, Eq, Generic)
   deriving anyclass (ToJSON, FromJSON)

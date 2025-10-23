@@ -78,7 +78,15 @@ abilityIsActionAbility a = case abilityType a of
 abilityIsActivate :: Ability -> Bool
 abilityIsActivate a = not a.basic && a.index `notElem` notActivateIndexes && abilityIsActionAbility a
  where
-  notActivateIndexes = [PlayAbility, ResourceAbility, AbilityAttack, AbilityInvestigate, AbilityEvade, AbilityEngage, NonActivateAbility]
+  notActivateIndexes =
+    [ PlayAbility
+    , ResourceAbility
+    , AbilityAttack
+    , AbilityInvestigate
+    , AbilityEvade
+    , AbilityEngage
+    , NonActivateAbility
+    ]
 
 abilityIsFastAbility :: Ability -> Bool
 abilityIsFastAbility a = case abilityType a of
@@ -127,6 +135,9 @@ noLimit = limitedAbility NoLimit
 
 groupLimit :: AbilityLimitType -> Ability -> Ability
 groupLimit lType = limitedAbility (GroupLimit lType 1)
+
+onlyOnce :: Ability -> Ability
+onlyOnce = groupLimit PerGame
 
 withTooltip :: Text -> Ability -> Ability
 withTooltip t a = a & abilityTooltipL ?~ t
@@ -279,6 +290,7 @@ mkAbility entity idx type' =
     , abilityBasic = False
     , abilityAdditionalCosts = []
     , abilityWantsSkillTest = Nothing
+    , abilityTarget = Nothing
     }
 
 applyAbilityModifiers :: Ability -> [ModifierType] -> Ability
@@ -512,7 +524,10 @@ isPerWindowLimit = \case
 defaultAbilityLimit :: AbilityType -> AbilityLimit
 defaultAbilityLimit = \case
   ForcedAbility window' -> case window' of
-    SkillTestResult {} -> PlayerLimit PerTestOrAbility 1
+    SkillTestResult {} -> PlayerLimit PerTest 1
+    Moves {} -> PlayerLimit PerMove 1
+    Enters {} -> PlayerLimit PerMove 1
+    EnemySpawns {} -> GroupLimit PerSpawn 1
     _ -> GroupLimit PerWindow 1
   SilentForcedAbility _ -> GroupLimit PerWindow 1
   ForcedAbilityWithCost _ _ -> GroupLimit PerWindow 1

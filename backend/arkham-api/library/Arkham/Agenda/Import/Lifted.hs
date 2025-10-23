@@ -7,9 +7,11 @@ import Arkham.Agenda.Runner as X (
   IsAgenda,
   agenda,
   agendaWith,
+  doomL,
   doomThresholdL,
   is,
   isSide,
+  metaL,
   onSide,
   push,
   pushAll,
@@ -47,6 +49,7 @@ import Arkham.Source as X
 import Arkham.Target as X
 
 import Arkham.Card.CardDef
+import Arkham.Matcher
 import Arkham.Resolution
 
 advanceAgenda :: ReverseQueue m => AgendaAttrs -> m ()
@@ -57,3 +60,12 @@ noResolution = push $ ScenarioResolution NoResolution
 
 advanceToAgenda :: ReverseQueue m => AgendaAttrs -> CardDef -> AgendaSide -> m ()
 advanceToAgenda attrs newAgenda side = push $ AdvanceToAgenda attrs.deck newAgenda side (toSource attrs)
+
+setMeta :: ToJSON a => a -> AgendaAttrs -> AgendaAttrs
+setMeta meta attrs = attrs & metaL .~ toJSON meta
+
+ifEnemyDefeated :: CardDef -> WindowMatcher
+ifEnemyDefeated = ifEnemyDefeatedMatch . enemyIs
+
+ifEnemyDefeatedMatch :: EnemyMatcher -> WindowMatcher
+ifEnemyDefeatedMatch = IfEnemyDefeated #after Anyone ByAny

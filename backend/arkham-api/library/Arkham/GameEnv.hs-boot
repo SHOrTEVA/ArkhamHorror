@@ -21,7 +21,9 @@ import Arkham.Phase
 import Arkham.Random
 import Arkham.SkillTest.Base
 import Arkham.Target
+import Arkham.Tracing
 import Arkham.Window
+import OpenTelemetry.Trace.Monad (MonadTracer)
 
 withActiveInvestigator
   :: HasGame m => InvestigatorId -> ReaderT Game m a -> m a
@@ -34,12 +36,13 @@ withModifiers'
 getAllModifiers :: HasGame m => m (Map Target [Modifier])
 getActiveAbilities :: HasGame m => m [Ability]
 getPhase :: HasGame m => m Phase
+getEnemyPhaseStep :: HasGame m => m (Maybe EnemyPhaseStep)
 getCurrentBatchId :: HasGame m => m (Maybe BatchId)
 getWindowDepth :: HasGame m => m Int
 getDepthLock :: HasGame m => m Int
 getSkillTest :: HasGame m => m (Maybe SkillTest)
 getActiveCosts :: HasGame m => m [ActiveCost]
-getDistance :: HasGame m => LocationId -> LocationId -> m (Maybe Distance)
+getDistance :: (HasGame m, Tracing m) => LocationId -> LocationId -> m (Maybe Distance)
 getAllAbilities :: HasGame m => m [Ability]
 getWindowStack :: HasGame m => m [[Window]]
 getActionCanBeUndone :: HasGame m => m Bool
@@ -62,6 +65,7 @@ runWithEnv
      , HasStdGen env
      , HasGameLogger m
      , MonadReader env m
+     , MonadTracer m
      )
   => GameT a
   -> m a

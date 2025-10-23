@@ -1,3 +1,4 @@
+{-# OPTIONS_GHC -Wno-deprecations #-}
 module Arkham.Campaign.Campaigns.TheForgottenAge (theForgottenAge, TheForgottenAge (..)) where
 
 import Arkham.Asset.Cards qualified as Assets
@@ -24,6 +25,7 @@ import Arkham.Modifier (setActiveDuringSetup)
 import Arkham.Projection
 import Arkham.Source
 import Arkham.Target
+import Arkham.Tracing
 import Arkham.Treachery.Cards qualified as Treacheries
 import Data.Aeson (Result (..))
 import Data.Aeson.Types (parseMaybe)
@@ -42,7 +44,7 @@ instance FromJSON TheForgottenAge where
 
 instance IsCampaign TheForgottenAge where
   campaignTokens = chaosBagContents
-  nextStep a = case campaignStep (toAttrs a) of
+  nextStep a = case traceShowId (campaignStep (toAttrs a)).normalize of
     PrologueStep -> Just TheUntamedWilds
     TheUntamedWilds -> Just (InterludeStep 1 Nothing)
     InterludeStep 1 _ -> Just (UpgradeDeckStep TheDoomOfEztli)
@@ -66,10 +68,10 @@ instance IsCampaign TheForgottenAge where
 theForgottenAge :: Difficulty -> TheForgottenAge
 theForgottenAge = campaign TheForgottenAge (CampaignId "04") "The Forgotten Age"
 
-initialSupplyPoints :: HasGame m => m Int
+initialSupplyPoints :: (HasGame m, Tracing m) => m Int
 initialSupplyPoints = getPlayerCountValue (ByPlayerCount 10 7 5 4)
 
-initialResupplyPoints :: HasGame m => m Int
+initialResupplyPoints :: (HasGame m, Tracing m) => m Int
 initialResupplyPoints = getPlayerCountValue (ByPlayerCount 8 5 4 3)
 
 instance RunMessage TheForgottenAge where
@@ -230,42 +232,49 @@ instance RunMessage TheForgottenAge where
             { campaignMeta =
                 toJSON $ Metadata resupplyMap (yithians metadata) (expeditionLeader metadata) (bonusXp metadata)
             }
-      ForInvestigator iid (CampaignStep ResupplyPoint) -> do
+      ForInvestigator _iid (CampaignStep ResupplyPoint) -> do
         let isReturnTo = attrs.id == "53"
         when isReturnTo $ doStep 1 msg -- convert xp to supply points
         doStep 2 msg -- remove poisoned
         doStep 3 msg -- heal trauma
-        pickSupplies iid True metadata resupplyPointSupplies msg
+        do_ msg -- run pick supplies with updated details
         pure c
-      DoStep 0 (DoStep spend (ForInvestigator iid (CampaignStep ResupplyPoint))) -> do
-        pure
-          $ TheForgottenAge
-          $ attrs
-            { campaignMeta =
-                toJSON
-                  $ Metadata
-                    (supplyPoints metadata)
-                    (yithians metadata)
-                    (expeditionLeader metadata)
-                    ( Map.alter
-                        (maybe Nothing (\v -> let v' = max 0 (v - spend) in guard (v' > 0) $> v'))
-                        iid
-                        (bonusXp metadata)
-                    )
-            }
+      Do msg'@(ForInvestigator iid (CampaignStep ResupplyPoint)) -> do
+        pickSupplies iid True metadata resupplyPointSupplies (Do msg')
+        pure c
       DoStep 1 (ForInvestigator iid (CampaignStep ResupplyPoint)) -> do
         let extraXp = Map.findWithDefault 0 iid (bonusXp metadata)
         xp <- field InvestigatorXp iid
         when (xp + extraXp >= 2) do
-          chooseAmount' iid "supplyPointsToGain" "$supplyPoints" 0 (xp + extraXp `div` 2) CampaignTarget
+          chooseAmount'
+            iid
+            "supplyPointsToGain"
+            "$supplyPoints"
+            0
+            (min 5 $ xp + extraXp `div` 2)
+            CampaignTarget
         pure c
       ResolveAmounts iid (getChoiceAmount "$supplyPoints" -> n) CampaignTarget | n > 0 -> do
-        let total = n * 2
-        let extraXp = Map.findWithDefault 0 iid (bonusXp metadata)
-        let remaining = max 0 (total - extraXp)
-        doStep 0 (DoStep total (ForInvestigator iid (CampaignStep ResupplyPoint)))
-        when (remaining > 0) $ push $ SpendXP iid remaining
-        pure c
+        let total = n * 2 -- amount of xp to spend
+        let extraXp = Map.findWithDefault 0 iid (bonusXp metadata) -- extra xp to spend
+        let remaining = max 0 (total - extraXp) -- get remaining to deduct from actual xp
+        when (remaining > 0) $ push $ SpendXP iid remaining -- spend xp if we need to
+        let resupplyMap = Map.insertWith (+) iid n (supplyPoints metadata) -- updated supplies
+        pure
+          . TheForgottenAge
+          $ attrs
+            { campaignMeta =
+                toJSON
+                  $ Metadata
+                    resupplyMap
+                    (yithians metadata)
+                    (expeditionLeader metadata)
+                    ( Map.alter
+                        (maybe Nothing (\v -> let v' = max 0 (v - total) in guard (v' > 0) $> v'))
+                        iid
+                        (bonusXp metadata)
+                    )
+            }
       DoStep 2 msg'@(ForInvestigator iid (CampaignStep ResupplyPoint)) -> scope "resupplyPoint" do
         let extraXp = Map.findWithDefault 0 iid (bonusXp metadata)
         isPoisoned <- getIsPoisoned iid
@@ -323,7 +332,7 @@ instance RunMessage TheForgottenAge where
           getInvestigatorsWithSupply Gasoline >>= \case
             [] -> do
               flavor $ setTitle "title" >> p.green "outOfGas"
-              cannotMulligan <- toModifiers CampaignSource [CannotMulligan]
+              cannotMulligan <- map setActiveDuringSetup <$> toModifiers CampaignSource [CannotMulligan]
               pure $ ala Endo foldMap [modifiersL %~ insertWith (<>) iid cannotMulligan | iid <- investigators]
             x : _ -> do
               useSupply x Gasoline
@@ -511,7 +520,7 @@ instance RunMessage TheForgottenAge where
         hasChalk <- getAnyHasSupply Chalk
         flavor $ setTitle "title" >> p.green (if hasChalk then "theWayIsOpen" else "theWayIsShut")
 
-        mods <- toModifiers CampaignSource [CannotMulligan]
+        mods <- map setActiveDuringSetup <$> toModifiers CampaignSource [CannotMulligan]
         iids <- allInvestigators
         let
           update =

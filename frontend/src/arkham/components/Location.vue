@@ -3,9 +3,11 @@ import { onBeforeUnmount, ComputedRef, ref, computed, watch, nextTick } from 'vu
 import { useDebug } from '@/arkham/debug';
 import { Game } from '@/arkham/types/Game';
 import { imgsrc } from '@/arkham/helpers';
+import { keyToId } from '@/arkham/types/Key'
 import * as ArkhamGame from '@/arkham/types/Game';
 import DebugLocation from '@/arkham/components/debug/Location.vue';
 import { AbilityLabel, AbilityMessage, Message, MessageType } from '@/arkham/types/Message';
+import ConcealedCard from '@/arkham/components/ConcealedCard.vue';
 import Key from '@/arkham/components/Key.vue';
 import Seal from '@/arkham/components/Seal.vue';
 import Locus from '@/arkham/components/Locus.vue';
@@ -14,6 +16,7 @@ import Investigator from '@/arkham/components/Investigator.vue';
 import Asset from '@/arkham/components/Asset.vue';
 import Event from '@/arkham/components/Event.vue';
 import Story from '@/arkham/components/Story.vue';
+import ScarletKey from '@/arkham/components/ScarletKey.vue';
 import Treachery from '@/arkham/components/Treachery.vue';
 import Token from '@/arkham/components/Token.vue'
 import AbilitiesMenu from '@/arkham/components/AbilitiesMenu.vue'
@@ -21,6 +24,7 @@ import PoolItem from '@/arkham/components/PoolItem.vue';
 import * as Arkham from '@/arkham/types/Location';
 import { TokenType } from '@/arkham/types/Token';
 import { Card } from '../types/Card';
+import useHighlighter from '@/composeable/useHighlighter';
 
 export interface Props {
   game: Game
@@ -33,6 +37,7 @@ const frame = ref(null)
 const debugging = ref(false)
 const showAbilities = ref<boolean>(false)
 const abilitiesEl = ref<HTMLElement | null>(null)
+const highlighter = useHighlighter()
 
 const dragover = (e: DragEvent) => {
   e.preventDefault()
@@ -84,6 +89,9 @@ function isCardAction(c: Message): boolean {
   return false
 }
 
+const concealed = computed(() => Object.values(props.game.concealed).filter((c) => props.location.concealedCards.includes(c.id)))
+const unknownConcealed = computed(() => concealed.value.filter(c => !c.known))
+const knownConcealed = computed(() => concealed.value.filter(c => c.known))
 const cardAction = computed(() => choices.value.findIndex(isCardAction))
 const canInteract = computed(() => abilities.value.length > 0 || cardAction.value !== -1)
 let clickTimeout: number | null = null
@@ -190,6 +198,13 @@ const attachedEnemies = computed(() => {
     .filter((e) => props.game.enemies[e].placement.tag === 'AttachedToLocation')
 })
 
+const attachedKeys = computed(() => {
+  const scarletKeyIds = props.location.scarletKeys;
+
+  return scarletKeyIds
+    .filter((e) => props.game.scarletKeys[e].placement.tag === 'AttachedToLocation')
+})
+
 const stories = computed(() => {
   return Object.values(props.game.stories)
     .filter((s) => {
@@ -210,7 +225,7 @@ const treacheries = computed(() => {
 })
 
 const hasAttachments = computed(() => {
-  return treacheries.value.length > 0 || props.location.events.length > 0 || attachedEnemies.value.length > 0
+  return treacheries.value.length > 0 || props.location.events.length > 0 || attachedEnemies.value.length > 0 || attachedKeys.value.length > 0
 })
 
 const encounterCardsUnderneath = computed(() => {
@@ -231,6 +246,8 @@ const hasPool = computed(() => {
     (pillars.value && pillars.value > 0) ||
     (leylines.value && leylines.value > 0) ||
     (antiquities.value && antiquities.value > 0) ||
+    (civilians.value && civilians.value > 0) ||
+    (targets.value && targets.value > 0) ||
     (sealTokens.value && sealTokens.value > 0) ||
     (depth.value && depth.value > 0) ||
     (breaches.value && breaches.value > 0) ||
@@ -271,6 +288,8 @@ const depth = computed(() => props.location.tokens[TokenType.Depth])
 const leylines = computed(() => props.location.tokens[TokenType.Leyline])
 const shards = computed(() => props.location.tokens[TokenType.Shard])
 const antiquities = computed(() => props.location.tokens[TokenType.Antiquity])
+const civilians = computed(() => props.location.tokens[TokenType.Civilian])
+const targets = computed(() => props.location.tokens[TokenType.Target])
 const breaches = computed(() => {
   const {breaches} = props.location
   if (breaches) {
@@ -318,6 +337,7 @@ function onDrop(event: DragEvent) {
 }
 
 const showCardsUnderneath = () => emits('show', playerCardsUnderneath, "Cards Underneath", false)
+const highlighted = computed(() => highlighter.highlighted.value === props.location.id)
 </script>
 
 <template>
@@ -346,7 +366,7 @@ const showCardsUnderneath = () => emits('show', playerCardsUnderneath, "Cards Un
             <font-awesome-icon :icon="['fa', 'circle-exclamation']" />
           </span>
 
-          <div class="card-frame-inner">
+          <div class="card-frame-inner" :class="{ highlighted }">
             <Story v-if="locationStory" :story="locationStory" :game="game" :playerId="playerId" @choose="choose"/>
             <template v-else>
               <div class="wave" v-if="location.floodLevel" :class="{ [location.floodLevel]: true }"></div>
@@ -364,13 +384,13 @@ const showCardsUnderneath = () => emits('show', playerCardsUnderneath, "Cards Un
             </template>
           </div>
 
-          <div class="clues pool" v-if="(clues ?? 0) > 0 || floodLevel">
+          <div class="clues pool location-pool" v-if="(clues ?? 0) > 0 || floodLevel">
             <PoolItem v-if="clues && clues > 0" type="clue" :amount="clues" />
             <img v-if="floodLevel" :src="floodLevel" class="flood-level" />
           </div>
 
-          <div class="pool" v-if="hasPool">
-            <Key v-for="key in keys" :key="key" :name="key" />
+          <div class="pool location-pool" v-if="hasPool">
+            <Key v-for="key in keys" :key="keyToId(key)" :name="key" :game="game" :playerId="playerId" @choose="choose" />
             <Seal v-for="seal in seals" :key="seal.sealKind" :seal="seal" />
             <PoolItem v-if="doom && doom > 0" type="doom" :amount="doom" />
             <PoolItem v-if="horror && horror > 0" type="horror" :amount="horror" />
@@ -380,6 +400,8 @@ const showCardsUnderneath = () => emits('show', playerCardsUnderneath, "Cards Un
             <PoolItem v-if="leylines && leylines > 0" type="resource" tooltip="Leyline" :amount="leylines" />
             <PoolItem v-if="shards && shards > 0" type="resource" tooltip="Shard" :amount="shards" />
             <PoolItem v-if="antiquities && antiquities > 0" type="resource" tooltip="Antiquity" :amount="antiquities" />
+            <PoolItem v-if="civilians && civilians > 0" type="resource" tooltip="Civilian" :amount="civilians" />
+            <PoolItem v-if="targets && targets > 0" type="resource" tooltip="Target" :amount="targets" />
             <PoolItem v-if="sealTokens && sealTokens > 0" type="resource" tooltip="Seal" :amount="sealTokens" />
 
             <PoolItem v-if="depth && depth > 0" type="resource" :amount="depth" />
@@ -445,6 +467,15 @@ const showCardsUnderneath = () => emits('show', playerCardsUnderneath, "Cards Un
           @choose="choose"
           :attached="true"
         />
+        <ScarletKey
+          v-for="skId in attachedKeys"
+          :scarletKey="game.scarletKeys[skId]"
+          :game="game"
+          :playerId="playerId"
+          :key="skId"
+          @choose="choose"
+          :attached="true"
+        />
       </div>
       <div class="location-asset-column">
         <Asset
@@ -474,13 +505,18 @@ const showCardsUnderneath = () => emits('show', playerCardsUnderneath, "Cards Un
           :atLocation="true"
           @choose="choose"
         />
+        <div v-if="unknownConcealed.length > 0" class='concealed-card-stack'>
+          <ConcealedCard :card="unknownConcealed[0]" :game="game" :playerId="playerId" @choose="choose" />
+          <span class='count'>{{unknownConcealed.length}}</span>
+        </div>
+        <ConcealedCard v-for="card in knownConcealed" :key="card.id" :card="card" :game="game" :playerId="playerId" @choose="choose" />
       </div>
     </div>
     <DebugLocation v-if="debugging" :game="game" :location="location" :playerId="playerId" @close="debugging = false" />
   </div>
 </template>
 
-<style scoped lang="scss">
+<style scoped>
 .location--can-interact {
   border: 2px solid var(--select);
   cursor: pointer;
@@ -533,15 +569,17 @@ const showCardsUnderneath = () => emits('show', playerCardsUnderneath, "Cards Un
   flex-direction: column;
   position: relative;
   grid-area: location;
-  width: min(calc(10vw + 20px), 60px);//var(--card-width);
+  width: min(calc(10vw + 20px), 60px);
 }
 
-.pool {
+.location-pool {
   display: flex;
   flex-direction: row;
   justify-self: flex-start;
   height: 2em;
-  pointer-events: none;
+  &:not(:has(> .key--can-interact)) {
+    pointer-events: none;
+  }
   & :deep(.poolItem) {
     pointer-events: none;
   }
@@ -637,7 +675,7 @@ const showCardsUnderneath = () => emits('show', playerCardsUnderneath, "Cards Un
   }
   &:hover {
     animation-fill-mode:forwards;
-    div:not(:last-child) {
+    > div:not(:last-child) {
       margin-top: 10px;
     }
   }
@@ -648,12 +686,12 @@ const showCardsUnderneath = () => emits('show', playerCardsUnderneath, "Cards Un
     transition: all 0.2s;
   }
 
-  div:not(:last-child) {
+  > div:not(:last-child) {
     margin-top: -40px;
   }
 }
 
-.pool {
+.pool.location-pool {
   position: absolute;
   top: 50%;
   align-items: center;
@@ -661,7 +699,9 @@ const showCardsUnderneath = () => emits('show', playerCardsUnderneath, "Cards Un
   align-self: flex-start;
   align-items: flex-end;
   gap: 2px;
-  pointer-events: none;
+  &:not(:has(.keys .key--can-interact)) {
+    pointer-events: none;
+  }
   &.clues {
     top: 10%;
     @media (max-width: 800px) and (orientation: portrait) {
@@ -693,7 +733,10 @@ const showCardsUnderneath = () => emits('show', playerCardsUnderneath, "Cards Un
   .card-frame-inner {
     overflow: hidden;
     position: relative;
+    transition: transform 0.2s;
+    transform: scale(1);
     line-height: 0;
+    box-sizing: border-box;
     box-shadow: var(--card-shadow);
     &:deep(.card) {
       width: calc(var(--card-width) + 4px);
@@ -701,6 +744,10 @@ const showCardsUnderneath = () => emits('show', playerCardsUnderneath, "Cards Un
       border-radius: 3px;
       border-width: 1px;
     }
+    &.highlighted {
+      transform: scale(1.1);
+    }
+    --gradient-glow: #BDE038, rebeccapurple, rebeccapurple, #BDE038;
   }
 }
 
@@ -892,5 +939,37 @@ const showCardsUnderneath = () => emits('show', playerCardsUnderneath, "Cards Un
 
 :deep(.token) {
   width: 30px;
+}
+
+.concealed-card {
+  width: calc(var(--card-width) * 0.55);
+  border-radius: 3px;
+}
+
+.concealed-card-stack {
+  position: relative;
+  display: grid;
+  grid-template-areas: "stack";
+  align-items: center;
+  justify-items: center;
+  > * {
+    grid-area: stack;
+    justify-self: center;
+  }
+  .count {
+    align-self: start;
+    margin-top: 5%;
+    font-weight: bold;
+    border-radius: 100vw;
+    background-color: rgba(255, 255, 255, 0.6);
+    width: auto;
+    height: 1.2em;
+    display: grid;
+    aspect-ratio: 1 / 1;
+    text-align: center;
+    align-content: center;
+    justify-content: center;
+    pointer-events: none;
+  }
 }
 </style>

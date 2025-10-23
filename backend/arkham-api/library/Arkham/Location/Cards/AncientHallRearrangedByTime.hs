@@ -3,6 +3,7 @@ module Arkham.Location.Cards.AncientHallRearrangedByTime (ancientHallRearrangedB
 import Arkham.Ability
 import Arkham.Campaigns.TheForgottenAge.Supply
 import Arkham.Direction
+import Arkham.Helpers.GameValue
 import Arkham.Location.Cards qualified as Cards
 import Arkham.Location.Import.Lifted
 import Arkham.Matcher
@@ -31,11 +32,12 @@ instance HasAbilities AncientHallRearrangedByTime where
 instance RunMessage AncientHallRearrangedByTime where
   runMessage msg l@(AncientHallRearrangedByTime attrs) = runQueueT $ case msg of
     PlacedLocation _ _ lid | lid == attrs.id -> do
-      AncientHallRearrangedByTime <$> liftRunMessage msg (attrs & tokensL %~ addTokens #doom 2)
+      n <- perPlayer 1
+      AncientHallRearrangedByTime <$> liftRunMessage msg (attrs & tokensL %~ addTokens #doom n)
     UseThisAbility _ (isSource attrs -> True) 1 -> do
-      when (attrs.clues > 0) $ flipDoomToClues attrs 1
+      when (attrs.doom > 0) $ flipDoomToClues attrs 1
       pure l
     UseThisAbility _ (isSource attrs -> True) 2 -> do
-      when (attrs.clues > 0) $ flipDoomToClues attrs 1
+      when (attrs.doom > 0) $ flipDoomToClues attrs 1
       pure l
     _ -> AncientHallRearrangedByTime <$> liftRunMessage msg attrs

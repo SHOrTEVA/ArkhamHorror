@@ -14,6 +14,7 @@ import Arkham.Classes.HasModifiersFor
 import Arkham.Classes.RunMessage.Internal
 import Arkham.Difficulty
 import Arkham.Helpers
+import Arkham.I18n
 import Arkham.Id
 import Arkham.Json
 import Arkham.Modifier
@@ -23,6 +24,7 @@ import Arkham.Projection
 import Arkham.Resolution
 import Arkham.Source
 import Arkham.Target
+import Arkham.Tarot
 import Arkham.Xp
 import Control.Monad.Writer hiding (filterM)
 import Data.Aeson.TH
@@ -54,18 +56,20 @@ class
 
 data instance Field Campaign :: Type -> Type where
   CampaignCompletedSteps :: Field Campaign [CampaignStep]
-  CampaignStoryCards :: Field Campaign (Map InvestigatorId [PlayerCard])
+  CampaignStoryCards :: Field Campaign (Map InvestigatorId [Card])
   CampaignCampaignLog :: Field Campaign CampaignLog
+  CampaignChaosBag :: Field Campaign [ChaosTokenFace]
   CampaignDecks :: Field Campaign (Map InvestigatorId (Deck PlayerCard))
   CampaignMeta :: Field Campaign Value
   CampaignStore :: Field Campaign (Map Text Value)
   CampaignInvalidCards :: Field Campaign [CardCode]
+  CampaignDestiny :: Field Campaign (Map Scope TarotCard)
 
 data CampaignAttrs = CampaignAttrs
   { campaignId :: CampaignId
   , campaignName :: Text
   , campaignDecks :: Map InvestigatorId (Deck PlayerCard)
-  , campaignStoryCards :: Map InvestigatorId [PlayerCard]
+  , campaignStoryCards :: Map InvestigatorId [Card]
   , campaignDifficulty :: Difficulty
   , campaignChaosBag :: [ChaosTokenFace]
   , campaignLog :: CampaignLog
@@ -76,6 +80,7 @@ data CampaignAttrs = CampaignAttrs
   , campaignModifiers :: Map InvestigatorId [Modifier]
   , campaignMeta :: Value
   , campaignStore :: Map Text Value
+  , campaignDestiny :: Map Scope TarotCard
   }
   deriving stock (Show, Eq, Generic)
 
@@ -97,7 +102,7 @@ instance HasField "completedSteps" CampaignAttrs [CampaignStep] where
 instance HasField "decks" CampaignAttrs (Map InvestigatorId (Deck PlayerCard)) where
   getField = campaignDecks
 
-instance HasField "storyCards" CampaignAttrs (Map InvestigatorId [PlayerCard]) where
+instance HasField "storyCards" CampaignAttrs (Map InvestigatorId [Card]) where
   getField = campaignStoryCards
 
 instance HasField "log" CampaignAttrs CampaignLog where
@@ -146,7 +151,7 @@ completedStepsL =
 chaosBagL :: Lens' CampaignAttrs [ChaosTokenFace]
 chaosBagL = lens campaignChaosBag $ \m x -> m {campaignChaosBag = x}
 
-storyCardsL :: Lens' CampaignAttrs (Map InvestigatorId [PlayerCard])
+storyCardsL :: Lens' CampaignAttrs (Map InvestigatorId [Card])
 storyCardsL = lens campaignStoryCards $ \m x -> m {campaignStoryCards = x}
 
 decksL :: Lens' CampaignAttrs (Map InvestigatorId (Deck PlayerCard))
@@ -163,6 +168,9 @@ metaL = lens campaignMeta $ \m x -> m {campaignMeta = x}
 
 storeL :: Lens' CampaignAttrs (Map Text Value)
 storeL = lens campaignStore $ \m x -> m {campaignStore = x}
+
+destinyL :: Lens' CampaignAttrs (Map Scope TarotCard)
+destinyL = lens campaignDestiny $ \m x -> m {campaignDestiny = x}
 
 resolutionsL :: Lens' CampaignAttrs (Map ScenarioId Resolution)
 resolutionsL = lens campaignResolutions $ \m x -> m {campaignResolutions = x}
@@ -203,7 +211,8 @@ addRandomBasicWeaknessIfNeeded investigatorClass playerCount deck = do
       pure $ toCardDef card /= randomWeakness
 
 campaignWith
-  :: forall a. IsCampaign a
+  :: forall a
+   . IsCampaign a
   => (CampaignAttrs -> a)
   -> CampaignId
   -> Text
@@ -213,7 +222,8 @@ campaignWith
 campaignWith f campaignId' name g difficulty = campaign (f . g) campaignId' name difficulty
 
 campaign
-  :: forall a. IsCampaign a
+  :: forall a
+   . IsCampaign a
   => (CampaignAttrs -> a)
   -> CampaignId
   -> Text
@@ -236,6 +246,7 @@ campaign f campaignId' name difficulty =
       , campaignMeta = Null
       , campaignStore = mempty
       , campaignXpBreakdown = mempty
+      , campaignDestiny = mempty
       }
 
 instance Entity Campaign where
@@ -288,7 +299,7 @@ instance FromJSON CampaignAttrs where
     campaignId <- o .: "id"
     campaignName <- o .: "name"
     campaignDecks <- o .: "decks"
-    campaignStoryCards <- o .: "storyCards"
+    campaignStoryCards :: Map InvestigatorId [Card] <- (o .: "storyCards") <|> (map (toCard @PlayerCard) <$$> (o .: "storyCards"))
     campaignDifficulty <- o .: "difficulty"
     campaignChaosBag <- o .: "chaosBag"
     campaignLog <- o .: "log"
@@ -299,5 +310,6 @@ instance FromJSON CampaignAttrs where
     campaignModifiers <- o .: "modifiers"
     campaignMeta <- o .: "meta"
     campaignStore <- o .:? "store" .!= mempty
+    campaignDestiny <- o .:? "destiny" .!= mempty
 
     pure CampaignAttrs {..}

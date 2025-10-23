@@ -5,12 +5,14 @@ import { handleI18n } from '@/arkham/i18n';
 import { computed } from 'vue'
 import scenarios from '@/arkham/data/scenarios'
 import { XpEntry } from '@/arkham/types/Xp'
+import { type Investigator } from '@/arkham/types/Investigator'
 import { CampaignStep } from '@/arkham/types/CampaignStep'
 import { Game } from '@/arkham/types/Game'
 import { useI18n } from 'vue-i18n';
+import { toCamelCase } from '@/arkham/helpers'
 import { useDbCardStore } from '@/stores/dbCards'
 
-const { t } = useI18n()
+const { t, te } = useI18n()
 const store = useDbCardStore()
 
 const props = defineProps<{
@@ -18,7 +20,8 @@ const props = defineProps<{
   step: CampaignStep
   entries: XpEntry[]
   playerId?: string
-  showAll: bool
+  investigators: Investigator[]
+  showAll: boolean
 }>()
 
 // need to drop the first letter of the scenario code
@@ -33,6 +36,12 @@ const name = computed(() => {
   }
 
   if (props.step.tag === 'InterludeStep') {
+    if (props.game.campaign) {
+      const key = `${toCamelCase(props.game.campaign.name)}.interludes.${props.step.contents}`
+      if (te(key)) {
+        return t(key)
+      }
+    }
     return `Interlude ${props.step.contents}`
   }
 
@@ -57,7 +66,7 @@ const unspendableXp = computed(() => {
 
   if (props.step.tag === 'ScenarioStep') {
     const scenarioId = props.step.contents.slice(1)
-    const investigator = Object.entries(props.game.investigators).find(([,p]) => p.playerId === props.playerId)
+    const investigator = props.investigators.find((p) => p.playerId === props.playerId)
     if (!investigator) return null
     if (scenarioId == "53028") return props.game.campaign.meta.bonusXp[investigator[0]] || null
   }
@@ -83,14 +92,14 @@ interface PerInvestigator {
 }
 
 const perInvestigator = computed<Record<string, PerInvestigator>>(() => {
-  return Object.entries(props.game.investigators).reduce((acc, [id,]) => {
+  return props.investigators.reduce((acc, i) => {
     const gains = props.entries.filter(
       (entry: XpEntry) =>
-        entry.tag === 'InvestigatorGainXp' && entry.investigator === id
+        entry.tag === 'InvestigatorGainXp' && entry.investigator === i.id
     )
     const losses = props.entries.filter(
       (entry: XpEntry) =>
-        entry.tag === 'InvestigatorLoseXp' && entry.investigator === id
+        entry.tag === 'InvestigatorLoseXp' && entry.investigator === i.id
     )
 
     const entries = [...gains, ...losses]
@@ -100,14 +109,13 @@ const perInvestigator = computed<Record<string, PerInvestigator>>(() => {
       gains.reduce((acc, entry) => acc + entry.details.amount, 0) -
       losses.reduce((acc, entry) => acc + entry.details.amount, 0)
 
-    acc[id] = { entries, total }
+    acc[i.id] = { entries, total }
     return acc
   }, {} as Record<string, PerInvestigator>)
 })
 
 const headerInvestigators = computed(() => {
-  const investigators = Object.values(props.game.investigators)
-  return investigators.map(i => ([i, (perInvestigator.value[i.id]?.total || 0) + totalVictoryDisplay.value])).filter(([i, t]) => t !== 0)
+  return props.investigators.map(i => ([i, (perInvestigator.value[i.id]?.total || 0) + totalVictoryDisplay.value])).filter(([_i, t]) => t !== 0)
 })
 
 function format(s: string) {
@@ -144,24 +152,24 @@ const toCssName = (s: string): string => s.charAt(0).toLowerCase() + s.substring
         <header class="entry-header"><h3>{{ $t('upgrade.victoryDisplay') }}</h3><span class="amount" :class="{ 'amount--negative': totalVictoryDisplay < 0 }">{{ $t('upgrade.xp', {total: totalVictoryDisplay}) }}</span></header>
         <div class="column">
           <div v-for="(entry, idx) in allVictoryDisplay" :key="idx" class="box entry">
-            <span>{{getCardName(entry.details.sourceName)}}</span>
+            <span>{{format(entry.details.sourceName)}}</span>
             <span class="amount">+{{entry.details.amount}}</span>
           </div>
         </div>
       </section>
       <section class="box column group" v-for="([iid, info]) in Object.entries(perInvestigator)" :key="name">
-        <header class="entry-header"><h3>{{getCardName(game.investigators[iid].name.title)}}</h3><span class="amount" :class="{ 'amount--negative': info.total < 0 }">{{ $t('upgrade.xp', {total: info.total}) }}</span></header>
+        <header class="entry-header"><h3>{{format(game.investigators[iid].name.title)}}</h3><span class="amount" :class="{ 'amount--negative': info.total < 0 }">{{ $t('upgrade.xp', {total: info.total}) }}</span></header>
         <div v-for="(entry, idx) in info.entries" :key="idx" class="box entry">
           <span v-html="format(entry.details.sourceName)"></span> 
           <span v-if="entry.tag !== 'InvestigatorLoseXp'" class="amount">+{{entry.details.amount}}</span>
-          <span v-if="entry.tag === 'InvestigatorLoseXp'" class="amount amount--negative">{{entry.details.amount}}</span>
+          <span v-if="entry.tag === 'InvestigatorLoseXp'" class="amount amount--negative">-{{Math.abs(entry.details.amount)}}</span>
         </div>
       </section>
     </div>
   </div>
 </template>
 
-<style scoped lang="scss">
+<style scoped>
 .breakdown {
   width: 100%;
 }
@@ -192,9 +200,9 @@ span {
     background: var(--spooky-green);
     color: white;
     border-radius: 3px;
-    &--negative {
-      background: darkred;
-    }
+  }
+  .amount--negative {
+    background: darkred;
   }
 }
 
@@ -216,9 +224,10 @@ span {
     background: var(--spooky-green);
     color: white;
     border-radius: 3px;
-    &--negative {
-      background: darkred;
-    }
+  }
+
+  .amount--negative {
+    background: darkred;
   }
 }
 
@@ -237,9 +246,10 @@ span {
     background: var(--spooky-green);
     color: white;
     border-radius: 3px;
-    &--negative {
-      background: darkred;
-    }
+  }
+
+  .amount--negative {
+    background: darkred;
   }
 }
 
@@ -312,6 +322,7 @@ span {
 .investigator-amount {
   display: flex;
   isolation: isolate;
+  align-items: flex-end;
   .amount {
     max-height: fit-content;
     padding-left: 10px;
@@ -319,10 +330,9 @@ span {
     z-index: -1;
     margin-bottom: 5px;
 
-    &--negative {
-      background: darkred;
-    }
   }
-  align-items: flex-end;
+  .amount--negative {
+    background: darkred;
+  }
 }
 </style>

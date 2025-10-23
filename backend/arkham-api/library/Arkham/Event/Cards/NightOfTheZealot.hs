@@ -143,10 +143,7 @@ sneakAttack =
   (event "01052" "Sneak Attack" 2 Rogue)
     { cdSkills = [#intellect, #combat]
     , cdCardTraits = setFromList [Tactic]
-    , cdCriteria =
-        Just
-          $ exists (EnemyAt YourLocation <> ExhaustedEnemy <> EnemyCanBeDamagedBySource ThisCard)
-          <> Criteria.CanDealDamage
+    , cdCriteria = Just $ Criteria.canDamageEnemyAtMatch ThisCard YourLocation ExhaustedEnemy
     , cdAlternateCardCodes = ["01552"]
     }
 
@@ -183,7 +180,7 @@ wardOfProtection =
     { cdSkills = [#wild]
     , cdCardTraits = setFromList [Spell, Spirit]
     , cdFastWindow =
-        Just $ DrawCard #when You (CanCancelRevelationEffect $ basic NonWeaknessTreachery) EncounterDeck
+        Just $ DrawCard #when You (CanCancelRevelationEffect You $ basic NonWeaknessTreachery) EncounterDeck
     , cdAlternateCardCodes = ["01565"]
     }
 

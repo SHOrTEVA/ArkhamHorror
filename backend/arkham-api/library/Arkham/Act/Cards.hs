@@ -49,15 +49,18 @@ allActCards =
       , beyondTheMistV2
       , beyondTheMistV3
       , beyondTheMistV4
+      , beyondTheMistV5
       , beyondTheWitchHouse
       , bloodbath
       , breakingAndEntering
       , campusSafety
+      , caughtRedHanded
       , cavernOfTheForgottenAge
       , cityOfTheDeepV1
       , cityOfTheDeepV2
       , cityOfTheDeepV3
       , closeTheRift
+      , cluesAndCapers
       , collapseThePylons
       , containingTheOutbreak
       , crossingTheThreshold
@@ -78,7 +81,9 @@ allActCards =
       , exploringPnakotus
       , exploringTheMoon
       , exploringTheRainforest
+      , eyesInTheTower
       , fatedSouls
+      , findAmaranth
       , findTheRelic
       , findingANewWay
       , findingAWayInside
@@ -101,17 +106,20 @@ allActCards =
       , impossiblePursuit
       , inAzathothsDomain
       , infiltratingTheLodge
+      , inLostCarcosa
+      , inPursuitOfAnswers
+      , inPursuitOfTheBeyond
+      , inPursuitOfTheDead
+      , inPursuitOfTheLiving
+      , inTheBellyOfTheMoonBeast
+      , inTheSearchlight
       , intoTheBeyond
       , intoTheBeyondV2
       , intoTheDarkness
       , intoTheRuins
       , intoTheRuinsOnceAgain
-      , investigatingTheWitchHouse
-      , inLostCarcosa
-      , inPursuitOfTheDead
-      , inPursuitOfTheLiving
-      , inTheBellyOfTheMoonBeast
       , investigatingTheTrail
+      , investigatingTheWitchHouse
       , journeyAcrossTheBridge
       , journeyThroughTheColdWastes
       , journeyToTheNexus
@@ -143,18 +151,22 @@ allActCards =
       , pursuitOfTheUnknownV1
       , pursuitOfTheUnknownV2
       , pursuitOfTheUnknownV3
+      , queenOfNothingAtAll
       , raceForAnswers
       , recoverTheRelic
       , reefOfMysteries
       , repossession
       , restrictedAccess
+      , returnToACircleUnbroken
       , ricesWhereabouts
+      , ritualOfLifeAndDeath
       , row
       , run
       , saracenicScript
       , searchForACampSite
       , searchForAlejandro
       , searchForTheBrotherhood
+      , searchForTheManuscript
       , searchForTheMeaning
       , searchForThePatient
       , searchForThePattern
@@ -163,6 +175,7 @@ allActCards =
       , searchForTheStrangerV1
       , searchForTheStrangerV2
       , searchForTheStrangerV3
+      , searchForTheTalisman
       , searchingForAnswers
       , searchingForTheTome
       , searchingTheUnnamable
@@ -204,6 +217,7 @@ allActCards =
       , theFirstOath
       , theForgottenIsland
       , theFourKeys
+      , theGameIsAfoot
       , theGateOpens
       , theGreatSeal
       , theGuardedRuins
@@ -230,6 +244,7 @@ allActCards =
       , theRelicIsMissing
       , theRescue
       , theReturnTrip
+      , theScarletShadow
       , theSchemesDemise
       , theSearchForAgentHarper
       , theSecondOath
@@ -262,6 +277,7 @@ allActCards =
       , whatHappened
       , whatHaveYouDone
       , whatMustBeDone
+      , whatMustBeDoneV2
       , witchHauntings
       , worldsBeyond
       , worshippersOfTheDeep
@@ -376,7 +392,7 @@ awakening :: CardDef
 awakening = act "03046" "Awakening" 1 CurtainCall
 
 theStrangerACityAflame :: CardDef
-theStrangerACityAflame = (act "03047a" "The Stranger" 2 CurtainCall) { cdOtherSide = Just "03047ab" }
+theStrangerACityAflame = (act "03047a" "The Stranger" 2 CurtainCall) {cdOtherSide = Just "03047ab"}
 
 theStrangerThePathIsMine :: CardDef
 theStrangerThePathIsMine = act "03047b" "The Stranger" 2 CurtainCall
@@ -454,17 +470,20 @@ inLostCarcosa = act "03320" "In Lost Carcosa" 1 DimCarcosa
 searchForTheStrangerV1 :: CardDef
 searchForTheStrangerV1 =
   (act "03321a" "Search For the Stranger (v.I)" 2 DimCarcosa)
-    { cdOtherSide = Just "03321b" }
+    { cdOtherSide = Just "03321b"
+    }
 
 searchForTheStrangerV2 :: CardDef
 searchForTheStrangerV2 =
   (act "03322a" "Search For the Stranger (v.II)" 2 DimCarcosa)
-    { cdOtherSide = Just "03322ab" }
+    { cdOtherSide = Just "03322ab"
+    }
 
 searchForTheStrangerV3 :: CardDef
 searchForTheStrangerV3 =
   (act "03323a" "Search For the Stranger (v.III)" 2 DimCarcosa)
-    { cdOtherSide = Just "03323ab" }
+    { cdOtherSide = Just "03323ab"
+    }
 
 theKingInTatters :: CardDef
 theKingInTatters = act "03324" "The King in Tatters" 3 DimCarcosa
@@ -701,13 +720,13 @@ theBrokenRite :: CardDef
 theBrokenRite = act "05248" "The Broken Rite" 4 UnionAndDisillusion
 
 darkKnowledgeV1 :: CardDef
-darkKnowledgeV1 = act "05286a" "Dark Knowledge (v. I)" 1 MusicOfTheDamned
+darkKnowledgeV1 = (act "05286a" "Dark Knowledge (v. I)" 1 MusicOfTheDamned) {cdOtherSide = Just "05286b"}
 
 beyondTheGrave :: CardDef
 beyondTheGrave = act "05287" "Beyond the Grave" 2 MusicOfTheDamned
 
 darkKnowledgeV2 :: CardDef
-darkKnowledgeV2 = act "05288a" "Dark Knowledge (v. II)" 1 SecretsOfTheUniverse
+darkKnowledgeV2 = (act "05288a" "Dark Knowledge (v. II)" 1 SecretsOfTheUniverse) {cdOtherSide = Just "05288b"}
 
 newWorldOrder :: CardDef
 newWorldOrder = act "05289" "New World Order" 2 SecretsOfTheUniverse
@@ -913,6 +932,39 @@ collapseThePylons = act "08673" "Collapse the Pylons" 3 StirringInTheDeep
 theFinalMirage :: CardDef
 theFinalMirage = act "08681" "The Final Mirage" 4 StirringInTheDeep
 
+cluesAndCapers :: CardDef
+cluesAndCapers = act "09506" "Clues and Capers" 1 RiddlesAndRain
+
+theGameIsAfoot :: CardDef
+theGameIsAfoot = act "09507" "The Game is Afoot!" 2 RiddlesAndRain
+
+eyesInTheTower :: CardDef
+eyesInTheTower = act "09508" "Eyes in the Tower" 3 RiddlesAndRain
+
+caughtRedHanded :: CardDef
+caughtRedHanded = act "09509" "Caught Red-Handed" 4 RiddlesAndRain
+
+findAmaranth :: CardDef
+findAmaranth = act "09523" "Find Amaranth" 1 DeadHeat
+
+ritualOfLifeAndDeath :: CardDef
+ritualOfLifeAndDeath = act "09524" "Ritual of Life and Death" 2 DeadHeat
+
+queenOfNothingAtAll :: CardDef
+queenOfNothingAtAll = act "09525" "Queen of Nothing at All" 3 DeadHeat
+
+theScarletShadow :: CardDef
+theScarletShadow = act "09547" "The Scarlet Shadow" 1 SanguineShadows
+
+inTheSearchlight :: CardDef
+inTheSearchlight = act "09548" "In the Searchlight" 2 SanguineShadows
+
+searchForTheManuscript :: CardDef
+searchForTheManuscript = act "09568" "Search for the Manuscript" 1 DealingsInTheDark
+
+searchForTheTalisman :: CardDef
+searchForTheTalisman = act "09569" "Search for the Talisman" 2 DealingsInTheDark
+
 mysteriousGateway :: CardDef
 mysteriousGateway = act "50012" "Mysterious Gateway" 1 ReturnToTheGathering
 
@@ -965,6 +1017,21 @@ aFamiliarPattern = act "53046" "A Familiar Pattern" 1 ReturnToPillarsOfJudgement
 
 unrestrictedAccess :: CardDef
 unrestrictedAccess = act "53054" "Unrestricted Access" 2 ReturnToTheCityOfArchives
+
+returnToACircleUnbroken :: CardDef
+returnToACircleUnbroken = act "54018" "A Circle Unbroken" 4 ReturnToTheWitchingHour
+
+inPursuitOfAnswers :: CardDef
+inPursuitOfAnswers = act "54035" "In Pursuit of Answers" 1 ReturnToTheWagesOfSin
+
+inPursuitOfTheBeyond :: CardDef
+inPursuitOfTheBeyond = act "54036" "In Pursuit of the Beyond" 2 ReturnToTheWagesOfSin
+
+beyondTheMistV5 :: CardDef
+beyondTheMistV5 = act "54047" "Beyond the Mist (v. V)" 3 ReturnToUnionAndDisillusion
+
+whatMustBeDoneV2 :: CardDef
+whatMustBeDoneV2 = act "54057" "What Must Be Done (v. II)" 3 ReturnToBeforeTheBlackThrone
 
 findingLadyEsprit :: CardDef
 findingLadyEsprit = act "81005" "Finding Lady Esprit" 1 TheBayou

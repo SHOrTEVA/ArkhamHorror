@@ -149,8 +149,10 @@ export type Investigator = {
   deck: CardContents[];
   decks: [string, Card[]][];
   treacheries: string[];
+  scarletKeys: string[];
   defeated: boolean;
   resigned: boolean;
+  eliminated: boolean;
   additionalActions: AdditionalActionType[];
   cardsUnderneath: Card[];
   sealedChaosTokens: ChaosToken[];
@@ -256,6 +258,7 @@ export const investigatorDecoder = JsonDecoder.object({
   devoured: v2Optional(JsonDecoder.array<Card>(cardDecoder, 'Card[]')),
   // traits: HashSet Trait,
   treacheries: JsonDecoder.array<string>(JsonDecoder.string(), 'TreacheryId[]'),
+  scarletKeys: JsonDecoder.array<string>(JsonDecoder.string(), 'ScarletKey[]'),
   defeated: JsonDecoder.boolean(),
   resigned: JsonDecoder.boolean(),
   additionalActions: JsonDecoder.array<AdditionalAction>(additionalActionDecoder, 'AdditionalAction').map((arr) => arr.map((action) => action.kind)),
@@ -283,6 +286,7 @@ export const investigatorDecoder = JsonDecoder.object({
 }, 'Investigator').map(({search, placement, ...rest}) => ({
   foundCards: search,
   location: placement.tag === "AtLocation" ? placement.contents : "00000000-0000-0000-0000-000000000000",
+  eliminated: rest.defeated || rest.resigned,
   placement,
   ...rest
 }))

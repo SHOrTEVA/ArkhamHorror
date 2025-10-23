@@ -53,6 +53,7 @@ import Arkham.Target
 import Arkham.Timing (Timing)
 import Arkham.Timing qualified as Timing
 import Arkham.Token
+import Arkham.Tracing
 import Arkham.Treachery.Types (Field (..))
 import Arkham.Window
 import Arkham.Window qualified as Window
@@ -490,6 +491,8 @@ getEnemy :: [Window] -> EnemyId
 getEnemy = \case
   ((windowType -> Window.EnemySpawns eid _) : _) -> eid
   ((windowType -> Window.EnemyDefeated _ _ eid) : _) -> eid
+  ((windowType -> Window.EnemyMoves eid _) : _) -> eid
+  ((windowType -> Window.EnemyEnters eid _) : _) -> eid
   (_ : rest) -> getEnemy rest
   _ -> error "invalid window"
 
@@ -512,6 +515,13 @@ damagedEnemy = \case
   ((windowType -> Window.DealtDamage _ _ (EnemyTarget eid) _) : _) -> eid
   _ -> error "Expected DealtDamage window"
 
+damagedAsset :: [Window] -> AssetId
+damagedAsset = \case
+  [] -> error "Expected DealtDamageOrHorro to asset window"
+  ((windowType -> Window.DealtDamage _ _ (AssetTarget aid) _) : _) -> aid
+  ((windowType -> Window.DealtHorror _ (AssetTarget aid) _) : _) -> aid
+  (_ : rest) -> damagedAsset rest
+
 getDamageSource :: HasCallStack => [Window] -> Source
 getDamageSource = \case
   [] -> error "No damage"
@@ -530,7 +540,7 @@ getDamageOrHorrorSource = \case
   ((windowType -> Window.DealtDamage source _ _ _) : _) -> source
   ((windowType -> Window.DealtHorror source _ _) : _) -> source
   ((windowType -> Window.DealtExcessDamage source _ _ _) : _) -> source
-  (_ : rest) -> getDamageSource rest
+  (_ : rest) -> getDamageOrHorrorSource rest
 
 getTotalDamageAmounts :: Targetable target => target -> [Window] -> Map Source (Int, Int)
 getTotalDamageAmounts target =
@@ -600,7 +610,6 @@ getDefeatedAsset = \case
   (_ : rest) -> getDefeatedAsset rest
   _ -> error "impossible"
 
-
 getWindowAsset :: [Window] -> Maybe AssetId
 getWindowAsset [] = Nothing
 getWindowAsset ((windowType -> Window.ActivateAbility _ _ ability) : xs) = case abilitySource ability of
@@ -608,19 +617,20 @@ getWindowAsset ((windowType -> Window.ActivateAbility _ _ ability) : xs) = case 
   _ -> getWindowAsset xs
 getWindowAsset (_ : xs) = getWindowAsset xs
 
-enemyMatches :: HasGame m => EnemyId -> EnemyMatcher -> m Bool
+enemyMatches :: (HasGame m, Tracing m) => EnemyId -> EnemyMatcher -> m Bool
 enemyMatches _eid Matcher.AnyEnemy = pure True
 enemyMatches eid matcher = orM [matches eid matcher, matches eid (Matcher.OutOfPlayEnemy RemovedZone matcher)]
 
 windowMatches
-  :: (HasGame m, HasCallStack)
+  :: (Tracing m, HasGame m, HasCallStack)
   => InvestigatorId
   -> Source
   -> Window
   -> Matcher.WindowMatcher
   -> m Bool
 windowMatches _ _ (windowType -> Window.DoNotCheckWindow) _ = pure True
-windowMatches iid rawSource window'@(windowTiming &&& windowType -> (timing', wType)) umtchr = do
+windowMatches iid rawSource window'@(windowTiming &&& windowType -> (timing', wType)) umtchr = withSpan' "windowMatches" \currentSpan -> do
+  addAttribute currentSpan "window" (tshow window')
   (source, mcard) <-
     case rawSource of
       BothSource s (CardIdSource cid) -> do
@@ -710,6 +720,9 @@ windowMatches iid rawSource window'@(windowTiming &&& windowType -> (timing', wT
         <*> windowMatches iid rawSource window' mtchr'
     Matcher.NotAnyWindow -> noMatch
     Matcher.AnyWindow -> isMatch'
+    Matcher.AnyWindowIfEnemy enemyMatcher -> do
+      ok <- selectAny enemyMatcher
+      if ok then isMatch' else noMatch
     Matcher.FloodLevelChanged timing whereMatcher -> guardTiming timing \case
       Window.FloodLevelChanged where' _ _ -> locationMatches iid source window' where' whereMatcher
       _ -> noMatch
@@ -900,6 +913,16 @@ windowMatches iid rawSource window'@(windowTiming &&& windowType -> (timing', wT
               mWhoMatcher
           ]
       _ -> noMatch
+    Matcher.CampaignEvent timing mWhoMatcher eKey -> guardTiming timing \case
+      Window.CampaignEvent eKey' mWho _ ->
+        andM
+          [ pure $ eKey == eKey'
+          , maybe
+              (pure True)
+              (\matcher -> maybe (pure False) (\who -> matchWho iid who matcher) mWho)
+              mWhoMatcher
+          ]
+      _ -> noMatch
     Matcher.LostResources timing whoMatcher sourceMatcher -> guardTiming timing $ \case
       Window.LostResources who source' _ ->
         andM
@@ -943,6 +966,9 @@ windowMatches iid rawSource window'@(windowTiming &&& windowType -> (timing', wT
     Matcher.EnemyMoves timing locationMatcher enemyMatcher -> guardTiming timing $ \case
       Window.EnemyMoves eid lid ->
         andM [elem eid <$> select enemyMatcher, elem lid <$> select locationMatcher]
+      _ -> noMatch
+    Matcher.EnemyPlaced timing p enemyMatcher -> guardTiming timing $ \case
+      Window.EnemyPlaced eid p' | p' == p -> elem eid <$> select enemyMatcher
       _ -> noMatch
     Matcher.PlaceUnderneath timing targetMatcher cardMatcher -> guardTiming timing $ \case
       Window.PlaceUnderneath target' card ->
@@ -1028,7 +1054,7 @@ windowMatches iid rawSource window'@(windowTiming &&& windowType -> (timing', wT
         _ -> noMatch
     Matcher.WouldDrawEncounterCard timing whoMatcher phaseMatcher ->
       guardTiming timing $ \case
-        Window.WouldDrawEncounterCard who p ->
+        Window.WouldDrawEncounterCard who _ p ->
           andM [matchWho iid who whoMatcher, matchPhase p phaseMatcher]
         _ -> noMatch
     Matcher.AmongSearchedCards whoMatcher -> case wType of
@@ -1403,7 +1429,7 @@ windowMatches iid rawSource window'@(windowTiming &&& windowType -> (timing', wT
         | m >= n ->
             andM [matchWho iid iid' whoMatcher, anyM (\a -> actionMatches iid a actionMatcher) actions]
       _ -> noMatch
-    Matcher.WouldHaveSkillTestResult timing whoMatcher _ skillTestResultMatcher -> do
+    Matcher.WouldHaveSkillTestResult timing whoMatcher skillTestMatcher skillTestResultMatcher -> do
       -- The #when is questionable, but "Would" based timing really is
       -- only meant to have a When window
       let
@@ -1419,7 +1445,10 @@ windowMatches iid rawSource window'@(windowTiming &&& windowType -> (timing', wT
             Window.WouldFailSkillTest who _ -> matchWho iid who whoMatcher
             Window.WouldPassSkillTest who _ -> matchWho iid who whoMatcher
             _ -> noMatch
-      isWindowMatch skillTestResultMatcher
+      mSkillTest <- getSkillTest
+      case mSkillTest of
+        Nothing -> noMatch
+        Just st -> andM [isWindowMatch skillTestResultMatcher, skillTestMatches iid source st skillTestMatcher]
     Matcher.InitiatedSkillTest timing whoMatcher skillTypeMatcher skillValueMatcher skillTestMatcher ->
       guardTiming timing $ \case
         Window.InitiatedSkillTest st -> case skillTestType st of
@@ -1578,12 +1607,6 @@ windowMatches iid rawSource window'@(windowTiming &&& windowType -> (timing', wT
               , matches (attackEnemy details) enemyMatcher
               , enemyAttackMatches iid details enemyAttackMatcher
               ]
-          MassiveAttackTargets (mapMaybe (preview _InvestigatorTarget) -> iids) ->
-            andM
-              [ anyM (\who -> matchWho iid who whoMatcher) iids
-              , matches (attackEnemy details) enemyMatcher
-              , enemyAttackMatches iid details enemyAttackMatcher
-              ]
           _ -> noMatch
         _ -> noMatch
     Matcher.EnemyAttacks timing whoMatcher enemyAttackMatcher enemyMatcher ->
@@ -1595,12 +1618,6 @@ windowMatches iid rawSource window'@(windowTiming &&& windowType -> (timing', wT
               , matches (attackEnemy details) enemyMatcher
               , enemyAttackMatches iid details enemyAttackMatcher
               ]
-          MassiveAttackTargets (mapMaybe (preview _InvestigatorTarget) -> iids) ->
-            andM
-              [ anyM (\who -> matchWho iid who whoMatcher) iids
-              , matches (attackEnemy details) enemyMatcher
-              , enemyAttackMatches iid details enemyAttackMatcher
-              ]
           _ -> noMatch
         _ -> noMatch
     Matcher.EnemyAttacksEvenIfCancelled timing whoMatcher enemyAttackMatcher enemyMatcher ->
@@ -1609,12 +1626,6 @@ windowMatches iid rawSource window'@(windowTiming &&& windowType -> (timing', wT
           SingleAttackTarget (InvestigatorTarget who) ->
             andM
               [ matchWho iid who whoMatcher
-              , matches (attackEnemy details) enemyMatcher
-              , enemyAttackMatches iid details enemyAttackMatcher
-              ]
-          MassiveAttackTargets (mapMaybe (preview _InvestigatorTarget) -> iids) ->
-            andM
-              [ anyM (\who -> matchWho iid who whoMatcher) iids
               , matches (attackEnemy details) enemyMatcher
               , enemyAttackMatches iid details enemyAttackMatcher
               ]
@@ -1984,7 +1995,7 @@ windowMatches iid rawSource window'@(windowTiming &&& windowType -> (timing', wT
         _ -> noMatch
     Matcher.WouldDrawCard timing whoMatcher deckMatcher ->
       guardTiming timing $ \case
-        Window.WouldDrawCard who deck ->
+        Window.WouldDrawCard who _ deck ->
           andM
             [ matchWho iid who whoMatcher
             , deckMatch iid deck $ Matcher.replaceThatInvestigator who deckMatcher

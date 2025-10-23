@@ -17,6 +17,7 @@ import { type Scenario } from '@/arkham/types/Scenario';
 import { type Card } from '@/arkham/types/Card';
 import { TarotCard, tarotCardImage } from '@/arkham/types/TarotCard';
 import { TokenType } from '@/arkham/types/Token';
+import { ModifierType, Hollow } from '@/arkham/types/Modifier';
 import { Source } from '@/arkham/types/Source';
 import { Treachery } from '@/arkham/types/Treachery';
 import { Message, AbilityMessage, AbilityLabel } from '@/arkham/types/Message';
@@ -24,12 +25,14 @@ import { MessageType } from '@/arkham/types/Message';
 import { waitForImagesToLoad, imgsrc, pluralize, groupBy } from '@/arkham/helpers';
 import { useMenu } from '@/composeable/menu';
 import { useSettings } from '@/stores/settings';
+import { keyToId } from '@/arkham/types/Key'
 import AbilityButton from '@/arkham/components/AbilityButton.vue'
 import Act from '@/arkham/components/Act.vue';
 import CardView from '@/arkham/components/Card.vue';
 import Draggable from '@/components/Draggable.vue';
 import ChaosBag from '@/arkham/components/ChaosBag.vue';
 import Agenda from '@/arkham/components/Agenda.vue';
+import Investigator from '@/arkham/components/Investigator.vue';
 import EnemyView from '@/arkham/components/Enemy.vue';
 import CardRow from '@/arkham/components/CardRow.vue';
 import Key from '@/arkham/components/Key.vue';
@@ -275,8 +278,15 @@ const enemyGroups = computed(()=>{
 const outOfPlayEnemies = computed(() => enemyGroups.value.outOfPlay)
 const pursuit = computed(() => enemyGroups.value.pursuit)
 const globalEnemies = computed(() => enemyGroups.value.global)
+const inTheShadows = computed(() => Object.values(props.game.enemies).filter((e) => e.placement.tag === "InTheShadows"))
+const inTheShadowsInvestigators = computed(() => Object.values(props.game.investigators).filter((e) => e.placement.tag === "InTheShadows"))
 const enemiesAsLocations = computed(() => enemyGroups.value.asLoc)
 const topEnemyInVoid = computed(() => enemyGroups.value.firstVoid)
+
+function isHollow(m: ModifierType): m is Hollow {
+  return m.tag === "Hollow"
+}
+const hollowed = computed(() => Object.values(props.game.investigators).flatMap(i => (i.modifiers || []).map((m) => m.type).filter(isHollow).map(m => props.game.cards[m.contents])))
 
 const outOfPlay = computed(() => props.scenario?.setAsideCards || [])
 const removedFromPlay = computed(() => props.game.removedFromPlay)
@@ -325,12 +335,16 @@ const unusedLabels = computed(() => {
 })
 const choices = computed(() => ArkhamGame.choices(props.game, props.playerId))
 const resources = computed(() => props.scenario.tokens[TokenType.Resource])
-const hasPool = computed(() => resources.value && resources.value > 0)
+const damage = computed(() => props.scenario.tokens[TokenType.Damage])
+const targets = computed(() => props.scenario.tokens[TokenType.Target])
+const hasPool = computed(() => resources.value && resources.value > 0 || damage.value && damage.value > 0)
 const tarotCards = computed(() => props.scenario.tarotCards.filter((c) => c.scope.tag === 'GlobalTarot'))
 const phase = computed(() => props.game.phase)
 const phaseStep = computed(() => props.game.phaseStep)
 const currentDepth = computed(() => props.scenario.counts["CurrentDepth"])
+const civiliansSlain = computed(() => props.scenario.counts["CiviliansSlain"])
 const signOfTheGods = computed(() => props.scenario.counts["SignOfTheGods"])
+const distortion = computed(() => props.scenario.counts["Distortion"])
 const gameOver = computed(() => props.game.gameState.tag === "IsOver")
 
 // Reactive
@@ -503,6 +517,7 @@ const doShowCards = (cards: ComputedRef<Card[]>, title: string, isDiscards: bool
 }
 const showRemovedFromPlay = () => doShowCards(removedFromPlay, t('scenario.removedFromPlay'), true)
 const showDiscards = () => doShowCards(discards, t('scenario.discards'), true)
+const showHollowed = () => doShowCards(hollowed, t('scenario.hollowed'), true)
 const hideCards = () => showCards.ref = noCards
 const showCardsUnderScenarioReference = () => doShowCards(cardsUnderScenarioReference, t('scenario.cardsUnderScenarioReference'), false)
 const unusedCanInteract = (u: string) => choices.value.findIndex((c) =>
@@ -672,6 +687,25 @@ const frostTokens = computed(() => props.scenario.chaosBag.chaosTokens.filter((t
         @close="hideCards"
       />
       <div class="scenario-cards">
+        <div v-if="inTheShadows.length > 0 || inTheShadowsInvestigators.length > 0" class="in-the-shadows">
+          <EnemyView
+            v-for="enemy in inTheShadows"
+            :key="enemy.id"
+            :enemy="enemy"
+            :game="game"
+            :playerId="playerId"
+            @choose="choose"
+          />
+          <Investigator
+            v-for="investigator in inTheShadowsInvestigators"
+            :key="investigator.id"
+            :choices="[]"
+            :investigator="investigator"
+            :playerId="playerId"
+            :game="game"
+            :portrait="true"
+          />
+        </div>
         <div v-if="tarotCards.length > 0" class="tarot-cards">
           <div
             v-for="tarotCard in tarotCards"
@@ -850,8 +884,10 @@ const frostTokens = computed(() => props.scenario.chaosBag.chaosTokens.filter((t
               />
             </div>
             <PoolItem class="depth" v-if="currentDepth" type="resource" :amount="currentDepth" />
+            <PoolItem class="civilians-slain" v-if="civiliansSlain" type="resource" :amount="civiliansSlain" />
+            <PoolItem class="targets" v-if="targets" type="resource" :amount="targets" />
             <div class="spent-keys" v-if="spentKeys.length > 0">
-              <Key v-for="key in spentKeys" :key="key" :name="key" />
+              <Key v-for="key in spentKeys" :key="keyToId(key)" :name="key" :game="game" :playerId="playerId" @choose="choose" />
             </div>
             <PoolItem
               v-if="signOfTheGods"
@@ -860,14 +896,34 @@ const frostTokens = computed(() => props.scenario.chaosBag.chaosTokens.filter((t
               tooltip="Sign of the Gods"
               :amount="signOfTheGods"
             />
+            <PoolItem
+              v-if="distortion"
+              class="distortion"
+              type="damage"
+              tooltip="Distortion"
+              :amount="distortion"
+            />
           </div>
           <div class="pool" v-if="hasPool">
             <PoolItem v-if="resources && resources > 0" type="resource" :amount="resources" />
+            <PoolItem v-if="damage && damage > 0" type="damage" :amount="damage" />
           </div>
           <div class="keys" v-if="keys.length > 0">
-            <Key v-for="key in keys" :key="key" :name="key" />
+            <Key v-for="key in keys" :key="keyToId(key)" :name="key" :game="game" :playerId="playerId" @choose="choose" />
           </div>
           <button v-if="cardsUnderScenarioReference.length > 0" class="view-cards-under-button" @click="showCardsUnderScenarioReference">{{viewUnderScenarioReference}}</button>
+        </div>
+
+        <div v-if="hollowed.length > 0" class="discard">
+          <div class="discard-card">
+            <CardView
+              :game="game"
+              :card="hollowed[0]"
+              class="card"
+              @click="showHollowed"
+            />
+            <span class="deck-size">{{hollowed.length}}</span>
+          </div>
         </div>
         <SkillTest
             v-if="game.skillTest"
@@ -1001,7 +1057,7 @@ const frostTokens = computed(() => props.scenario.chaosBag.chaosTokens.filter((t
   </div>
 </template>
 
-<style scoped lang="scss">
+<style scoped>
 .card {
   border-radius: 5px;
   width: var(--card-width);
@@ -1067,7 +1123,17 @@ const frostTokens = computed(() => props.scenario.chaosBag.chaosTokens.filter((t
   }
 }
 
-@mixin splitView {
+.scenario-body {
+  background: var(--background);
+  z-index: 1;
+  width: 100%;
+  flex: 1;
+  inset: 0;
+
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+
+  &.split-view {
     grid-template-columns: 1fr 2fr;
     grid-template-rows: 1fr 3fr;
     padding-bottom: 10px;
@@ -1114,22 +1180,6 @@ const frostTokens = computed(() => props.scenario.chaosBag.chaosTokens.filter((t
       grid-column: 2;
       grid-row: 1 / 5;
     }
-}
-
-.scenario-body {
-  display: flex;
-  flex-direction: column;
-  background: var(--background);
-  z-index: 1;
-  width: 100%;
-  flex: 1;
-  inset: 0;
-
-  display: grid;
-  grid-template-rows: auto 1fr auto;
-
-  &.split-view {
-    @include splitView;
   }
 }
 
@@ -1346,7 +1396,7 @@ const frostTokens = computed(() => props.scenario.chaosBag.chaosTokens.filter((t
   position: relative;
   isolation: isolate;
 
-  .depth {
+  .depth, .civilians-slain, .targets {
     position: absolute;
     bottom: 0;
     right: 0;
@@ -1355,6 +1405,14 @@ const frostTokens = computed(() => props.scenario.chaosBag.chaosTokens.filter((t
   }
 
   .signOfTheGods {
+    z-index: 10;
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    pointer-events: none;
+  }
+
+  .distortion {
     z-index: 10;
     position: absolute;
     bottom: 0;
@@ -1484,7 +1542,7 @@ const frostTokens = computed(() => props.scenario.chaosBag.chaosTokens.filter((t
   margin-inline: 10px;
 }
 
-// We lower the margin so things line up a bit better.
+/* We lower the margin so things line up a bit better. */
 [data-scenario='c06333'] .location-cards:deep(.location-container) {
   margin: 20px !important;
 }
@@ -1637,7 +1695,7 @@ const frostTokens = computed(() => props.scenario.chaosBag.chaosTokens.filter((t
   &:not(:first-of-type) {
     margin-top: -50px;
   }
-  //position: inherit;
+  /*position: inherit; */
   transition: margin-top 0.3s;
   position: relative;
 
@@ -1758,5 +1816,15 @@ const frostTokens = computed(() => props.scenario.chaosBag.chaosTokens.filter((t
   &:hover {
     background: var(--button-highlight);
   }
+}
+
+.in-the-shadows {
+  background: rgba(0, 0, 0, 0.5);
+  padding: 10px;
+  min-width: 10vw;
+  border-radius: 1vw;
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
 }
 </style>

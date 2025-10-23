@@ -14,6 +14,8 @@ import Arkham.Helpers.Message as X (
   pattern R6,
   pattern R7,
   pattern R8,
+  pattern R9,
+  pattern R10,
  )
 import Arkham.Helpers.Scenario as X hiding (getIsReturnTo)
 import Arkham.Message as X (
@@ -32,6 +34,7 @@ import Arkham.Scenario.Runner as X (
   additionalReferencesL,
   decksL,
   decksLayoutL,
+  getMetaKeyDefault,
   metaL,
   push,
   pushAll,
@@ -40,16 +43,18 @@ import Arkham.Scenario.Runner as X (
   scenario,
   scenarioTimesPlayed,
   scenarioWith,
+  setMetaKey,
   sideStory,
   standaloneCampaignLogL,
+  tarotDeckL,
  )
 import Arkham.Scenario.Setup as X
 import Arkham.Source as X
 import Arkham.Target as X
 import Arkham.Text as X
 
-import Arkham.I18n
 import Arkham.Helpers.FlavorText
+import Arkham.I18n
 import Arkham.Id
 import Arkham.Matcher.Investigator
 import Arkham.Message.Lifted.Choose
@@ -64,6 +69,11 @@ resolution s = resolutionFlavor $ setTitle (s <> ".title") >> p (s <> ".body")
 
 resolutionWithChooseOne :: (HasI18n, ReverseQueue m) => Scope -> ChooseT m () -> m ()
 resolutionWithChooseOne s = resolutionFlavorWithChooseOne (setTitle (s <> ".title") >> p (s <> ".body"))
+
+resolutionWithXpAndChooseOne :: (HasI18n, ReverseQueue m) => Scope -> m Int -> ChooseT m () -> m ()
+resolutionWithXpAndChooseOne s f body = do
+  xp <- f
+  resolutionFlavorWithChooseOne (withVars ["xp" .= xp] $ setTitle (s <> ".title") >> p (s <> ".body")) body
 
 eachUnresigned :: ReverseQueue m => (InvestigatorId -> m ()) -> m ()
 eachUnresigned = selectEach (IncludeEliminated $ not_ ResignedInvestigator)

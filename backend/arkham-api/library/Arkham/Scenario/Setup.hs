@@ -23,12 +23,13 @@ import Arkham.Message.Lifted.Choose
 import Arkham.Message.Lifted.Move (moveAllTo)
 import Arkham.Placement
 import Arkham.Prelude hiding ((.=))
-import Arkham.Scenario.Helpers (excludeBSides, excludeDoubleSided, hasBSide, isDoubleSided)
+import Arkham.Scenario.Helpers (excludeDoubleSided, isDoubleSided)
 import Arkham.Scenario.Runner (createEnemyWithPlacement, createEnemyWithPlacement_, pushM)
 import Arkham.Scenario.Types
 import Arkham.ScenarioLogKey
 import Arkham.Target
 import Arkham.Token (Token, addTokens)
+import Arkham.Tracing
 import Control.Lens
 import Control.Monad.Random (MonadRandom (..))
 import Control.Monad.State.Strict
@@ -75,7 +76,8 @@ isReturnToL :: Lens' ScenarioBuilderState Bool
 isReturnToL = lens (.isReturnTo) \m x -> m {isReturnTo = x}
 
 newtype ScenarioBuilderT m a = ScenarioBuilderT {unScenarioBuilderT :: StateT ScenarioBuilderState m a}
-  deriving newtype (Functor, Applicative, Monad, MonadIO, MonadState ScenarioBuilderState, MonadTrans)
+  deriving newtype
+    (Functor, Applicative, Monad, MonadIO, MonadState ScenarioBuilderState, MonadTrans, Tracing)
 
 instance MonadRandom m => MonadRandom (ScenarioBuilderT m) where
   getRandom = lift getRandom
@@ -126,11 +128,11 @@ clearCards :: MonadState ScenarioBuilderState m => m ()
 clearCards = do
   attrsL . encounterDeckL .= Deck []
   attrsL . discardL .= []
+  attrsL . victoryDisplayL .= []
 
 gather :: CardGen m => Set.EncounterSet -> ScenarioBuilderT m ()
 gather encounterSet = do
-  (other, cards) <-
-    partition (or . sequence [isDoubleSided, hasBSide]) <$> gatherEncounterSet encounterSet
+  (other, cards) <- partition isDoubleSided <$> gatherEncounterSet encounterSet
   attrsL . encounterDeckL %= (Deck cards <>)
   otherCardsL %= (map toCard other <>)
 
@@ -138,7 +140,6 @@ gatherJust :: CardGen m => Set.EncounterSet -> [CardDef] -> ScenarioBuilderT m (
 gatherJust encounterSet defs = do
   cards <-
     filter ((`cardMatch` mapOneOf cardIs defs) . toCard)
-      . excludeBSides
       . excludeDoubleSided
       <$> gatherEncounterSet encounterSet
   attrsL . encounterDeckL %= (Deck cards <>)
@@ -356,34 +357,38 @@ enemyAt_ def lid = do
 
 enemyAt :: ReverseQueue m => CardDef -> LocationId -> ScenarioBuilderT m EnemyId
 enemyAt def lid = do
+  mcard <- headMay <$> amongGathered (cardIs def)
   attrsL . encounterDeckL %= flip removeEachFromDeck [def]
   attrsL . encounterDecksL . each . _1 %= flip removeEachFromDeck [def]
-  card <- genCard def
+  card <- maybe (genCard def) pure mcard
   createEnemyAt card lid
 
 placeEnemy
   :: (ReverseQueue m, IsPlacement placement) => CardDef -> placement -> ScenarioBuilderT m ()
 placeEnemy def placement = do
+  mcard <- headMay <$> amongGathered (cardIs def)
   attrsL . encounterDeckL %= flip removeEachFromDeck [def]
   attrsL . encounterDecksL . each . _1 %= flip removeEachFromDeck [def]
-  card <- genCard def
+  card <- maybe (genCard def) pure mcard
   pushM $ createEnemyWithPlacement_ card (toPlacement placement)
 
 placeEnemyCapture
   :: (ReverseQueue m, IsPlacement placement) => CardDef -> placement -> ScenarioBuilderT m EnemyId
 placeEnemyCapture def placement = do
+  mcard <- headMay <$> amongGathered (cardIs def)
   attrsL . encounterDeckL %= flip removeEachFromDeck [def]
   attrsL . encounterDecksL . each . _1 %= flip removeEachFromDeck [def]
-  card <- genCard def
+  card <- maybe (genCard def) pure mcard
   (enemyId, msg) <- createEnemyWithPlacement card (toPlacement placement)
   push msg
   pure enemyId
 
 enemyAtMatching :: ReverseQueue m => CardDef -> LocationMatcher -> ScenarioBuilderT m ()
 enemyAtMatching def matcher = do
+  mcard <- headMay <$> amongGathered (cardIs def)
   attrsL . encounterDeckL %= flip removeEachFromDeck [def]
   attrsL . encounterDecksL . each . _1 %= flip removeEachFromDeck [def]
-  card <- genCard def
+  card <- maybe (genCard def) pure mcard
   createEnemyAtLocationMatching_ card matcher
 
 sampleEncounterDeck :: (HasCallStack, MonadRandom m) => Int -> ScenarioBuilderT m [EncounterCard]

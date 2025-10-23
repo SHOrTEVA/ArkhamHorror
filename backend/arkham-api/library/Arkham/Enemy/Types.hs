@@ -174,6 +174,14 @@ enemy f cardDef stats damageStats = enemyWith f cardDef stats damageStats id
 preyIsBearer :: EnemyAttrs -> EnemyAttrs
 preyIsBearer a = a {enemyPrey = BearerOf (toId a)}
 
+preyIsOnlyBearer :: EnemyAttrs -> EnemyAttrs
+preyIsOnlyBearer a = a {enemyPrey = OnlyPrey (BearerOf (toId a))}
+
+setOnlyPrey
+  :: (Entity a, EntityAttrs a ~ EnemyAttrs)
+  => InvestigatorMatcher -> CardBuilder EnemyId a -> CardBuilder EnemyId a
+setOnlyPrey prey = fmap (overAttrs (\a -> a {enemyPrey = OnlyPrey (Prey prey)}))
+
 setPrey
   :: (Entity a, EntityAttrs a ~ EnemyAttrs)
   => InvestigatorMatcher -> CardBuilder EnemyId a -> CardBuilder EnemyId a
@@ -183,10 +191,19 @@ setPreyIsBearer
   :: (Entity a, EntityAttrs a ~ EnemyAttrs) => CardBuilder EnemyId a -> CardBuilder EnemyId a
 setPreyIsBearer = fmap (overAttrs preyIsBearer)
 
+setPreyIsOnlyBearer
+  :: (Entity a, EntityAttrs a ~ EnemyAttrs) => CardBuilder EnemyId a -> CardBuilder EnemyId a
+setPreyIsOnlyBearer = fmap (overAttrs preyIsOnlyBearer)
+
 setSpawnAt
   :: (Entity a, EntityAttrs a ~ EnemyAttrs)
   => LocationMatcher -> CardBuilder EnemyId a -> CardBuilder EnemyId a
 setSpawnAt spawnAt = fmap (overAttrs (\a -> a {enemySpawnAt = Just (SpawnAt spawnAt)}))
+
+setNoSpawn
+  :: (Entity a, EntityAttrs a ~ EnemyAttrs)
+  => CardBuilder EnemyId a -> CardBuilder EnemyId a
+setNoSpawn = fmap (overAttrs (\a -> a {enemySpawnAt = Just NoSpawn}))
 
 setExhausted
   :: (Entity a, EntityAttrs a ~ EnemyAttrs)
@@ -222,7 +239,7 @@ enemyWith f cardDef (fight, health, evade) (healthDamage, sanityDamage) g =
             , enemyModifiers = mempty
             , enemyExhausted = False
             , enemyTokens = mempty
-            , enemySpawnAt = Nothing
+            , enemySpawnAt = if Hidden `elem` cdKeywords cardDef then Just NoSpawn else Nothing
             , enemySurgeIfUnableToSpawn = False
             , enemyAsSelfLocation = Nothing
             , enemyMovedFromHunterKeyword = False
@@ -243,6 +260,7 @@ enemyWith f cardDef (fight, health, evade) (healthDamage, sanityDamage) g =
             , enemyCardsUnderneath = []
             , enemyLastKnownLocation = Nothing
             , enemyReferenceCards = []
+            , enemySpawnDetails = Nothing
             }
     }
 
@@ -256,17 +274,7 @@ pattern EvadeCriteria =
 instance HasAbilities EnemyAttrs where
   getAbilities e =
     [ basicAbility
-        $ restrictedAbility
-          e
-          AbilityAttack
-          ( OnSameLocation
-              <> AnyCriterion
-                [ Negate $ EnemyCriteria $ ThisEnemy AloofEnemy
-                , EnemyCriteria $ ThisEnemy $ EnemyIsEngagedWith Anyone
-                ]
-              <> EnemyCriteria (ThisEnemy $ CanBeAttackedBy You)
-              <> CanAttack
-          )
+        $ restrictedAbility e AbilityAttack canFightCriteria
         $ ActionAbility [#fight] (ActionCost 1)
     , basicAbility
         $ restrictedAbility e AbilityEvade EvadeCriteria

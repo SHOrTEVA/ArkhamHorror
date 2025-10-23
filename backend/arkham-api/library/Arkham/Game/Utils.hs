@@ -3,15 +3,17 @@ module Arkham.Game.Utils where
 import Arkham.Act.Types (Act)
 import Arkham.ActiveCost
 import Arkham.Agenda.Types (Agenda)
-import Arkham.Asset.Types (Asset, Field (..))
+import Arkham.Asset.Types (Asset)
 import Arkham.Campaign.Types hiding (campaign, modifiersL)
+import Arkham.Campaigns.TheScarletKeys.Concealed
+import Arkham.Campaigns.TheScarletKeys.Key.Types
 import Arkham.Card
 import Arkham.Classes.Entity
 import Arkham.Classes.HasGame
 import Arkham.Classes.Query ((<=~>))
 import Arkham.Cost qualified as Cost
 import Arkham.Effect.Types (Effect)
-import Arkham.Enemy.Types (Enemy, Field (..))
+import Arkham.Enemy.Types (Enemy)
 import Arkham.Entities
 import Arkham.Event.Types (Event)
 import Arkham.Game.Base
@@ -27,14 +29,14 @@ import Arkham.Keyword (Sealing (..))
 import Arkham.Keyword qualified as Keyword
 import Arkham.Location.Types (Location)
 import Arkham.Matcher.Target (matchTarget)
-import Arkham.Placement
 import Arkham.Prelude
 import Arkham.Projection
 import Arkham.Scenario.Types hiding (scenario)
 import Arkham.Skill.Types (Skill)
 import Arkham.Story.Types (Story)
 import Arkham.Target
-import Arkham.Treachery.Types (Field (..), Treachery)
+import Arkham.Tracing
+import Arkham.Treachery.Types (Treachery)
 import Arkham.Window (Window)
 import Control.Lens (each)
 import Data.Text qualified as T
@@ -61,7 +63,7 @@ getInvestigatorMaybe iid = preview (entitiesL . investigatorsL . ix iid) <$> get
 getEvent :: (HasCallStack, HasGame m) => EventId -> m Event
 getEvent eid = fromJustNote missingEvent <$> getEventMaybe eid
  where
-  missingEvent = "Unknown event: " <> show eid
+  missingEvent = "Unknown event: " <> show eid <> "\n\n" <> prettyCallStack callStack
 
 getEventMaybe :: HasGame m => EventId -> m (Maybe Event)
 getEventMaybe eid = do
@@ -155,32 +157,6 @@ maybeEffect effectId = do
     $ preview (entitiesL . effectsL . ix effectId) g
     <|> getRemovedEntity effectsL effectId g
 
-getPlacementLocation :: HasGame m => Placement -> m (Maybe LocationId)
-getPlacementLocation = \case
-  AtLocation location -> pure $ Just location
-  AttachedToLocation location -> pure $ Just location
-  InPlayArea investigator -> field InvestigatorLocation investigator
-  InThreatArea investigator -> field InvestigatorLocation investigator
-  StillInHand _ -> pure Nothing
-  StillInDiscard _ -> pure Nothing
-  StillInEncounterDiscard -> pure Nothing
-  AttachedToEnemy enemy -> field EnemyLocation enemy
-  AttachedToTreachery treachery -> field TreacheryLocation treachery
-  AttachedToAsset asset _ -> field AssetLocation asset
-  InVehicle asset -> field AssetLocation asset
-  AttachedToAct _ -> pure Nothing
-  AttachedToAgenda _ -> pure Nothing
-  AttachedToInvestigator investigator -> field InvestigatorLocation investigator
-  Unplaced -> pure Nothing
-  Limbo -> pure Nothing
-  Global -> pure Nothing
-  OutOfPlay _ -> pure Nothing
-  AsSwarm eid _ -> field EnemyLocation eid
-  HiddenInHand _ -> pure Nothing
-  OnTopOfDeck _ -> pure Nothing
-  Near _ -> pure Nothing
-  NextToAgenda -> pure Nothing
-
 createActiveCostForAdditionalCardCosts
   :: (MonadRandom m, HasGame m)
   => InvestigatorId
@@ -257,11 +233,27 @@ getStory sid = fromJustNote missingStory <$> maybeStory sid
 maybeStory :: HasGame m => StoryId -> m (Maybe Story)
 maybeStory sid = preview (entitiesL . storiesL . ix sid) <$> getGame
 
+getScarletKey :: (HasCallStack, HasGame m) => ScarletKeyId -> m ScarletKey
+getScarletKey sid = fromJustNote missingScarletKey <$> maybeScarletKey sid
+ where
+  missingScarletKey = "Unknown scarlet key: " <> show sid
+
+maybeScarletKey :: HasGame m => ScarletKeyId -> m (Maybe ScarletKey)
+maybeScarletKey sid = preview (entitiesL . scarletKeysL . ix sid) <$> getGame
+
+getConcealedCard :: (HasCallStack, HasGame m) => ConcealedCardId -> m ConcealedCard
+getConcealedCard cid = fromJustNote missingConcealedCard <$> maybeConcealedCard cid
+ where
+  missingConcealedCard = "Unknown concealed card: " <> show cid
+
+maybeConcealedCard :: HasGame m => ConcealedCardId -> m (Maybe ConcealedCard)
+maybeConcealedCard cid = preview (entitiesL . concealedL . ix cid) <$> getGame
+
 getActiveInvestigator :: HasGame m => m Investigator
 getActiveInvestigator = getGame >>= getInvestigator . gameActiveInvestigatorId
 
 createActiveCostForCard
-  :: (MonadRandom m, HasGame m)
+  :: (MonadRandom m, HasGame m, Tracing m)
   => InvestigatorId
   -> Card
   -> IsPlayAction
@@ -403,6 +395,9 @@ gameSkills = entitiesSkills . gameEntities
 
 gameEvents :: Game -> EntityMap Event
 gameEvents = entitiesEvents . gameEntities
+
+gameConcealed :: Game -> EntityMap ConcealedCard
+gameConcealed = entitiesConcealed . gameEntities
 
 gameEffects :: Game -> EntityMap Effect
 gameEffects = entitiesEffects . gameEntities

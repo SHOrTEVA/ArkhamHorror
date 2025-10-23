@@ -20,6 +20,7 @@ import Arkham.Key
 import Arkham.Location.FloodLevel
 import Arkham.Matcher (LocationMatcher, MovesVia)
 import Arkham.Phase (Phase)
+import Arkham.Placement
 import Arkham.ScenarioLogKey
 import {-# SOURCE #-} Arkham.SkillTest.Base
 import Arkham.SkillTest.Step
@@ -69,9 +70,14 @@ windowTypes :: [Window] -> [WindowType]
 windowTypes = map windowType
 
 getBatchId :: [Window] -> BatchId
-getBatchId ((windowBatchId -> Just batchId) : _) = batchId
-getBatchId (_ : rest) = getBatchId rest
-getBatchId [] = error "No batch id found"
+getBatchId ws = case getMaybeBatchId ws of
+  Just batchId -> batchId
+  Nothing -> error "No BatchId found in windows"
+
+getMaybeBatchId :: [Window] -> Maybe BatchId
+getMaybeBatchId ((windowBatchId -> Just batchId) : _) = Just batchId
+getMaybeBatchId (_ : rest) = getMaybeBatchId rest
+getMaybeBatchId [] = Nothing
 
 duringTurnWindow :: InvestigatorId -> Window
 duringTurnWindow = mkWindow Timing.When . DuringTurn
@@ -177,7 +183,7 @@ data WindowType
   | SpentClues InvestigatorId Int
   | DiscoveringLastClue InvestigatorId LocationId
   | SuccessfullyInvestigateWithNoClues InvestigatorId LocationId
-  | WouldDrawCard InvestigatorId DeckSignifier
+  | WouldDrawCard InvestigatorId CardDrawId DeckSignifier
   | DrawCard InvestigatorId Card DeckSignifier
   | DrawCards InvestigatorId [Card]
   | DrawChaosToken InvestigatorId ChaosToken
@@ -199,6 +205,7 @@ data WindowType
   | EnemyLeaves EnemyId LocationId
   | EnemyWouldSpawnAt EnemyId LocationId
   | EnemySpawns EnemyId LocationId
+  | EnemyPlaced EnemyId Placement
   | EnemyWouldAttack EnemyAttackDetails
   | EnemyWouldBeDefeated EnemyId
   | EnterPlay Target
@@ -306,7 +313,7 @@ data WindowType
   | WouldBeDiscarded Target
   | EntityDiscarded Source Target
   | WouldBeShuffledIntoDeck DeckSignifier Card
-  | WouldDrawEncounterCard InvestigatorId Phase
+  | WouldDrawEncounterCard InvestigatorId CardDrawId Phase
   | WouldFailSkillTest InvestigatorId Int
   | WouldPassSkillTest InvestigatorId Int
   | WouldReady Target
@@ -321,10 +328,11 @@ data WindowType
   | EnemiesAttackStep
   | AddingToCurrentDepth
   | EntersThreatArea InvestigatorId Card
-  | CancelledOrIgnoredCardOrGameEffect Source (Maybe CardId)-- Diana Stanley
+  | CancelledOrIgnoredCardOrGameEffect Source (Maybe CardId) -- Diana Stanley
   | ScenarioCountIncremented ScenarioCountKey
   | IncreasedAlarmLevel InvestigatorId
   | ScenarioEvent Text (Maybe InvestigatorId) Value
+  | CampaignEvent Text (Maybe InvestigatorId) Value
   | -- used to avoid checking a window
     DoNotCheckWindow
   deriving stock (Show, Eq, Ord, Data)
@@ -339,6 +347,16 @@ mconcat
         parseJSON = withObject "WindowType" \o -> do
           tag :: Text <- o .: "tag"
           case tag of
+            "WouldDrawCard" -> do
+              contents <- (Left <$> o .: "contents") <|> (Right <$> o .: "contents")
+              case contents of
+                Right (i, cid, deck) -> pure $ WouldDrawCard i cid deck
+                Left (i, deck) -> pure $ WouldDrawCard i (CardDrawId UUID.nil) deck
+            "WouldDrawEncounterCard" -> do
+              contents <- (Left <$> o .: "contents") <|> (Right <$> o .: "contents")
+              case contents of
+                Right (i, cid, p) -> pure $ WouldDrawEncounterCard i cid p
+                Left (i, p) -> pure $ WouldDrawEncounterCard i (CardDrawId UUID.nil) p
             "CancelledOrIgnoredCardOrGameEffect" -> do
               contents <- (Left <$> o .: "contents") <|> (Right <$> o .: "contents")
               case contents of

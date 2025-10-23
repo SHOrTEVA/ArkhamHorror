@@ -14,7 +14,6 @@ export const brazierDecoder: JsonDecoder.Decoder<Brazier> = JsonDecoder.oneOf<Br
   JsonDecoder.literal('Unlit'),
 ], 'Brazier');
 
-
 export type FloodLevel = "Unflooded" | "PartiallyFlooded" | "FullyFlooded"
 
 export const floodLevelDecoder: JsonDecoder.Decoder<FloodLevel> = JsonDecoder.oneOf<FloodLevel>([
@@ -36,6 +35,7 @@ export type Location = {
   treacheries: string[];
   assets: string[];
   events: string[];
+  scarletKeys: string[];
   cardsUnderneath: Card[];
   modifiers: Modifier[];
   connectedLocations: string[];
@@ -46,6 +46,7 @@ export type Location = {
   keys: ArkhamKey[];
   seals: Seal[];
   sealedChaosTokens: ChaosToken[];
+  concealedCards: string[];
 }
 
 type GameValue = { tag: "Static", contents: number } | { tag: "PerPlayer", contents: number }
@@ -69,6 +70,7 @@ export const locationDecoder = JsonDecoder.object<Location>(
     treacheries: JsonDecoder.array<string>(JsonDecoder.string(), 'TreacheryId[]'),
     assets: JsonDecoder.array<string>(JsonDecoder.string(), 'AssetId[]'),
     events: JsonDecoder.array<string>(JsonDecoder.string(), 'EventId[]'),
+    scarletKeys: JsonDecoder.array<string>(JsonDecoder.string(), 'ScarletKey[]'),
     cardsUnderneath: JsonDecoder.array<Card>(cardDecoder, 'UnderneathCard[]'),
     modifiers: JsonDecoder.array<Modifier>(modifierDecoder, 'Modifier[]'),
     connectedLocations: JsonDecoder.array<string>(JsonDecoder.string(), 'LocationId[]'),
@@ -79,6 +81,7 @@ export const locationDecoder = JsonDecoder.object<Location>(
     keys: JsonDecoder.array<ArkhamKey>(arkhamKeyDecoder, 'Key[]'),
     seals: JsonDecoder.array<Seal>(sealDecoder, 'Seal[]'),
     sealedChaosTokens: JsonDecoder.array<ChaosToken>(chaosTokenDecoder, 'ChaosToken[]'),
+    concealedCards: JsonDecoder.array<string>(JsonDecoder.string(), 'ConcealedCardId[]'),
   },
   'Location',
 );

@@ -5,15 +5,16 @@ export type Token
   | 'AlarmLevel'
   | 'Ammo'
   | 'Antiquity'
-  | 'Portent'
   | 'Bounty'
   | 'Charge'
+  | 'Civilian'
   | 'Clue'
   | 'Corruption'
   | 'Damage'
   | 'Depth'
   | 'Doom'
   | 'Durability'
+  | 'Eclipse'
   | 'Evidence'
   | 'Growth'
   | 'Horror'
@@ -25,6 +26,7 @@ export type Token
   | 'LostSoul'
   | 'Offering'
   | 'Pillar'
+  | 'Portent'
   | 'Resource'
   | 'Seal'
   | 'Secret'
@@ -32,13 +34,14 @@ export type Token
   | 'Shell'
   | 'Supply'
   | 'Suspicion'
+  | 'Target'
   | 'Ticket'
   | 'Time'
+  | 'Truth'
   | 'Try'
   | 'Warning'
   | 'Whistle'
   | 'Wish'
-  | 'Truth'
 
 export const TokenType = {
   Aether: 'Aether',
@@ -48,12 +51,14 @@ export const TokenType = {
   Portent: 'Portent',
   Bounty: 'Bounty',
   Charge: 'Charge',
+  Civilian: 'Civilian',
   Clue: 'Clue',
   Corruption: 'Corruption',
   Damage: 'Damage',
   Depth: 'Depth',
   Doom: 'Doom',
   Durability: 'Durability',
+  Eclipse: 'Eclipse',
   Evidence: 'Evidence',
   Growth: 'Growth',
   Horror: 'Horror',
@@ -72,6 +77,7 @@ export const TokenType = {
   Shell: 'Shell',
   Supply: 'Supply',
   Suspicion: 'Suspicion',
+  Target: 'Target',
   Ticket: 'Ticket',
   Time: 'Time',
   Try: 'Try',
@@ -86,15 +92,16 @@ export const tokenDecoder: JsonDecoder.Decoder<Token> = JsonDecoder.oneOf<Token>
   JsonDecoder.literal('AlarmLevel'),
   JsonDecoder.literal('Ammo'),
   JsonDecoder.literal('Antiquity'),
-  JsonDecoder.literal('Portent'),
   JsonDecoder.literal('Bounty'),
   JsonDecoder.literal('Charge'),
+  JsonDecoder.literal('Civilian'),
   JsonDecoder.literal('Clue'),
   JsonDecoder.literal('Corruption'),
   JsonDecoder.literal('Damage'),
   JsonDecoder.literal('Depth'),
   JsonDecoder.literal('Doom'),
   JsonDecoder.literal('Durability'),
+  JsonDecoder.literal('Eclipse'),
   JsonDecoder.literal('Evidence'),
   JsonDecoder.literal('Growth'),
   JsonDecoder.literal('Horror'),
@@ -106,6 +113,7 @@ export const tokenDecoder: JsonDecoder.Decoder<Token> = JsonDecoder.oneOf<Token>
   JsonDecoder.literal('LostSoul'),
   JsonDecoder.literal('Offering'),
   JsonDecoder.literal('Pillar'),
+  JsonDecoder.literal('Portent'),
   JsonDecoder.literal('Resource'),
   JsonDecoder.literal('Seal'),
   JsonDecoder.literal('Secret'),
@@ -113,13 +121,14 @@ export const tokenDecoder: JsonDecoder.Decoder<Token> = JsonDecoder.oneOf<Token>
   JsonDecoder.literal('Shell'),
   JsonDecoder.literal('Supply'),
   JsonDecoder.literal('Suspicion'),
+  JsonDecoder.literal('Target'),
   JsonDecoder.literal('Ticket'),
   JsonDecoder.literal('Time'),
+  JsonDecoder.literal('Truth'),
   JsonDecoder.literal('Try'),
   JsonDecoder.literal('Warning'),
   JsonDecoder.literal('Whistle'),
   JsonDecoder.literal('Wish'),
-  JsonDecoder.literal('Truth'),
 ], 'Token');
 
 export type Tokens = Partial<Record<Token, number>>;

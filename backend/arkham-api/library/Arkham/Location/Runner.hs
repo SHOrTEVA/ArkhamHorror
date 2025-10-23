@@ -71,6 +71,7 @@ import Arkham.Projection
 import Arkham.Spawn
 import Arkham.Timing qualified as Timing
 import Arkham.Token
+import Arkham.Tracing
 import Arkham.Trait
 import Arkham.Window (mkWindow)
 import Arkham.Window qualified as Window
@@ -97,12 +98,22 @@ extendRevealed = withRevealedAbilities
 extendRevealed1 :: LocationAttrs -> Ability -> [Ability]
 extendRevealed1 attrs ability = extendRevealed attrs [ability]
 
-getModifiedRevealClueCount :: HasGame m => LocationAttrs -> m Int
+withUnrevealedAbilities :: LocationAttrs -> [Ability] -> [Ability]
+withUnrevealedAbilities attrs other = withBaseAbilities attrs $ guard (not $ locationRevealed attrs) *> other
+
+extendUnrevealed :: LocationAttrs -> [Ability] -> [Ability]
+extendUnrevealed = withUnrevealedAbilities
+
+extendUnrevealed1 :: LocationAttrs -> Ability -> [Ability]
+extendUnrevealed1 attrs ability = extendUnrevealed attrs [ability]
+
+getModifiedRevealClueCount :: (Tracing m, HasGame m) => LocationAttrs -> m Int
 getModifiedRevealClueCount attrs = do
   mods <- getModifiers attrs
   getModifiedRevealClueCountWithMods mods attrs
 
-getModifiedRevealClueCountWithMods :: HasGame m => [ModifierType] -> LocationAttrs -> m Int
+getModifiedRevealClueCountWithMods
+  :: (HasGame m, Tracing m) => [ModifierType] -> LocationAttrs -> m Int
 getModifiedRevealClueCountWithMods mods attrs =
   if CannotPlaceClues `elem` mods
     then pure 0
@@ -557,13 +568,20 @@ instance RunMessage LocationAttrs where
     RemoveAllCopiesOfEncounterCardFromGame cardMatcher | toCard a `cardMatch` cardMatcher -> do
       push $ RemoveLocation (toId a)
       pure a
+    PlaceConcealedCard _ card (AtLocation lid) | a.id == lid -> do
+      cards <- shuffleM $ nub $ card : locationConcealedCards
+      pure $ a & concealedCardsL .~ cards
+    PlaceConcealedCard _ card _ -> do
+      pure $ a & concealedCardsL %~ filter (/= card)
+    RemoveFromGame (ConcealedCardTarget card) -> do
+      pure $ a & concealedCardsL %~ filter (/= card)
     _ -> pure a
 
-locationInvestigatorsWithClues :: HasGame m => LocationAttrs -> m [InvestigatorId]
+locationInvestigatorsWithClues :: (HasGame m, Tracing m) => LocationAttrs -> m [InvestigatorId]
 locationInvestigatorsWithClues attrs =
   filterM (fieldMap InvestigatorClues (> 0)) =<< select (investigatorAt $ toId attrs)
 
-getModifiedShroudValueFor :: (HasCallStack, HasGame m) => LocationAttrs -> m Int
+getModifiedShroudValueFor :: (HasCallStack, HasGame m, Tracing m) => LocationAttrs -> m Int
 getModifiedShroudValueFor attrs = do
   modifiers' <- getModifiers (toTarget attrs)
   base <- getGameValue (fromJustNote "Missing shroud" $ locationShroud attrs)
@@ -583,7 +601,7 @@ getInvestigateAllowed iid attrs = do
   isCannotInvestigate (CannotInvestigateLocation lid) = lid == toId attrs
   isCannotInvestigate _ = False
 
-canEnterLocation :: HasGame m => EnemyId -> LocationId -> m Bool
+canEnterLocation :: (HasGame m, Tracing m) => EnemyId -> LocationId -> m Bool
 canEnterLocation eid lid = do
   modifiers' <- getModifiers lid
   not <$> flip anyM modifiers' \case
@@ -618,7 +636,7 @@ instance HasAbilities LocationAttrs where
           l
           102
           ( CanMoveTo (LocationWithId l.id)
-              <> OnLocation (accessibleTo ForMovement l)
+              <> OnLocation (IncludeEmptySpace $ accessibleTo ForMovement l)
               <> exists (You <> can.move <> noModifier (CannotEnter l.id))
           )
         $ ActionAbility [#move] moveCost
@@ -648,10 +666,10 @@ getShouldSpawnNonEliteAtConnectingInstead attrs = do
     SpawnNonEliteAtConnectingInstead {} -> True
     _ -> False
 
-enemyAtLocation :: HasGame m => EnemyId -> LocationAttrs -> m Bool
+enemyAtLocation :: (HasGame m, Tracing m) => EnemyId -> LocationAttrs -> m Bool
 enemyAtLocation eid attrs = elem eid <$> select (enemyAt $ toId attrs)
 
-locationEnemiesWithTrait :: HasGame m => LocationAttrs -> Trait -> m [EnemyId]
+locationEnemiesWithTrait :: (HasGame m, Tracing m) => LocationAttrs -> Trait -> m [EnemyId]
 locationEnemiesWithTrait attrs trait = select $ enemyAt (toId attrs) <> EnemyWithTrait trait
 
 veiled1 :: LocationAttrs -> Ability -> [Ability]

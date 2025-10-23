@@ -42,6 +42,7 @@ import Arkham.Source
 import Arkham.Target
 import Arkham.Token
 import Arkham.Token qualified as Token
+import Arkham.Tracing
 import Arkham.Window (Window (..))
 import Arkham.Window qualified as Window
 import Control.Lens (non)
@@ -50,7 +51,7 @@ import Data.List qualified as List
 import Data.Set qualified as Set
 
 getCanAffordCost
-  :: (HasGame m, Sourceable source)
+  :: (HasGame m, Tracing m, Sourceable source)
   => InvestigatorId
   -> source
   -> [Action]
@@ -61,7 +62,7 @@ getCanAffordCost iid source actions windows' cost =
   getCanAffordCost_ iid source actions windows' True cost
 
 getCanAffordCost_
-  :: (HasGame m, Sourceable source)
+  :: (HasGame m, Tracing m, Sourceable source)
   => InvestigatorId
   -> source
   -> [Action]
@@ -69,9 +70,11 @@ getCanAffordCost_
   -> Bool
   -> Cost
   -> m Bool
-getCanAffordCost_ !iid !(toSource -> source) !actions !windows' !canModify cost_ =
+getCanAffordCost_ !iid !(toSource -> source) !actions !windows' !canModify cost_ = withSpan' "getCanAffordCost" \currentSpan -> do
+  addAttribute currentSpan "cost" (tshow cost_)
   cached (CanAffordCostKey iid source actions windows' canModify cost_) do
     case cost_ of
+      XCost c -> getCanAffordCost_ iid source actions windows' canModify c -- just need to afford once
       LabeledCost _ inner -> getCanAffordCost_ iid source actions windows' canModify inner
       ShuffleTopOfScenarioDeckIntoYourDeck n deckKey -> (>= n) . length <$> getScenarioDeck deckKey
       RemoveEnemyDamageCost x matcher -> do
@@ -338,8 +341,8 @@ getCanAffordCost_ !iid !(toSource -> source) !actions !windows' !canModify cost_
           if canParallelRex
             then (`div` 2) <$> getRemainingCurseTokens
             else pure 0
-        spendableClues <- getSpendableClueCount [iid]
-        pure $ (spendableClues + z) >= n
+        clues <- field InvestigatorClues iid
+        pure $ (clues + z) >= n
       GroupClueCost n locationMatcher -> do
         cost <- getPlayerCountValue n
         iids <- select $ Matcher.InvestigatorAt locationMatcher
@@ -415,6 +418,8 @@ getCanAffordCost_ !iid !(toSource -> source) !actions !windows' !canModify cost_
       HorrorCostX {} -> pure True -- TODO: Make better
       DamageCost {} -> pure True -- TODO: Make better
       DirectDamageCost {} -> pure True -- TODO: Make better
+      DirectHorrorCost {} -> pure True -- TODO: Make better
+      DirectDamageAndHorrorCost {} -> pure True -- TODO: Make better
       InvestigatorDamageCost {} -> pure True -- TODO: Make better
       DoomCost _ (AgendaMatcherTarget agendaMatcher) _ -> selectAny agendaMatcher
       DoomCost {} -> pure True -- TODO: Make better
@@ -519,7 +524,7 @@ getCanAffordCost_ !iid !(toSource -> source) !actions !windows' !canModify cost_
         iid <=~> (Matcher.InvestigatorWithSupply supply <> Matcher.InvestigatorAt locationMatcher)
       ResolveEachHauntedAbility _ -> pure True
 
-getSpendableResources :: HasGame m => InvestigatorId -> m Int
+getSpendableResources :: (HasGame m, Tracing m) => InvestigatorId -> m Int
 getSpendableResources iid = do
   mods <- getModifiers iid
   let extraResources = sum [x | ExtraResources x <- mods]
@@ -527,7 +532,7 @@ getSpendableResources iid = do
     selectSum AssetResources $ Matcher.assetIs Assets.familyInheritance <> Matcher.assetControlledBy iid
   fieldMap InvestigatorResources (+ (familyInheritanceResources + extraResources)) iid
 
-getSpendableClueCount :: HasGame m => [InvestigatorId] -> m Int
+getSpendableClueCount :: (HasGame m, Tracing m) => [InvestigatorId] -> m Int
 getSpendableClueCount investigatorIds =
   getSum <$> foldMapM (fmap Sum . Investigator.getSpendableClueCount) investigatorIds
 

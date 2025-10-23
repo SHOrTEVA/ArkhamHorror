@@ -249,7 +249,7 @@ const handleResult = (result: ServerResult) => {
       }
       return
     case "GameMessage":
-      gameLog.value = Object.freeze([...gameLog.value, result.contents])
+      gameLog.value = Object.freeze([...gameLog.value, localize(result.contents)])
       return
     case "GameShowDiscard":
       emitter.emit('showDiscards', result.contents)
@@ -329,12 +329,67 @@ const canUndoScenario = computed(() => {
   return game.value.scenarioSteps > 1
 })
 
+// --- Konami Code support ---
+const KONAMI_SEQ = [
+  'ArrowUp','ArrowUp','ArrowDown','ArrowDown',
+  'ArrowLeft','ArrowRight','ArrowLeft','ArrowRight','b','a',
+] as const
+
+let konamiIndex = 0
+let konamiTimer: number | null = null
+const KONAMI_TIMEOUT_MS = 5000 // reset if user pauses too long
+
+const onKonami = () => {
+  if (!game.value) return
+  debug.send(game.value.id, { tag: 'KonamiCode' })
+}
+
+const feedKonami = (rawKey: string): boolean => {
+  const key = rawKey.length === 1 ? rawKey.toLowerCase() : rawKey
+
+  // match current step
+  if (key === KONAMI_SEQ[konamiIndex]) {
+    konamiIndex++
+    if (konamiIndex === KONAMI_SEQ.length) {
+      // success!
+      konamiIndex = 0
+      if (konamiTimer) { clearTimeout(konamiTimer); konamiTimer = null }
+      onKonami()
+      return true
+    }
+    // keep a rolling timeout while the user is entering
+    if (konamiTimer) clearTimeout(konamiTimer)
+    konamiTimer = window.setTimeout(() => {
+      konamiIndex = 0
+      konamiTimer = null
+    }, KONAMI_TIMEOUT_MS)
+    return false
+  }
+
+  // mismatch: allow overlap if this key is the first symbol of the sequence
+  if (key === KONAMI_SEQ[0]) {
+    konamiIndex = 1
+    if (konamiTimer) clearTimeout(konamiTimer)
+    konamiTimer = window.setTimeout(() => {
+      konamiIndex = 0
+      konamiTimer = null
+    }, KONAMI_TIMEOUT_MS)
+  } else {
+    konamiIndex = 0
+    if (konamiTimer) { clearTimeout(konamiTimer); konamiTimer = null }
+  }
+
+  return false
+}
+
 // Keyboard Shortcuts
 const handleKeyPress = (event: KeyboardEvent) => {
   if (filingBug.value) return
   if (event.ctrlKey) return
   if (event.metaKey) return
   if (event.altKey) return
+
+  if (feedKonami(event.key)) return
 
   if (event.key === 'u') {
     undo()
@@ -360,7 +415,19 @@ const handleKeyPress = (event: KeyboardEvent) => {
   if (event.key === ' ') {
     const skipTriggers = choices.value.findIndex((c) => c.tag === Message.MessageType.SKIP_TRIGGERS_BUTTON)
     if (skipTriggers !== -1) choose(skipTriggers)
-    if (choices.value.length == 1) choose(0)
+    const validIndices = choices.value
+      .map((c, i) => (c.tag !== Message.MessageType.INVALID_LABEL ? i : -1))
+      .filter((i) => i !== -1)
+
+    if (validIndices.length === 1) {
+      choose(validIndices[0])
+      return
+    }
+
+    if (choices.value.length === 1) {
+      choose(0)
+      return
+    }
     return
   }
 
@@ -432,6 +499,7 @@ const toggleSidebar = function () {
 const undoLock = ref(false)
 async function undo() {
   processing.value = true
+  const oldQuestion = game.value?.question
   if (game.value) game.value.question = {}
   resultQueue.value = []
   gameCard.value = null
@@ -439,7 +507,13 @@ async function undo() {
   uiLock.value = false
   if (undoLock.value) return
   undoLock.value = true
-  await undoChoice(props.gameId, debug.active)
+  try {
+    await undoChoice(props.gameId, debug.active)
+  } catch (e) {
+    processing.value = false
+    if (game.value && oldQuestion) game.value.question = oldQuestion
+    console.log(e)
+  }
   undoLock.value = false
 }
 
@@ -534,6 +608,13 @@ async function chooseAmounts(amounts: Record<string, number>): Promise<void> {
   }
 }
 
+function localize(str: string): string {
+  if (str.startsWith("$")) {
+    return t(str.slice(1))
+  }
+  return str
+}
+
 async function update(state: Arkham.Game) { game.value = state }
 
 function switchInvestigator (newPlayerId: string) { playerId.value = newPlayerId }
@@ -558,6 +639,7 @@ function debugExport (full: boolean) {
 
 // provides
 provide('chooseDeck', chooseDeck)
+provide('send', send)
 provide('choosePaymentAmounts', choosePaymentAmounts)
 provide('chooseAmounts', chooseAmounts)
 provide('switchInvestigator', switchInvestigator)
@@ -575,6 +657,9 @@ onMounted(() => {
   ; (window as any).debugChoose = choose
   document.addEventListener('mousemove', onMove, { passive: true })
   document.addEventListener('keydown', handleKeyPress)
+  for (var key in localStorage){
+    if (key.startsWith('selected-tab:')) localStorage.removeItem(key)
+  }
 })
 
 onBeforeRouteLeave(() => close())
@@ -1049,7 +1134,7 @@ header {
 	0%,
 	100% {
 		border-radius: 30% 70% 70% 30% / 30% 52% 48% 70%;
-		//box-shadow: 10px -2vmin 4vmin LightPink inset, 10px -4vmin 4vmin MediumPurple inset, 10px -2vmin 7vmin purple inset;
+		/*box-shadow: 10px -2vmin 4vmin LightPink inset, 10px -4vmin 4vmin MediumPurple inset, 10px -2vmin 7vmin purple inset;*/
 	}
 
 	10% {
@@ -1062,7 +1147,7 @@ header {
 
 	30% {
 		border-radius: 39% 61% 47% 53% / 37% 40% 60% 63%;
-		//box-shadow: 20px -4vmin 8vmin hotpink inset, -1vmin -2vmin 6vmin LightPink inset, -1vmin -2vmin 4vmin MediumPurple inset, 1vmin 4vmin 8vmin purple inset;
+		/*box-shadow: 20px -4vmin 8vmin hotpink inset, -1vmin -2vmin 6vmin LightPink inset, -1vmin -2vmin 4vmin MediumPurple inset, 1vmin 4vmin 8vmin purple inset;*/
 	}
 
 	40% {
@@ -1071,7 +1156,7 @@ header {
 
 	50% {
 		border-radius: 100%;
-		//box-shadow: 40px 4vmin 16vmin hotpink inset, 40px 2vmin 5vmin LightPink inset, 40px 4vmin 4vmin MediumPurple inset, 40px 6vmin 8vmin purple inset;
+		/*box-shadow: 40px 4vmin 16vmin hotpink inset, 40px 2vmin 5vmin LightPink inset, 40px 4vmin 4vmin MediumPurple inset, 40px 6vmin 8vmin purple inset;*/
 	}
 
 	60% {
@@ -1080,7 +1165,7 @@ header {
 
 	70% {
 		border-radius: 50% 50% 53% 47% / 26% 22% 78% 74%;
-		//box-shadow: 1vmin 1vmin 8vmin LightPink inset, 2vmin -1vmin 4vmin MediumPurple inset, -1vmin -1vmin 16vmin purple inset;
+		/*box-shadow: 1vmin 1vmin 8vmin LightPink inset, 2vmin -1vmin 4vmin MediumPurple inset, -1vmin -1vmin 16vmin purple inset;*/
 	}
 
 	80% {
@@ -1132,7 +1217,7 @@ header {
   width: fit-content;
   height: fit-content;
   display: grid;
-  // glow effect
+  /* glow effect */
   filter: drop-shadow(0 0 3vmin Indigo) drop-shadow(0 5vmin 4vmin Orchid)
 		drop-shadow(2vmin -2vmin 15vmin MediumSlateBlue)
 		drop-shadow(0 0 7vmin MediumOrchid);

@@ -4,6 +4,7 @@ module Arkham.ActiveCost (module Arkham.ActiveCost, module X) where
 
 import Arkham.ActiveCost.Base as X
 
+import Data.List.NonEmpty.Extra (minimum1)
 import Arkham.Ability hiding (PaidCost)
 import Arkham.Action hiding (TakenAction)
 import Arkham.Action qualified as Action
@@ -73,6 +74,7 @@ import Arkham.SkillType
 import Arkham.Source
 import Arkham.Target
 import Arkham.Token qualified as Token
+import Arkham.Tracing
 import Arkham.Window (Window (..), mkAfter, mkWhen)
 import Arkham.Window qualified as Window
 import Control.Lens (non, over, transform)
@@ -111,7 +113,7 @@ costPaymentsL = lens activeCostPayments $ \m x -> m {activeCostPayments = x}
 costSealedChaosTokensL :: Lens' ActiveCost [ChaosToken]
 costSealedChaosTokensL = lens activeCostSealedChaosTokens $ \m x -> m {activeCostSealedChaosTokens = x}
 
-getActionCostModifier :: HasGame m => ActiveCost -> m Int
+getActionCostModifier :: (HasGame m, Tracing m) => ActiveCost -> m Int
 getActionCostModifier ac = do
   let iid = ac.investigator
   takenActions <- field InvestigatorActionsTaken iid
@@ -183,7 +185,7 @@ nonAttackOfOpportunityActions = [#fight, #evade, #resign, #parley]
 
 payCost
   :: forall m
-   . (HasGame m, HasQueue Message m, HasCallStack, CardGen m)
+   . (Tracing m, HasGame m, HasQueue Message m, HasCallStack, CardGen m)
   => Message
   -> ActiveCost
   -> InvestigatorId
@@ -198,6 +200,25 @@ payCost msg c iid skipAdditionalCosts cost = do
   let pay = PayCost acId iid skipAdditionalCosts
   player <- getPlayer iid
   case cost of
+    XCost inner -> do
+      let
+        go = \case
+          ResourceCost n -> Just . (`div` n) <$> getSpendableResources iid
+          ClueCost n -> do
+            gv <- getGameValue n
+            Just . (`div` gv) <$> getSpendableClueCount [iid]
+          Costs cs -> do
+            possible <- catMaybes <$> traverse go cs
+            pure $ minimum1 <$> nonEmpty possible 
+          _ -> pure Nothing
+      mVal <- fromMaybe 100 <$> go inner
+      push
+        $ questionLabel "Spend X" player
+        $ DropDown
+          [ (tshow n, pay (mconcat $ replicate n inner))
+          | n <- [1 .. mVal]
+          ]
+      pure c
     LabeledCost _ inner -> payCost msg c iid skipAdditionalCosts inner
     ShuffleTopOfScenarioDeckIntoYourDeck n TekeliliDeck -> do
       runQueueT $ addTekelili iid . take n =<< getScenarioDeck TekeliliDeck
@@ -529,7 +550,7 @@ payCost msg c iid skipAdditionalCosts cost = do
         discardIt = \case
           PlayerCard pc -> [AddToDiscard owner pc | owner <- maybeToList (pcOwner pc)]
           EncounterCard ec -> [AddToEncounterDiscard ec]
-          _ -> error "Unhandled"
+          _ -> error "Unhandled DiscardUnderneathCardCost"
       pushAll
         [ FocusCards cards
         , chooseOrRunOne player [targetLabel card (UnfocusCards : discardIt card) | card <- cards]
@@ -623,6 +644,20 @@ payCost msg c iid skipAdditionalCosts cost = do
         [iid'] -> do
           push $ InvestigatorDirectDamage iid' source x 0
           withPayment $ DirectDamagePayment x
+        _ -> error "exactly one investigator expected for direct damage"
+    DirectHorrorCost _ investigatorMatcher x -> do
+      investigators <- select investigatorMatcher
+      case investigators of
+        [iid'] -> do
+          push $ InvestigatorDirectDamage iid' source 0 x
+          withPayment $ DirectHorrorPayment x
+        _ -> error "exactly one investigator expected for direct damage"
+    DirectDamageAndHorrorCost _ investigatorMatcher x y -> do
+      investigators <- select investigatorMatcher
+      case investigators of
+        [iid'] -> do
+          push $ InvestigatorDirectDamage iid' source x y
+          withPayment $ DirectDamagePayment x <> DirectHorrorPayment y
         _ -> error "exactly one investigator expected for direct damage"
     InvestigatorDamageCost source' investigatorMatcher damageStrategy x -> do
       investigators <- select investigatorMatcher
@@ -1359,7 +1394,7 @@ instance RunMessage ActiveCost where
           let
             modifiersPreventAttackOfOpportunity =
               any ((`elem` modifiers') . ActionDoesNotCauseAttacksOfOpportunity) a.actions
-          push $ PayCostFinished acId
+          pushAll [PaidInitialCostForAbility acId iid (abilityToRef a) c.payments, PayCostFinished acId]
           startAbilityPayment
             c
             iid

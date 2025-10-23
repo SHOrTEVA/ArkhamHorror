@@ -11,7 +11,8 @@ import Data.Char (isLower, isUpper)
 newtype EnemyTrait = EnemyTrait {unEnemyTrait :: Trait}
 
 data Trait
-  = Abomination
+  = Abandoned
+  | Abomination
   | Agency
   | Allied
   | Ally
@@ -27,6 +28,7 @@ data Trait
   | Avatar
   | Basement
   | Bayou
+  | Bazaar
   | Believer
   | Blessed
   | Blunder
@@ -35,6 +37,7 @@ data Trait
   | Boon
   | Bridge
   | Broken
+  | BuenosAires
   | Byakhee
   | Bystander
   | Campsite
@@ -56,6 +59,7 @@ data Trait
   | Connection
   | Conspirator
   | Construct
+  | Corruption
   | Cosmos
   | Coterie
   | Courage
@@ -135,6 +139,7 @@ data Trait
   | Insight
   | Instrument
   | Island
+  | Istanbul
   | Item
   | Job
   | Jungle
@@ -147,11 +152,13 @@ data Trait
   | Leader
   | Leng
   | Lodge
+  | London
   | Lunatic
   | Madness
   | Mainland
   | Manifold
   | Manor
+  | Marrakesh
   | Mask
   | Medic
   | Melee
@@ -175,6 +182,7 @@ data Trait
   | OothNargai
   | Oriab
   | Otherworld
+  | Outsider
   | Pact
   | Paradox
   | Paris
@@ -197,6 +205,7 @@ data Trait
   | Reporter
   | Research
   | Resolute
+  | Risen
   | Ritual
   | RitualSite
   | Rival
@@ -233,6 +242,7 @@ data Trait
   | Spider
   | Spirit
   | StMarys
+  | Stable
   | Staff
   | Steps
   | Summon
@@ -259,6 +269,7 @@ data Trait
   | Unbroken
   | Uncharted
   | Unhallowed
+  | Unstable
   | Upgrade
   | Vale
   | Vehicle
@@ -276,6 +287,7 @@ data Trait
   | Yhanthlei
   | Yithian
   | Yoth
+  | Yuggoth
   | Zoog
   deriving stock (Show, Eq, Generic, Ord, Enum, Bounded, Read, Data)
   deriving anyclass (ToJSON, FromJSON, Hashable)

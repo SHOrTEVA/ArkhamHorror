@@ -21,6 +21,13 @@ doubleSided def =
     , cdOtherSide = Just $ flippedCardCode def.cardCode
     }
 
+otherSideIs :: CardCode -> CardDef -> CardDef
+otherSideIs ccode def =
+  def
+    { cdDoubleSided = True
+    , cdOtherSide = Just ccode
+    }
+
 story :: CardCode -> Name -> EncounterSet -> CardDef
 story cardCode name encounterSet =
   (emptyCardDef cardCode name StoryType)
@@ -148,7 +155,12 @@ allStoryCards =
       , memoryOfAnUnrequitedLove
       , returnToSickeningReality_23
       , returnToSickeningReality_24
+      , returnToUnfinishedBusiness_38
+      , returnToUnfinishedBusiness_39
       , realityAcid
+      , saveTheCivilians
+      , theUnveiling
+      , theUnsealing
       , theFoundationAllied
       , theFoundationRival
       , theSyndicateAllied
@@ -487,6 +499,15 @@ memoryOfAnAlienTranslation = victory 1 $ doubleSided $ story "08582b" "Memory of
 memoryOfAnUnrequitedLove :: CardDef
 memoryOfAnUnrequitedLove = victory 1 $ doubleSided $ story "08583b" "Memory of an Unrequited Love" FatalMirage
 
+saveTheCivilians :: CardDef
+saveTheCivilians = story "09536a" "Save the Civilians" DeadHeat & otherSideIs "09536b"
+
+theUnveiling :: CardDef
+theUnveiling = story "09571a" "The Unveiling" DealingsInTheDark & otherSideIs "09571b"
+
+theUnsealing :: CardDef
+theUnsealing = story "09571b" "The Unsealing" DealingsInTheDark & otherSideIs "09571a"
+
 returnToSickeningReality_23 :: CardDef
 returnToSickeningReality_23 = doubleSided $ story "52023" "Sickening Reality" ReturnToTheLastKing
 
@@ -504,6 +525,12 @@ theEntity = doubleSided $ story "52062b" "The Entity" ReturnToDimCarcosa
 
 theDelusion :: CardDef
 theDelusion = doubleSided $ story "52063b" "The Delusion" ReturnToDimCarcosa
+
+returnToUnfinishedBusiness_38 :: CardDef
+returnToUnfinishedBusiness_38 = victory 1 $ doubleSided $ story "54038b" "Unfinished Business" ReturnToTheWagesOfSin
+
+returnToUnfinishedBusiness_39 :: CardDef
+returnToUnfinishedBusiness_39 = victory 1 $ doubleSided $ story "54039b" "Unfinished Business" ReturnToTheWagesOfSin
 
 realityAcid :: CardDef
 realityAcid =

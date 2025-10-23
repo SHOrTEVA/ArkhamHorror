@@ -311,10 +311,12 @@ allPlayerAssetCards =
       , engineer
       , eonChart1
       , eonChart4
+      , erynnMacAoidhDevotedEnchantress
       , esotericAtlas1
       , esotericAtlas2
       , esotericFormula
       , evanescentAscensionTheMorningStar
+      , expeditedTicket
       , expeditionJournal
       , eyeOfChaos
       , eyeOfChaos4
@@ -960,8 +962,11 @@ allEncounterAssetCards =
       , elinaHarpersCarStopped
       , yhanthleiStatueMysteriousRelic
       , yhanthleiStatueDynamicRelic
+      , laChicaRojaYourWatchfulShadow
+      , eceSahinTheVermillionVeiledLady
       , dianneDevineHidingAnOathUnspoken
       , partyGuest
+      , nightgauntSteed
       , jewelOfSarnath
       , theCustodian
       , heliosTelescopeGateToTheCosmos

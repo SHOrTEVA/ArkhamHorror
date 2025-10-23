@@ -184,7 +184,7 @@ investigatorEngagedWith :: (AsId enemy, IdOf enemy ~ EnemyId) => enemy -> Invest
 investigatorEngagedWith = InvestigatorEngagedWith . EnemyWithId . asId
 
 investigatorAt :: IsLocationMatcher a => a -> InvestigatorMatcher
-investigatorAt = InvestigatorAt . toLocationMatcher
+investigatorAt = InvestigatorAt . IncludeEmptySpace . toLocationMatcher
 
 replaceYouMatcher :: Data a => InvestigatorId -> a -> a
 replaceYouMatcher iid = replaceInvestigatorMatcher (transform replace)
@@ -218,7 +218,7 @@ noModifier = InvestigatorWithoutModifier
 -- would always return that prey
 preyWith :: PreyMatcher -> InvestigatorMatcher -> PreyMatcher
 preyWith (Prey m1) m2 = Prey $ m1 <> m2
-preyWith (OnlyPrey m1) m2 = OnlyPrey $ m1 <> m2
+preyWith (OnlyPrey p1) m1 = OnlyPrey $ preyWith p1 m1
 preyWith (BearerOf e) m = RestrictedBearerOf e m
 preyWith (RestrictedBearerOf e m1) m2 = RestrictedBearerOf e $ m1 <> m2
 
@@ -309,7 +309,7 @@ rightOf = LocationInDirection RightOf . LocationWithId . asId
 {-# INLINE rightOf #-}
 
 locationWithInvestigator :: InvestigatorId -> LocationMatcher
-locationWithInvestigator = LocationWithInvestigator . InvestigatorWithId
+locationWithInvestigator = IncludeEmptySpace . LocationWithInvestigator . InvestigatorWithId
 {-# INLINE locationWithInvestigator #-}
 
 instance HasField "location" InvestigatorId LocationMatcher where
@@ -332,11 +332,11 @@ locationWithoutTreachery = LocationWithoutTreachery . treacheryIs
 {-# INLINE locationWithoutTreachery #-}
 
 accessibleFrom :: (AsId a, IdOf a ~ LocationId) => ForMovement -> a -> LocationMatcher
-accessibleFrom forMovement = AccessibleFrom forMovement . LocationWithId . asId
+accessibleFrom forMovement = IncludeEmptySpace . AccessibleFrom forMovement . LocationWithId . asId
 {-# INLINE accessibleFrom #-}
 
 accessibleTo :: (AsId a, IdOf a ~ LocationId) => ForMovement -> a -> LocationMatcher
-accessibleTo forMovement = AccessibleTo forMovement . LocationWithId . asId
+accessibleTo forMovement = IncludeEmptySpace . AccessibleTo forMovement . LocationWithId . asId
 {-# INLINE accessibleTo #-}
 
 locationNotOneOf :: IsLocationMatcher a => [a] -> LocationMatcher
@@ -501,6 +501,7 @@ instance Has InvestigatorMatcher CardDef where
     StoryType -> error "invalid matcher"
     InvestigatorType -> error "invalid matcher"
     ScenarioType -> error "invalid matcher"
+    KeyType -> error "invalid matcher"
 
 instance Exists CardDef where
   exists def = case cdCardType def of
@@ -519,3 +520,4 @@ instance Exists CardDef where
     TreacheryType -> exists $ treacheryIs def
     InvestigatorType -> exists $ investigatorIs def
     ScenarioType -> error "Not implemented"
+    KeyType -> error "Not implemented"

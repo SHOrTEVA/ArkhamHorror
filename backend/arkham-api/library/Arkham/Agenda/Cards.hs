@@ -24,6 +24,7 @@ allAgendaCards =
     $ map
       (toCardCode &&& id)
       [ aCreatureOfTheBayou
+      , agentsOfTheDark
       , agentsOfTheOuterGods
       , aHarshWindBlows
       , aKillerParty
@@ -59,6 +60,7 @@ allAgendaCards =
       , drawnIn
       , empireOfTheDead
       , empireOfTheUndead
+      , emptyStreets
       , encore
       , endlessCaverns
       , endsAndMeans
@@ -69,11 +71,13 @@ allAgendaCards =
       , eyesInTheDark
       , fashionablyLate
       , feedTheBeast
+      , figuresInTheFog
       , floodedStreets
       , fogOnTheBay
       , forbiddenPeaks
       , franticPursuit
       , furyThatShakesTheEarth
+      , gnashingTeeth
       , growingSuspicion
       , hallsOfStMarys
       , hiddenEntanglements
@@ -108,6 +112,7 @@ allAgendaCards =
       , overTheThreshold
       , pastPresentAndFuture
       , pendulousThreads
+      , plotsAndPanic
       , predatorOrPrey
       , quietHalls
       , rageOfTheDeep
@@ -124,6 +129,7 @@ allAgendaCards =
       , secretsBetterLeftHidden
       , secretsOfTheSeaV1
       , secretsOfTheSeaV2
+      , seeingRed
       , settingSun
       , shadowsDeepen
       , showbusinessAsUsual
@@ -145,11 +151,13 @@ allAgendaCards =
       , theBoundaryBroken
       , theBridgeOfWebs
       , theChariotVII
+      , theChase
       , theChaseIsOnV1
       , theChaseIsOnV2
       , theChillOfNight
       , theCityFloods
       , theCloverClub
+      , theConnection
       , theCurseSpreads
       , theDeadWithNoName
       , theDescentBegins
@@ -224,6 +232,8 @@ allAgendaCards =
       , whatLurksBelowV2
       , whatsGoingOn
       , wheelOfFortuneX
+      , whenItRains
+      , whereIsShe
       , whereTheresSmoke
       ]
 
@@ -755,6 +765,36 @@ theSealWeakens = agenda "08671" "The Seal Weakens" 4 StirringInTheDeep
 
 thatWhichHasNoName :: CardDef
 thatWhichHasNoName = agenda "08672" "That Which Has No Name" 5 StirringInTheDeep
+
+whenItRains :: CardDef
+whenItRains = agenda "09502" "When It Rains..." 1 RiddlesAndRain
+
+figuresInTheFog :: CardDef
+figuresInTheFog = agenda "09503" "Figures in the Fog" 2 RiddlesAndRain
+
+theConnection :: CardDef
+theConnection = agenda "09504" "The Connection" 3 RiddlesAndRain
+
+plotsAndPanic :: CardDef
+plotsAndPanic = agenda "09505" "Plots and Panic" 4 RiddlesAndRain
+
+gnashingTeeth :: CardDef
+gnashingTeeth = agenda "09521" "Gnashing Teeth" 1 DeadHeat
+
+emptyStreets :: CardDef
+emptyStreets = agenda "09522" "Empty Steets" 2 DeadHeat
+
+whereIsShe :: CardDef
+whereIsShe = agenda "09546" "Where is She...?" 1 SanguineShadows
+
+seeingRed :: CardDef
+seeingRed = agenda "09562" "Seeing Red" 3 SanguineShadows
+
+agentsOfTheDark :: CardDef
+agentsOfTheDark = agenda "09567" "Agents of the Dark" 1 DealingsInTheDark
+
+theChase :: CardDef
+theChase = agenda "09570" "The Chase" 2 DealingsInTheDark
 
 returnToPredatorOrPrey :: CardDef
 returnToPredatorOrPrey =

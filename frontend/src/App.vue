@@ -51,7 +51,7 @@ const checkAvifSupport = (): Promise<boolean> => {
 };
 </script>
 
-<style lang="scss">
+<style>
 html {
   color-scheme: dark;
   interpolate-size: allow-keywords;
@@ -87,8 +87,28 @@ button {
 }
 
 @font-face {
+  font-family: "Typewriter";
+  src: url("/fonts/typewriter.ttf");
+}
+
+@font-face {
+  font-family: "Accountant";
+  src: url("/fonts/accountant.ttf");
+}
+
+@font-face {
   font-family: "AboutDead";
   src: url("/fonts/AboutDead.ttf");
+}
+
+@font-face {
+  font-family: "Arno";
+  src: url("/fonts/ArnoPro-Regular.otf");
+}
+
+@font-face {
+  font-family: "Albertus";
+  src: url("/fonts/albertus.ttf");
 }
 
 .about-dead {
@@ -98,8 +118,20 @@ button {
 }
 
 @font-face {
+  font-family: 'Materials';
+  font-style: normal;
+  font-weight: 200;
+  src: url("/fonts/materials.ttf");
+}
+
+@font-face {
   font-family: "Noto Sans";
   src: url("/fonts/NotoSans.ttf");
+}
+
+@font-face {
+  font-family: "Unquiet Spirits";
+  src: url("/fonts/UnquietSpirits.ttf");
 }
 
 @font-face {
@@ -125,6 +157,11 @@ button {
 @font-face {
   font-family: "Wolgast";
   src: url("/fonts/WolgastScript.ttf");
+}
+
+@font-face {
+  font-family: "Billenia";
+  src: url("/fonts/billenia.ttf");
 }
 
 @font-face {
@@ -465,6 +502,7 @@ button {
   --box-border: #434c5e;
 
   --title: #cecece;
+  --green-title: #38615F;
   --text: white;
   --spooky-green: #879C5A;
   --spooky-green-dark: #3A5144;
@@ -481,6 +519,7 @@ button {
   --card-width: min(calc(2.5vw + 20px), 60px);
   --card-height: min(calc(3.545vw + 28.36px), 85.08px);
   --card-aspect: 0.705;
+  --tarot-aspec: 0.571429;
   --card-sideways-aspect: 1.41844;
   --card-tarot-aspect: 0.571429;
 
@@ -613,6 +652,33 @@ footer {
   header {
     text-align: center;
     margin-bottom: 10px;
+  }
+}
+
+@property --glow-rotation {
+  syntax: '<angle>';
+  inherits: false;
+  initial-value: 0deg;
+}
+
+@keyframes glow {
+  from {
+    --glow-rotation: 0deg;
+  }
+  to {
+    --glow-rotation: 360deg;
+  }
+}
+
+
+* {
+  &.highlighted {
+    border: 2px solid transparent;
+    background: conic-gradient(from var(--glow-rotation), var(--gradient-glow)) border-box;
+    border-style: inset;
+    border-radius: 3px;
+    position: relative;
+    animation: glow 3s linear infinite;
   }
 }
 </style>

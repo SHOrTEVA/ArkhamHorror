@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import { useSettings } from '@/stores/settings';
 import { storeToRefs } from 'pinia';
-import { onUnmounted, onMounted, computed, ref, watch } from 'vue'
+import { watchEffect, onUnmounted, onMounted, computed, ref, watch } from 'vue'
 import Draggable from '@/components/Draggable.vue';
 import CardView from '@/arkham/components/Card.vue';
 import Modifiers from '@/arkham/components/Modifiers.vue';
@@ -33,7 +33,7 @@ export interface Props {
 }
 
 const props = withDefaults(defineProps<Props>(), { portrait: false })
-const emit = defineEmits(['showCards', 'choose'])
+const emit = defineEmits(['showCards', 'hideCards', 'choose'])
 
 const id = computed(() => props.investigator.id)
 const debug = useDebug()
@@ -183,6 +183,23 @@ onUnmounted(() => {
 
 const showCardsUnderneath = (e: Event) => emit('showCards', e, cardsUnderneath, "Cards Underneath", false)
 const showDevoured = (e: Event) => emit('showCards', e, devoured, "Devoured", false)
+const forcedShowUnder = ref(false)
+
+watch(() => choices.value, () => {
+  const isUnderChoice = (c: Message) => {
+    if (c.tag !== "TargetLabel") return false
+    if (c.target.tag !== "CardIdTarget") return false
+    return props.investigator.cardsUnderneath.some(card => card.contents.id === c.target.contents)
+  }
+  const showUnder = choices.value.some(isUnderChoice)
+  if (showUnder) {
+    showCardsUnderneath(new Event('click'))
+    forcedShowUnder.value = true
+  } else {
+    emit('hideCards')
+    forcedShowUnder.value = false
+  }
+})
 
 const modifiers = computed(() => props.investigator.modifiers)
 
@@ -291,7 +308,7 @@ function onDrop(event: DragEvent) {
     if (data) {
       const json = JSON.parse(data)
       if (json.tag === "KeyTarget") {
-        debug.send(props.game.id, {tag: 'PlaceKey', contents: [{ tag: "InvestigatorTarget", contents: id.value }, { "tag": json.contents }]})
+        debug.send(props.game.id, {tag: 'PlaceKey', contents: [{ tag: "InvestigatorTarget", contents: id.value }, json.contents]})
       }
 
       if (json.tag === "EnemyTarget") {
@@ -410,6 +427,7 @@ function onDrop(event: DragEvent) {
           :game="game"
           :investigator="investigator"
           :choices="choices"
+          :playerId="playerId"
           @choose="$emit('choose', $event)"
         />
       </div>
@@ -419,6 +437,7 @@ function onDrop(event: DragEvent) {
       :game="game"
       :investigator="investigator"
       :choices="choices"
+      :playerId="playerId"
       @choose="$emit('choose', $event)"
     />
 
@@ -434,7 +453,7 @@ function onDrop(event: DragEvent) {
   </div>
 </template>
 
-<style scoped lang="scss">
+<style scoped>
 i.action {
   font-family: 'Arkham';
   font-style: normal;
@@ -461,10 +480,12 @@ i.action {
 .investigator--can-interact {
   border: 2px solid var(--select);
   cursor: pointer;
-  &--portrait {
-    cursor: pointer;
-    border: 3px solid var(--select);
-  }
+}
+
+
+.investigator--can-interact--portrait {
+  cursor: pointer;
+  border: 3px solid var(--select);
 }
 
 .card {

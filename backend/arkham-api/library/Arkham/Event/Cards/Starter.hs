@@ -145,8 +145,7 @@ manoAMano2 =
     , cdCriteria =
         Just
           $ Criteria.FirstAction
-          <> exists (EnemyEngagedWithYou <> EnemyCanBeDamagedBySource ThisCard)
-          <> Criteria.CanDealDamage
+          <> Criteria.canDamageEnemyAtMatch ThisCard Anywhere EnemyEngagedWithYou
     , cdAttackOfOpportunityModifiers = [DoesNotProvokeAttacksOfOpportunity]
     , cdLevel = Just 2
     }
@@ -419,9 +418,9 @@ aTestOfWill2 =
             [ DrawCard
                 #when
                 (affectsOthers $ InvestigatorAt YourLocation)
-                (CanCancelRevelationEffect $ basic $ NonPeril <> NonWeaknessTreachery)
+                (CanCancelRevelationEffect You $ basic $ NonPeril <> NonWeaknessTreachery)
                 EncounterDeck
-            , DrawCard #when You (CanCancelRevelationEffect $ basic NonWeaknessTreachery) EncounterDeck
+            , DrawCard #when You (CanCancelRevelationEffect You $ basic NonWeaknessTreachery) EncounterDeck
             ]
     , cdLevel = Just 2
     }

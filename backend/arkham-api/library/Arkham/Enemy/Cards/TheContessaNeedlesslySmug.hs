@@ -6,6 +6,7 @@ import Arkham.Card
 import Arkham.DamageEffect
 import Arkham.Enemy.Cards qualified as Cards
 import Arkham.Enemy.Import.Lifted hiding (EnemyEvaded)
+import Arkham.Helpers.Enemy
 import Arkham.Helpers.Query (getLead)
 import Arkham.Location.Cards qualified as Locations
 import Arkham.Matcher
@@ -35,8 +36,8 @@ instance HasAbilities TheContessaNeedlesslySmug where
 instance RunMessage TheContessaNeedlesslySmug where
   runMessage msg e@(TheContessaNeedlesslySmug attrs) = runQueueT $ case msg of
     UseThisAbility iid (isSource attrs -> True) 1 -> do
-      readyThis attrs
       roundModifier (attrs.ability 1) iid (CannotBeAttackedBy (be attrs))
+      readyThis attrs
       pure e
     UseThisAbility _iid (isSource attrs -> True) 2 -> do
       throne <- selectJust $ locationIs Locations.throneOfBloodRedAsBloodBlackAsNight
@@ -44,6 +45,7 @@ instance RunMessage TheContessaNeedlesslySmug where
       pure e
     HandleElusive eid | eid == attrs.id -> do
       when (isInPlayPlacement attrs.placement) do
+        disengageEnemyFromAll eid
         whenMatch eid (not_ (EnemyAt $ locationIs Locations.throneOfBloodRedAsBloodBlackAsNight)) do
           lead <- getLead
           chooseOneM lead $ abilityLabeled_ lead (mkAbility attrs 2 $ forced AnyWindow)

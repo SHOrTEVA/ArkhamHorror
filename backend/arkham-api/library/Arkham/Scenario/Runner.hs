@@ -13,6 +13,7 @@ import Arkham.Agenda.AdvancementReason
 import Arkham.Agenda.Sequence qualified as Agenda
 import Arkham.Agenda.Types (Field (..))
 import Arkham.Asset.Types (Field (..))
+import Arkham.Campaign.Types (Field (..))
 import Arkham.CampaignLog
 import Arkham.CampaignLogKey
 import Arkham.Capability
@@ -68,6 +69,7 @@ import Arkham.Placement
 import Arkham.Prelude
 import Arkham.Projection
 import Arkham.Resolution
+import Arkham.Scenario.Options
 import Arkham.Search hiding (drawnCardsL, foundCardsL)
 import Arkham.Search qualified as Search
 import Arkham.Skill.Types qualified as Field
@@ -86,6 +88,7 @@ import Data.Data.Lens (biplate)
 import Data.IntMap.Strict qualified as IntMap
 import Data.List.NonEmpty qualified as NE
 import Data.Map.Strict qualified as Map
+import Data.Monoid (First (..))
 
 instance HasChaosTokenValue ScenarioAttrs where
   getChaosTokenValue iid chaosTokenFace _ = case chaosTokenFace of
@@ -121,7 +124,7 @@ runScenarioAttrs msg a@ScenarioAttrs {..} = runQueueT $ case msg of
         let deckCardCodes = map toCardCode $ unDeck deck
         let ifShouldAdd pc = pc.cardCode `notElem` deckCardCodes
         let investigatorStoryCards = filter ifShouldAdd $ findWithDefault [] iid scenarioStoryCards
-        push $ LoadDeck iid (Deck $ unDeck deck <> investigatorStoryCards)
+        push $ LoadDeck iid (Deck $ unDeck deck <> mapMaybe (preview _PlayerCard) investigatorStoryCards)
     pure $ overAttrs (inResolutionL .~ False) a
   BeginGame -> do
     mFalseAwakeningPointOfNoReturn <-
@@ -270,12 +273,14 @@ runScenarioAttrs msg a@ScenarioAttrs {..} = runQueueT $ case msg of
           (toAgenda : _, Just (fromAgenda : _)) -> do
             let fromAgendaId = AgendaId (toCardCode fromAgenda)
             push (ReplaceAgenda fromAgendaId toAgenda)
-          _ -> error "Could not reset agenda deck to stage"
+          _ -> pure ()
         pure
           $ a
           & (agendaStackL . ix n %~ (prepend <>))
           & (completedAgendaStackL . at n ?~ remaining)
-      _ -> error "Invalid agenda deck to reset"
+      _ -> do
+        -- must be stage 1 already
+        pure a
   AdvanceActDeck n _ -> do
     let completedActStack = fromMaybe mempty $ lookup n scenarioCompletedActStack
     (oldAct, actStack') <- case lookup n scenarioActStack of
@@ -367,12 +372,12 @@ runScenarioAttrs msg a@ScenarioAttrs {..} = runQueueT $ case msg of
           (toAct : _, Just (fromAct : _)) -> do
             let fromActId = ActId (toCardCode fromAct)
             push (ReplaceAct fromActId toAct)
-          _ -> error "Could not reset act deck to stage"
+          _ -> pure ()
         pure
           $ a
           & (actStackL . ix n %~ (prepend <>))
           & (completedActStackL . at n ?~ remaining)
-      _ -> error "Invalid act deck to reset"
+      _ -> pure a
   Do (AdvanceToAgenda n agendaDef newAgendaSide _) -> do
     agendaStack' <- case lookup n scenarioAgendaStack of
       Just (x : ys) -> do
@@ -578,6 +583,18 @@ runScenarioAttrs msg a@ScenarioAttrs {..} = runQueueT $ case msg of
       & (encounterDeckL %~ withDeck (filter (/= ec)))
       & (victoryDisplayL %~ filter (/= EncounterCard ec))
       & (setAsideCardsL %~ filter (/= EncounterCard ec))
+  AddToSpecificEncounterDiscard _ ec -> do
+    quietCancelCardDraw (EncounterCard ec)
+    pushAll [ObtainCard (toCardId ec), Do msg]
+    pure a
+  Do (AddToSpecificEncounterDiscard dkey ec) -> do
+    let handler = specificEncounterDeckHandler dkey
+    pure
+      $ a
+      & (discardLens handler %~ (ec :))
+      & (encounterDeckL %~ withDeck (filter (/= ec)))
+      & (victoryDisplayL %~ filter (/= EncounterCard ec))
+      & (setAsideCardsL %~ filter (/= EncounterCard ec))
   AddToVictory (SkillTarget sid) -> do
     card <- field Field.SkillCard sid
     pure $ a & (victoryDisplayL %~ (card :))
@@ -649,7 +666,7 @@ runScenarioAttrs msg a@ScenarioAttrs {..} = runQueueT $ case msg of
     pure $ a & setAsideCardsL %~ deleteFirstMatch (== card) & victoryDisplayL %~ filter (/= card)
   AttachStoryTreacheryTo _ card _ -> do
     pure $ a & setAsideCardsL %~ deleteFirstMatch (== card) & victoryDisplayL %~ filter (/= card)
-  CreateEnemy (enemyCreationCard -> card) -> do
+  CreateEnemy creation@(enemyCreationCard -> card) | not creation.leaveEnemyWhereItIs -> do
     pure
       $ a
       & (setAsideCardsL %~ deleteFirstMatch (== card))
@@ -791,7 +808,7 @@ runScenarioAttrs msg a@ScenarioAttrs {..} = runQueueT $ case msg of
     replaceCard card.id card'
     when (shouldShuffleIn == ShuffleIn) do
       push $ ShuffleCardsIntoDeck (Deck.InvestigatorDeck iid) [card']
-    pure $ if standalone then a & storyCardsL %~ insertWith (<>) iid (onlyPlayerCards [card']) else a
+    pure $ if standalone then a & storyCardsL %~ insertWith (<>) iid [card'] else a
   LookAtTopOfDeck iid EncounterDeckTarget n -> do
     let cards = map EncounterCard . take n $ unDeck scenarioEncounterDeck
     player <- getPlayer iid
@@ -808,6 +825,11 @@ runScenarioAttrs msg a@ScenarioAttrs {..} = runQueueT $ case msg of
         pure $ a & discardLens handler %~ (ec :)
       VengeanceCard _ -> error "vengeance card"
   DrewCards iid drew | isNothing drew.target -> do
+    for_ (toList drew.rules) \case
+      WithDrawnCardModifiers source modifiers -> do
+        for_ drew.cards \card -> Lifted.cardResolutionModifiers card source card modifiers
+      _ -> pure ()
+
     let playerCards = onlyPlayerCards drew.cards
     when (notNull playerCards) do
       pushAll $ InvestigatorDrewPlayerCardFrom iid <$> playerCards <*> pure (Just drew.deck)
@@ -865,8 +887,9 @@ runScenarioAttrs msg a@ScenarioAttrs {..} = runQueueT $ case msg of
     pure a
   DoBatch _ (Search (MkSearch _ iid _ (toScenarioHandleDeck -> Just (deck, _)) _ _ foundStrategy _ _)) -> do
     let isDrawing = isSearchDraw foundStrategy
-    wouldDrawCard <- checkWindows [mkWhen (Window.WouldDrawCard iid deck)]
-    pushAll $ [wouldDrawCard | isDrawing] <> [Do msg]
+    cid <- getRandom
+    wouldDrawCard <- checkWindows [mkWhen (Window.WouldDrawCard iid cid deck)]
+    pushAll $ [wouldDrawCard | isDrawing] <> [Do msg, DrawEnded cid iid]
     pure a
   Do
     ( DoBatch
@@ -1311,8 +1334,13 @@ runScenarioAttrs msg a@ScenarioAttrs {..} = runQueueT $ case msg of
       encounterDecksF = case cardSource of
         FromEncounterDeck -> encounterDecksL . each . _1 %~ withDeck (filter ((/= cardId) . toCardId))
         _ -> id
+      signifier = case cardSource of
+        FromEncounterDeck -> Just Deck.EncounterDeck
+        FromKeyedEncounterDeck key -> Just $ Deck.EncounterDeckByKey key
+        FromDiscard -> Just Deck.EncounterDiscard
+        _ -> Nothing
     shuffled <- shuffleM encounterDeck
-    push (InvestigatorDrewEncounterCard iid card)
+    push $ InvestigatorDrewEncounterCardFrom iid card signifier
     pure $ a & (encounterDeckL .~ Deck shuffled) & (discardL .~ discard) & encounterDecksF
   FoundEncounterCardFrom iid target cardSource card -> do
     let
@@ -1387,6 +1415,10 @@ runScenarioAttrs msg a@ScenarioAttrs {..} = runQueueT $ case msg of
     pure a
   FindAndDrawEncounterCard iid matcher includeDiscard -> do
     handler <- getEncounterDeckHandler iid
+    deckKey <-
+      getEncounterDeckKey iid <&> \case
+        RegularEncounterDeck -> FromEncounterDeck
+        other -> FromKeyedEncounterDeck other
     let
       matchingDiscards = filter (`cardMatch` matcher) (a ^. discardLens handler)
       matchingDeckCards =
@@ -1404,7 +1436,7 @@ runScenarioAttrs msg a@ScenarioAttrs {..} = runQueueT $ case msg of
         ]
           <> [ targetLabel
                  (toCardId card)
-                 [FoundAndDrewEncounterCard iid FromEncounterDeck card]
+                 [FoundAndDrewEncounterCard iid deckKey card]
              | card <- matchingDeckCards
              ]
 
@@ -1571,6 +1603,26 @@ runScenarioAttrs msg a@ScenarioAttrs {..} = runQueueT $ case msg of
           ]
     pushAll [RemoveAllDoom (toSource a) target | target <- xs]
     pure a
+  LoadScenario opts -> do
+    pushAll
+      $ [LoadTarotDeck, SetChaosTokensForScenario, PreScenarioSetup, HandleKilledOrInsaneInvestigators]
+      <> [StandaloneSetup | scenarioOptionsStandalone opts]
+      <> [ChooseLeadInvestigator, SetPlayerOrder]
+      <> [PerformTarotReading | scenarioOptionsPerformTarotReading opts]
+      <> [CheckDestiny, SetupInvestigators, InvestigatorsMulligan, Setup, EndSetup]
+    pure $ a & startedL .~ True
+  CheckDestiny ->
+    fromMaybe a <$> runMaybeT do
+      c <- MaybeT $ selectOne Matcher.TheCampaign
+      destiny <- lift $ field CampaignDestiny c
+      card <- hoistMaybe $ Map.lookup scenarioScope destiny
+      lift do
+        sendTarot $ toJSON [card]
+        pure
+          $ a
+          & (tarotCardsL . at GlobalTarot . non [] .~ [card])
+          & tarotDeckL
+          %~ delete (toTarotArcana card)
   SetupInvestigators -> do
     iids <- allInvestigators
     pushAll $ map SetupInvestigator iids <> [DrawStartingHands]
@@ -1604,8 +1656,12 @@ runScenarioAttrs msg a@ScenarioAttrs {..} = runQueueT $ case msg of
       & (completedActStackL . at n ?~ (oldAct : completedActStack))
   PlaceKey ScenarioTarget k -> do
     pure $ a & setAsideKeysL %~ deleteSet k & keysL %~ insertSet k
+  PlaceKey GameTarget k -> do
+    pure $ a & setAsideKeysL %~ insertSet k & keysL %~ deleteSet k
   PlaceKey target k | not (isTarget a target) -> do
     pure $ a & (setAsideKeysL %~ deleteSet k)
+  PlaceTokens _ ScenarioTarget token amount -> do
+    pure $ a & tokensL %~ addTokens token amount
   RemoveTokens _ ScenarioTarget token amount -> do
     pure $ a & tokensL %~ subtractTokens token amount
   RestartScenario -> do
@@ -1661,7 +1717,7 @@ runScenarioAttrs msg a@ScenarioAttrs {..} = runQueueT $ case msg of
         TarotCard Reversed arcana' | arcana' == arcana -> TarotCard Upright arcana'
         c -> c
     pure $ a & tarotCardsL . each %~ map rotate
-  After (X.EnemyDefeated eid _ _ _) -> do
+  Do (X.EnemyDefeated eid _ _ _) -> do
     eattrs <- getAttrs @Enemy eid
     printedHealth <- calculatePrinted (enemyHealth eattrs)
     enemyHealth <- fieldWithDefault printedHealth EnemyHealth eid
@@ -1728,4 +1784,33 @@ runScenarioAttrs msg a@ScenarioAttrs {..} = runQueueT $ case msg of
     pure a
   StoryMessage (ReadStoryWithPlacement _ card _ _ _) -> do
     pure $ a & setAsideCardsL %~ filter (/= card)
+  SetDecksLayout layout -> do
+    pure $ a & decksLayoutL .~ layout
+  PlaceConcealedCards _iid _cards lids -> do
+    Lifted.forTargets lids msg
+    pure a
+  ForTargets ls (PlaceConcealedCards iid (card : cards) lids) -> do
+    let
+      isForcedPlacement = \case
+        ForceConcealedPlacement p -> Just p
+        _ -> Nothing
+    forcedPlacement <- getFirst . foldMap (First . isForcedPlacement) <$> getModifiers ScenarioTarget
+    let original = [l | LocationTarget l <- ls]
+    case forcedPlacement of
+      Just p -> for_ (card : cards) \c -> push $ PlaceConcealedCard iid c p
+      Nothing -> do
+        case lids of
+          [] | notNull original -> Lifted.forTargets original $ PlaceConcealedCards iid (card : cards) original
+          [lid] -> do
+            push $ PlaceConcealedCard iid card (AtLocation lid)
+            Lifted.forTargets original $ PlaceConcealedCards iid cards (deleteFirst lid lids)
+          _ -> do
+            if length lids == length (card : cards)
+              then for_ (zip (card : cards) lids) \(c, lid) -> push $ PlaceConcealedCard iid c (AtLocation lid)
+              else do
+                locations <- select $ Matcher.NearestLocationTo iid (Matcher.mapOneOf Matcher.LocationWithId lids)
+                chooseTargetM iid locations \lid -> do
+                  push $ PlaceConcealedCard iid card (AtLocation lid)
+                  Lifted.forTargets original $ PlaceConcealedCards iid cards (deleteFirst lid lids)
+    pure a
   _ -> pure a

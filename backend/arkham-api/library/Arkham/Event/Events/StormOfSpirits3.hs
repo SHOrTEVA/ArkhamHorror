@@ -2,6 +2,7 @@ module Arkham.Event.Events.StormOfSpirits3 (stormOfSpirits3, stormOfSpirits3Effe
 
 import Arkham.Action qualified as Action
 import Arkham.Aspect hiding (aspect)
+import Arkham.Campaigns.TheScarletKeys.Concealed.Helpers
 import Arkham.ChaosToken
 import Arkham.Classes
 import Arkham.DamageEffect
@@ -37,6 +38,7 @@ instance RunMessage StormOfSpirits3 where
             then EnemyDamage eid' $ delayDamage $ attack attrs 3
             else EnemyDamage eid' $ delayDamage $ isDirect $ attack attrs 3
       for_ eids $ checkDefeated attrs
+      chooseExposeConcealed iid attrs
       pure e
     _ -> StormOfSpirits3 <$> liftRunMessage msg attrs
 
