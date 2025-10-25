@@ -62,10 +62,16 @@ function chooseAbility(index: number) {
   emits('choose', index);
 }
 
+function hideAbilitiesMenu() {
+  if (props.abilities.length !== 1 || props.abilities.some(a => 'ability' in a.contents && a.contents.ability.source.tag === 'LocationSource' )) {
+    showAbilities.value = false;
+  }
+}
+
 watch(
   () => props.abilities,
   (newAbilities) => {
-    if (newAbilities.some(a => 'ability' in a.contents && a.contents.ability.type.tag === 'ForcedAbility')) {
+    if (newAbilities.some(a => 'ability' in a.contents && a.contents.ability.type.tag === 'ForcedAbility' ) || (newAbilities.length === 1 && !newAbilities.some(a => 'ability' in a.contents && a.contents.ability.source.tag === 'LocationSource' ))) {
       showAbilities.value = true;
       nextTick(() => calculatePosition());
     } else if (newAbilities.length === 0) {
@@ -84,7 +90,7 @@ watch(showAbilities, (newValue) => {
 
 <template>
   <Teleport to="body">
-    <OnClickOutside @trigger="showAbilities = false" v-if="showAbilities" :options="{ ignore: [frame] }">
+    <OnClickOutside @trigger="hideAbilitiesMenu()" v-if="showAbilities" :options="{ ignore: [frame] }">
       <div class="abilities" :class="position" :style="abilitiesPosition" ref="abilitiesRef" >
         <AbilityButton
           v-for="{index, contents} in abilities"
