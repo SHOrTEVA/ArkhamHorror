@@ -73,6 +73,16 @@ const drawCardsAction = computed(() => {
     });
 })
 
+const discardCardsAction = computed(() => {
+  return choices
+    .value
+    .some(choice => 
+      discards
+        .value
+        .some(discardItem => discardItem.contents.id === choice.target?.contents)
+    )
+})
+
 const noCards = computed<ArkhamCard.Card[]>(() => [])
 
 // eslint-disable-next-line
@@ -111,6 +121,10 @@ const dragover = (e: DragEvent) => {
   }
 }
 
+const canSelectDraw = computed(() => {
+  return Object.entries(props.investigator.foundCards).length == 0
+})
+
 const doShowCards = (event: Event, cards: ComputedRef<ArkhamCard.Card[]>, title: string, isDiscards: boolean) => {
   cardRowTitle.value = title
   showCards.ref = cards
@@ -126,8 +140,9 @@ const discards = computed<ArkhamCard.Card[]>(() => props.investigator.discard.ma
     @drop="onDropDiscard($event)"
     @dragover.prevent="dragover($event)"
     @dragenter.prevent
+    @click="showDiscards"
   >
-    <Card v-if="topOfDiscard" :game="game" :card="topOfDiscard" :playerId="playerId" @choose="emit('choose', $event)" />
+    <Card v-if="topOfDiscard" :class="{'discard--can-use': discardCardsAction === true}" :game="game" :card="topOfDiscard" :playerId="playerId" />
     <button v-if="discards.length > 0" class="view-discard-button" @click="showDiscards">{{viewDiscardLabel}}</button>
     <button v-if="debug.active && discards.length > 0" class="view-discard-button" @click="debug.send(game.id, {tag: 'ShuffleDiscardBackIn', contents: investigatorId})">Shuffle Back In</button>
   </div>
@@ -164,58 +179,57 @@ const discards = computed<ArkhamCard.Card[]>(() => props.investigator.discard.ma
       <button v-if="playTopOfDeckAction !== -1" @click="emit('choose', playTopOfDeckAction)">Play</button>
     </div>
     <template v-if="debug.active">
-      <button @click="debug.send(game.id, {tag: 'Search', contents: ['Looking', investigatorId, {tag: 'GameSource', contents: []}, { tag: 'InvestigatorTarget', contents: investigatorId }, [[{tag: 'FromDeck', contents: []}, 'ShuffleBackIn']], {tag: 'BasicCardMatch', contents: {tag: 'AnyCard', contents: []}}, { tag: 'DrawFound', contents: [investigatorId, 1]}]})">Select Draw</button>
+      <button v-if="canSelectDraw" @click="debug.send(game.id, {tag: 'Search', contents: ['Looking', investigatorId, {tag: 'GameSource', contents: []}, { tag: 'InvestigatorTarget', contents: investigatorId }, [[{tag: 'FromDeck', contents: []}, 'ShuffleBackIn']], {tag: 'BasicCardMatch', contents: {tag: 'AnyCard', contents: []}}, { tag: 'DrawFound', contents: [investigatorId, 1]}]})">Select Draw</button>
       <button @click="debug.send(game.id, {tag: 'ShuffleDeck', contents: {tag: 'InvestigatorDeck', contents: investigatorId}})">Shuffle</button>
     </template>
   </div>
 </template>
 
-<style scoped lang="scss">
-
-.deck--can-draw {
-  border: 2px solid var(--select);
-  border-radius: 10px;
-  cursor: pointer;
-}
+<style scoped>
 
 .discard {
-  width: var(--card-width);
+  cursor: pointer;
   button {
     white-space: nowrap;
     text-wrap: pretty;
   }
 
+  @media (min-width: 801px) {
+    width: var(--card-width);
+    :deep(button) {
+      display: block;
+    }
+  }
+
   &:deep(.card) {
     margin: 0;
     box-shadow: none;
+    filter: grayscale(.85);
+    width: var(--card-width);
+    @media (max-width: 800px) and (orientation: portrait)  {
+      width: calc(var(--pool-token-width)*1.2);
+    }
   }
 
   &:deep(.card-container) {
-    width: var(--card-width);
     margin: 0;
-    position:relative;
+    position: relative;
     display: inline-flex;
-    &::after {
-      pointer-events: none;
-      border-radius: 6px;
-      content: "";
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background-color: #FFF;
-      opacity: .85;
-      mix-blend-mode: saturation;
-    }
+
   }
-  @media (max-width: 800px) and (orientation: portrait)  {
-    :deep(button){
-        display: none;
-    }
-    :deep(.card){
-        max-width: calc(var(--pool-token-width)*1.2);
-    }
+}
+
+.discard--can-use{
+  &::before {
+    content: '';
+    position: absolute;
+    border-radius: 6px;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;      
+    z-index: 1;
+    box-shadow: inset 0 0 0 2px var(--select);
   }
 }
 
@@ -225,6 +239,11 @@ const discards = computed<ArkhamCard.Card[]>(() => props.investigator.discard.ma
   @media (max-width: 800px) and (orientation: portrait)  {
     max-width: calc(var(--pool-token-width)*1.2);
   }
+}
+
+.card-container {
+  display: flex;
+  flex-direction: column;
 }
 
 .view-discard-button {
@@ -239,11 +258,10 @@ const discards = computed<ArkhamCard.Card[]>(() => props.investigator.discard.ma
   }
 }
 
-.top-of-deck {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  width: fit-content;
+.deck--can-draw {
+  border: 2px solid var(--select);
+  border-radius: 6px;
+  cursor: pointer;
 }
 
 .deck-size {
@@ -263,9 +281,11 @@ const discards = computed<ArkhamCard.Card[]>(() => props.investigator.discard.ma
   transform: translateY(-28.0%);
 }
 
-.card-container {
+.top-of-deck {
+  position: relative;
   display: flex;
   flex-direction: column;
+  width: fit-content;
 }
 
 </style>

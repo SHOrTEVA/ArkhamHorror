@@ -2,6 +2,7 @@
 import { ref } from 'vue';
 import type { User } from '@/types';
 import { useDbCardStore } from '@/stores/dbCards'
+import { checkImageExists } from '@/arkham/helpers'
 
 const props = defineProps<{
   user: User
@@ -17,6 +18,7 @@ const updateLanguage = async (a: Event) => {
   const target = a.target as HTMLInputElement;
   localStorage.setItem('language', target.value)
   await store.initDbCards()
+  await checkImageExists()
 }
 </script>
 
@@ -55,7 +57,7 @@ const updateLanguage = async (a: Event) => {
   </div>
 </template>
 
-<style lang="scss" scoped>
+<style scoped>
 input[type="radio"] {
   display: unset;
 }
