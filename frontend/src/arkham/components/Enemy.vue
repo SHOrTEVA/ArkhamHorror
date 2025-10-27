@@ -193,7 +193,11 @@ async function clicked() {
     emits('choose', cardAction.value)
     showAbilities.value = false
   } else if (abilities.value.length > 0) {
-    showAbilities.value = !showAbilities.value
+    if (abilities.value.length === 1 ) {
+      emits('choose', abilities.value[0].index)
+    } else {
+      showAbilities.value = !showAbilities.value
+    }
   } else {
     showAbilities.value = false
   }
@@ -378,6 +382,21 @@ function startDrag(event: DragEvent, enemy: Arkham.Enemy) {
   border: 2px solid var(--select);
   border-radius: 5px;
   cursor: pointer;
+  @media (max-width: 800px) and (orientation: portrait){
+    border: 2px solid red;
+    filter: drop-shadow(0 0 0.5vmin darkred) drop-shadow(0 0.5vmin 0.5vmin darkred) drop-shadow(0.5vmin -0.5vmin 1vmin darkred) drop-shadow(0 0 1vmin darkred);
+    animation: blood-drip 0.5s ease-in-out, blood-glow 3s cubic-bezier(0.55, 0.085, 0.68, 0.53) infinite;
+
+    @keyframes blood-drip {
+      0% { transform: translateY(0); }
+      50% { transform: translateY(0.25vmin); }
+      100% { transform: translateY(0); }
+    }
+
+    @keyframes blood-glow {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.9; }
+    }} 
 }
 
 .enemy {
@@ -395,13 +414,14 @@ function startDrag(event: DragEvent, enemy: Arkham.Enemy) {
 }
 
 .pool {
+  width: 150%;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
   position: absolute;
   top: 10%;
-  align-items: center;
   display: flex;
   flex-wrap: wrap;
-  align-self: flex-start;
-  align-items: flex-end;
   z-index: 15;
   :deep(img) {
     width: 20px;

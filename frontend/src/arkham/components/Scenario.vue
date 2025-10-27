@@ -1102,7 +1102,6 @@ async function addChaosToken(face: any){
   position: relative;
   width: 100%;
   gap: 10px;
-  z-index: -2;
   @media (max-width: 800px) and (orientation: portrait) {
     padding-top: 10px;
     padding-bottom: 0;
@@ -1201,6 +1200,8 @@ async function addChaosToken(face: any){
   scroll-padding: 30%;
   place-content: safe center;
   display: grid;
+  /*Non-mobile with the columns being stretched out extensively*/
+  //grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   flex-shrink: 0;
 }
 

@@ -220,6 +220,15 @@ const eclipses = computed(() => props.agenda.tokens[TokenType.Eclipse])
     height: min-content;
     align-self: center;
   }
+  @media (max-width: 800px) and (orientation: portrait) {
+    :deep(span) {
+      font-size:.55em;
+    }
+    :deep(.poolItem.poolItem-doom) {
+      width: .7em;
+      height: fit-content;
+    }
+  }
 }
 
 .button{
@@ -252,6 +261,9 @@ const eclipses = computed(() => props.agenda.tokens[TokenType.Eclipse])
   /*position: inherit;*/
   transition: margin-top 0.3s;
   position: relative;
+  @media (max-width: 800px) and (orientation: portrait) {
+    margin-top: -70%;
+  }
 
   &:hover {
     margin-top: 0px;

@@ -242,6 +242,9 @@ const chosenDeckTabooList = computed(() => {
     color: white;
     margin-bottom: 10px;
   }
+  button{
+    font-size:small;
+  }
 }
 
 .portraits {
@@ -394,6 +397,7 @@ select {
   max-width: unset;
   height: 100%;
   margin: 0;
+  overflow: auto;
 }
 
 form {
@@ -478,6 +482,14 @@ form {
           width: 100%;
           margin: 0;
         }
+        @media (max-width: 800px) and (orientation: portrait) {
+          align-items: center;
+          text-align: left;
+          hyphens: auto;
+          overflow-wrap: break-word;
+          word-wrap: break-word;
+          white-space: pre-wrap;
+        }
       }
     }
   }
@@ -514,7 +526,25 @@ option.guardian {
   background-color: var(--guardian-dark);
 }
 
+option.seeker {
+  background-color: var(--seeker-dark);
+}
+
+option.survivor {
+  background-color: var(--survivor-dark);
+}
+
+option.rogue {
+  background-color: var(--rogue-dark);
+}
+
+option.neutral {
+  background-color: var(--neutral-dark);
+}
+
 option.mystic {
   background-color: var(--mystic-dark);
 }
+
+
 </style>

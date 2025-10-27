@@ -85,6 +85,29 @@ function tarotCardsFor(i: string) {
   return props.tarotCards.filter(c => c.scope.tag === 'InvestigatorTarot' && c.scope.contents === i)
 }
 
+function showNextTab() {
+  for (const i of Object.values(props.players)) {
+    if (i.playerId === selectedTab.value) {
+      const currentIndex = props.playerOrder.indexOf(i.id)
+      const nextIndex = (currentIndex + 1) % props.playerOrder.length
+      const cardCode = props.playerOrder[nextIndex]
+      selectedTab.value = props.players[cardCode].playerId
+      break
+    }
+  }
+}
+
+function showPrevTab() {
+  for (const i of Object.values(props.players)) {
+    if (i.playerId === selectedTab.value) {
+      const currentIndex = props.playerOrder.indexOf(i.id)
+      const prevIndex = (currentIndex - 1 + props.playerOrder.length) % props.playerOrder.length
+      const cardCode = props.playerOrder[prevIndex]
+      selectedTab.value = props.players[cardCode].playerId
+      break
+    }
+  }
+}
 function getInvestigatorName(cardTitle: string): string {
   const language = localStorage.getItem('language') || 'en'
   return language === 'en'? cardTitle : store.getCardName(cardTitle, "investigator")
@@ -196,6 +219,8 @@ watchEffect(() => {
         :investigator="investigator"
         :tarotCards="tarotCardsFor(investigator.id)"
         @choose="$emit('choose', $event)"
+        @swipe-right="showPrevTab"
+        @swipe-left="showNextTab"
       />
     </Tab>
     <Tab
@@ -215,6 +240,8 @@ watchEffect(() => {
         :investigator="investigator"
         :tarotCards="tarotCardsFor(investigator.id)"
         @choose="$emit('choose', $event)"
+        @swipe-right="showNextTab"
+        @swipe-left="showPrevTab"
       />
     </Tab>
   </div>
@@ -291,6 +318,9 @@ ul.tabs__header > li.tab--selected {
 
 .player-info {
   margin-top: -32px;
+  @media (max-width: 800px) and (orientation: portrait) {
+    margin-top: 0;
+  }
 }
 
 .tab--lead-player {
